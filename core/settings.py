@@ -9,7 +9,7 @@ SECRET_KEY = 'secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['43.205.194.221']
 
 INSTALLED_APPS = [
      'jazzmin',
