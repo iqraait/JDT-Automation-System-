@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure Redirect | JDT College Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #1e40af;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 flex items-center justify-center min-h-screen p-6" onload="document.ccavenue_form.submit();">
+    
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-12 text-center border border-slate-100 relative overflow-hidden">
+        
+        <!-- DECORATIVE ACCENTS -->
+        <div class="absolute top-0 right-0 -mr-8 -mt-8 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl"></div>
+
+        <!-- LOADER -->
+        <div class="relative flex items-center justify-center mb-10">
+            <div class="loader w-20 h-20 border-4 border-slate-100 rounded-full"></div>
+            <div class="absolute w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-black text-slate-800 mb-3">Redirecting to Secure Payment</h2>
+        <p class="text-slate-500 font-medium leading-relaxed mb-8">
+            Please do not refresh this page or click the back button. We are securely connecting you to the CCAvenue payment gateway.
+        </p>
+
+        <div class="flex items-center justify-center gap-3 text-[10px] uppercase tracking-widest font-black text-slate-300">
+            <span>Encrypted Connection</span>
+            <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+            <span>JDT Islam Gateway</span>
+        </div>
+        
+        <form name="ccavenue_form" method="POST" action="{{ action_url }}">
+            <input type="hidden" name="encRequest" value="{{ enc_request }}">
+            <input type="hidden" name="access_code" value="{{ access_code }}">
+        </form>
+    </div>
+
+</body>
+</html>

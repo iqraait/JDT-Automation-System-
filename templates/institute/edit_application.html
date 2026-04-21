@@ -1,0 +1,205 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Application Audit | JDT Automation{% endblock %}
+
+{% block extra_head %}
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-in { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>
+{% endblock %}
+
+{% block header_title %}Student Application Audit{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-10 pb-20">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 glass-panel p-10 rounded-[3rem] shadow-2xl shadow-slate-200/50">
+        <div class="flex items-center gap-6">
+            <div class="w-20 h-20 bg-blue-600 text-white rounded-[2.5rem] flex items-center justify-center shadow-xl shadow-blue-200 border-4 border-white rotate-3">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-4xl font-black text-slate-900 tracking-tighter">Application Audit</h2>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-widest">Case #{{ app.form_no }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                    <p class="text-sm text-slate-500 font-bold">Reviewing profile for {{ app.course.name }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+             <a href="/institute/dashboard/" class="px-6 py-4 text-slate-500 font-bold hover:text-slate-900 transition-colors">Discard Review</a>
+             <a href="{% url 'download_application' app.id %}"
+                class="inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-emerald-100 group">
+                <svg class="w-5 h-5 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download ZIP (Archive)
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-10">
+        {% csrf_token %}
+
+            <!-- DYNAMIC SECTIONS -->
+            {% regroup fields by section.name as section_list %}
+            {% for section in section_list %}
+            <div class="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden animate-slide-in" style="animation-delay: {{ forloop.counter0 }}00ms">
+                <div class="bg-slate-50/50 px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-black text-slate-800 text-sm uppercase tracking-[0.2em]">{{ section.grouper }}</h3>
+                    <div class="w-8 h-1 bg-slate-200 rounded-full"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 p-12">
+                    {% for field in section.list %}
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{{ field.label }}</label>
+
+                        {% if field.field_type == "text" %}
+                        <input type="text" name="field_{{ field.id }}" value="{{ field.value }}"
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all font-bold text-slate-700 outline-none">
+
+                        {% elif field.field_type == "number" %}
+                        <input type="number" name="field_{{ field.id }}" value="{{ field.value }}"
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all font-bold text-slate-700 outline-none">
+
+                        {% elif field.field_type == "date" %}
+                        <input type="date" name="field_{{ field.id }}" value="{{ field.value }}"
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all font-bold text-slate-700 outline-none">
+
+                        {% elif field.field_type == "textarea" %}
+                        <textarea name="field_{{ field.id }}"
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all font-bold text-slate-700 outline-none h-32">{{ field.value }}</textarea>
+
+                        {% elif field.field_type == "select" %}
+                        <select name="field_{{ field.id }}" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all font-bold text-slate-700 outline-none appearance-none cursor-pointer">
+                            {% for opt in field.options.all %}
+                            <option value="{{ opt.value }}" {% if field.value == opt.value %}selected{% endif %}>{{ opt.display_text }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <!-- ACADEMIC MATRIX (TIE-BREAKERS) -->
+                        {% if "exam" in field.label|lower %}
+                        <div class="mt-6 p-8 bg-blue-50/50 rounded-[2.5rem] border-2 border-blue-100 col-span-1 md:col-span-2">
+                            <h4 class="text-[10px] font-black text-blue-600 mb-6 uppercase tracking-[0.2em] flex items-center gap-3">
+                                <span class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-mono">Σ</span>
+                                Metric Performance Data
+                            </h4>
+                            <div class="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-400">
+                                            <th class="px-6 py-4 text-left uppercase tracking-widest font-black">Subject Cluster</th>
+                                            <th class="px-6 py-4 text-center uppercase tracking-widest font-black">Audit Marks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        {% for s in subjects %}
+                                        <tr class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="px-6 py-5 font-black text-slate-700 text-sm">{{ s.name }}</td>
+                                            <td class="px-6 py-5">
+                                                <div class="flex items-center justify-center gap-3">
+                                                    <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}"
+                                                           class="w-24 bg-slate-50 border-2 border-slate-100 p-3 rounded-xl font-black text-blue-600 text-center focus:border-blue-500 outline-none transition-all">
+                                                    <span class="text-slate-300 font-bold text-[10px] italic">MAX 100</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% elif field.field_type == "radio" %}
+                        <div class="flex flex-wrap gap-6 pt-3">
+                            {% for opt in field.options.all %}
+                            <label class="flex items-center gap-3 cursor-pointer group px-5 py-3 bg-slate-50 rounded-2xl border-2 border-transparent hover:border-blue-200 transition-all">
+                                <input type="radio" name="field_{{ field.id }}" value="{{ opt.value }}" {% if field.value == opt.value %}checked{% endif %}
+                                       class="w-5 h-5 text-blue-600 border-slate-300 focus:ring-blue-500">
+                                <span class="text-sm text-slate-700 font-bold group-hover:text-blue-600 transition-colors">{{ opt.display_text }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        {% elif field.field_type == "file" %}
+                        <div class="space-y-4">
+                            <div class="relative">
+                                <input type="file" name="field_{{ field.id }}" id="file_{{ field.id }}" class="hidden">
+                                <label for="file_{{ field.id }}" class="flex items-center justify-center gap-3 px-8 py-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                    <span class="text-sm font-bold text-slate-500">Replace Audit Document</span>
+                                </label>
+                            </div>
+                            {% if field.value %}
+                            <div class="flex justify-center">
+                                <a href="/media/{{ field.value }}" target="_blank"
+                                    class="inline-flex items-center gap-2 text-blue-600 text-xs font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    Inspect Current Linked File
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- FINAL DISPOSITION CARD -->
+            <div class="bg-slate-900 rounded-[4rem] p-12 md:p-16 text-white shadow-[0_50px_100px_-20px_rgba(15,23,42,0.3)] relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/10 rounded-full blur-[100px] -ml-32 -mb-32"></div>
+                
+                <h3 class="text-2xl font-black mb-12 flex items-center gap-4 relative">
+                    <span class="w-2 h-8 bg-blue-500 rounded-full"></span>
+                    Audit Disposition & Finalization
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 relative">
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Update Status Pipeline</label>
+                        <div class="relative">
+                            <select name="status" class="w-full bg-white/5 border-2 border-white/10 text-white px-8 py-5 rounded-[2rem] focus:ring-4 focus:ring-blue-500/20 focus:bg-white/10 outline-none transition-all font-black text-lg appearance-none cursor-pointer">
+                                <option class="text-slate-900 bg-white" value="pending" {% if app.status == "pending" %}selected{% endif %}>🕒 Under Audit</option>
+                                <option class="text-slate-900 bg-white" value="selected" {% if app.status == "selected" %}selected{% endif %}>✅ Merit Admitted</option>
+                                <option class="text-slate-900 bg-white" value="rejected" {% if app.status == "rejected" %}selected{% endif %}>❌ Eligibility Denied</option>
+                                <option class="text-slate-900 bg-white" value="hold" {% if app.status == "hold" %}selected{% endif %}>⏸ Review Hold</option>
+                            </select>
+                            <div class="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Internal Reviewer Remarks</label>
+                        <textarea name="remarks" class="w-full bg-white/5 border-2 border-white/10 text-white px-8 py-5 rounded-[2rem] focus:ring-4 focus:ring-blue-500/20 focus:bg-white/10 outline-none transition-all font-bold min-h-[140px] placeholder:text-slate-700" placeholder="Enter findings or requirement gaps...">{{ app.remarks }}</textarea>
+                    </div>
+                </div>
+
+                <div class="pt-12 border-t border-white/10 mt-12 flex flex-col md:flex-row items-center justify-between gap-6 relative">
+                    <p class="text-slate-500 text-xs font-bold italic">Audit actions are logged and timestamped for regulatory compliance.</p>
+                    <button class="w-full md:w-auto px-16 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all transform hover:scale-[1.05] active:scale-95 shadow-[0_20px_50px_rgba(37,99,235,0.4)] flex items-center justify-center gap-4">
+                        Confirm Audit Result
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}

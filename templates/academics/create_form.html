@@ -1,0 +1,117 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Form Builder | Academic Panel{% endblock %}
+
+{% block header_title %}Field Architect{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <span class="font-medium">Dashboard</span>
+</a>
+
+<a href="/academics/courses/" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+    <span class="font-medium">Courses</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <!-- BREADCRUMB / BACK LINK -->
+    <a href="/academics/courses/" class="inline-flex items-center gap-2 text-slate-400 hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors group">
+        <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        Back to Course Inventory
+    </a>
+
+    <!-- FORM BUILDER CARD -->
+    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        
+        <div class="bg-slate-50 border-b border-slate-100 p-8 md:p-10">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Configure Application Field</h2>
+            <p class="text-slate-500">Define a new input field for the student application journey.</p>
+        </div>
+
+        <form method="POST" class="p-8 md:p-12 space-y-10">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <!-- Label -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Visible Label</label>
+                    <input name="label" placeholder="e.g. Guardian's Mobile Number" required
+                           class="w-full bg-slate-50 border border-slate-200 px-4 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white focus:border-blue-600 transition-all outline-none font-bold text-slate-800">
+                </div>
+
+                <!-- Field Type -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Input Mechanism</label>
+                    <div class="relative">
+                        <select name="field_type" class="w-full bg-slate-50 border border-slate-200 px-4 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-slate-800">
+                            <option value="text">Text Entry</option>
+                            <option value="number">Numeric Value</option>
+                            <option value="date">Date Picker</option>
+                            <option value="select">Dropdown Menu</option>
+                            <option value="radio">Single Choice (Radio)</option>
+                            <option value="checkbox">Binary Switch (Checkbox)</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Display Section</label>
+                    <div class="relative">
+                        <select name="section" class="w-full bg-slate-50 border border-slate-200 px-4 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-slate-800">
+                            {% for s in sections %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">In-field Hint (Placeholder)</label>
+                    <input name="placeholder" placeholder="e.g. +91 00000 00000"
+                           class="w-full bg-slate-50 border border-slate-200 px-4 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white focus:border-blue-600 transition-all outline-none font-bold text-slate-800">
+                </div>
+
+                <!-- Order -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Priority Sequence (Order)</label>
+                    <input type="number" name="order" value="0"
+                           class="w-full bg-slate-50 border border-slate-200 px-4 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white focus:border-blue-600 transition-all outline-none font-bold text-slate-800">
+                </div>
+
+                <!-- Required -->
+                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-6 h-[60px]">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="required" id="required" class="w-5 h-5 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                    </div>
+                    <label for="required" class="text-sm font-bold text-slate-700 cursor-pointer select-none uppercase tracking-tight">Mark as Obligatory Field</label>
+                </div>
+
+            </div>
+
+            <!-- Submit -->
+            <div class="pt-8 border-t border-slate-100 mt-8">
+                <button class="w-full md:w-auto px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-200 transition-all transform hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-3 group">
+                    <span>Deploy Field to Form</span>
+                    <svg class="w-5 h-5 group-hover:translate-y-[-2px] transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}

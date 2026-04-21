@@ -1,0 +1,193 @@
+{% extends "dashboard_base.html" %}
+
+{% block sidebar_title %}Admission Portal{% endblock %}
+{% block header_title %}Student List{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 py-8">
+    
+    <!-- HEADER AND EXPORT -->
+    <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h1 class="text-4xl font-black text-slate-800 tracking-tight">Student <span class="text-blue-600">Lists</span></h1>
+            <p class="text-slate-500 mt-2 font-medium">Manage and export registered student records</p>
+        </div>
+        <a href="{% url 'export_students_excel' %}?{{ request.GET.urlencode }}" 
+           class="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all flex items-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Export to Excel
+        </a>
+    </div>
+
+    <!-- Django Messages -->
+    {% if messages %}
+    <div class="mb-8 space-y-4">
+        {% for message in messages %}
+        <div class="p-4 rounded-2xl {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-700{% else %}bg-red-50 border border-red-200 text-red-700{% endif %} flex items-center gap-3 animate-fade-in">
+            {% if message.tags == 'success' %}
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {% else %}
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {% endif %}
+            <span class="font-bold">{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- FILTERS -->
+    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Adm No / Reg ID</label>
+                <input type="text" name="form_id" value="{{ request.GET.form_id }}" placeholder="e.g. 1024" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+            </div>
+            
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Candidate Name</label>
+                <input type="text" name="name" value="{{ request.GET.name }}" placeholder="Search name..." class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Batch</label>
+                <select name="batch_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                    <option value="">All Years</option>
+                    {% for b in batches %}
+                        <option value="{{ b.id }}" {% if request.GET.batch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                    <option value="">All Statuses</option>
+                    {% for val, label in admission_statuses %}
+                        <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Stream</label>
+                <div class="flex gap-2">
+                    <select name="course_id" class="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none text-sm">
+                        <option value="">All Courses</option>
+                        {% for c in courses %}
+                            <option value="{{ c.id }}" {% if request.GET.course_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="p-3.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Admission Info</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Student Name</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Course & Batch</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Class</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for adm in admissions %}
+                    <tr class="hover:bg-slate-50/50 transition-all group overflow-visible">
+                        <td class="px-8 py-6">
+                            <span class="font-black text-slate-800">{{ adm.registration_id }}</span>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Joined: {{ adm.date_of_join|date:"d M, Y" }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm border border-white">
+                                    {{ adm.application.display_name|first|upper }}
+                                </div>
+                                <div>
+                                    <p class="font-black text-slate-800 leading-tight">{{ adm.application.display_name }}</p>
+                                    <p class="text-slate-400 text-xs font-bold mt-0.5 tracking-tight">{{ adm.application.student.email|default:adm.application.student.username }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="font-black text-slate-700 leading-tight">{{ adm.application.course.name }}</p>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase mt-1.5 tracking-widest">
+                                {{ adm.application.academic_year.name }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6">
+                            {% if adm.assigned_class %}
+                                <p class="font-black text-blue-600 leading-tight">{{ adm.assigned_class.name }}</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{{ adm.assigned_class.period.name }}</p>
+                            {% else %}
+                                <span class="text-slate-300 text-[10px] font-bold italic">Not Assigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-8 py-6 text-center">
+                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border
+                                {% if adm.status == 'active' %}bg-emerald-50 border-emerald-100 text-emerald-600
+                                {% elif adm.status == 'warned' %}bg-amber-50 border-amber-100 text-amber-600
+                                {% elif adm.status == 'suspended' %}bg-orange-50 border-orange-100 text-orange-600
+                                {% elif adm.status == 'trashed' %}bg-slate-50 border-slate-200 text-slate-500
+                                {% endif %}">
+                                {{ adm.get_status_display }}
+                            </span>
+                            {% if adm.status_reason %}
+                            <div class="mt-1 group-hover:block hidden animate-fade-in">
+                                <p class="text-[9px] font-bold text-slate-400 italic">"{{ adm.status_reason }}"</p>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-2">
+                                <!-- Review Application -->
+                                <a href="{% url 'view_application' adm.application.id %}" title="Review Application" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </a>
+                                <!-- Edit Registration -->
+                                <a href="{% url 'register_student' adm.application.id %}" title="Edit Registration" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </a>
+                                <!-- Trash Toggle -->
+                                {% if adm.status != 'trashed' %}
+                                <a href="{% url 'update_student_status' adm.id %}?status=trashed" onclick="return confirm('Move this student record to Trash?')" title="Trash Student" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-red-600 hover:border-red-100 hover:shadow-lg hover:shadow-red-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'update_student_status' adm.id %}?status=active" title="Restore Student" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg hover:shadow-emerald-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'download_application' adm.application.id %}" title="Download Dossier" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg hover:shadow-emerald-50 rounded-xl transition-all text-xs font-black tracking-widest">
+                                    ZIP
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-8 py-20 text-center">
+                            <div class="max-w-xs mx-auto">
+                                <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                </div>
+                                <p class="text-slate-800 font-black text-lg">No students found</p>
+                                <p class="text-slate-400 font-medium mt-1">Try adjusting your filters or search terms.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Institute Login | JDT Islam College Admissions{% endblock %}
+
+{% block body_content %}
+<div class="min-h-screen flex flex-col md:flex-row overflow-hidden bg-white text-slate-900">
+    
+    <!-- LEFT SECTION: Branding & History -->
+    <div class="md:w-1/2 bg-slate-900 relative flex items-center justify-center p-8 md:p-16 overflow-hidden">
+        <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px]"></div>
+            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-600/30 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="relative z-10 w-full max-w-lg">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                <span class="text-white/60 text-[10px] font-black uppercase tracking-widest">Institutional Secure Node</span>
+            </div>
+
+            <h1 class="text-4xl md:text-5xl font-black text-white leading-[0.9] tracking-tighter mb-8 italic">
+                Authority <br/>
+                <span class="text-indigo-500 not-italic">Authentication.</span>
+            </h1>
+
+            <div class="space-y-6">
+                <p class="text-slate-400 text-lg font-medium leading-relaxed">
+                    Established in <span class="text-white font-black">1922</span>, our institution has stood as a testament to unwavering commitment, providing a nurturing environment for orphans and children in need for a remarkable 100 years.
+                </p>
+
+                <div class="pt-8 border-t border-white/5">
+                    <p class="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Developed By</p>
+                    <p class="text-white font-black text-xs uppercase tracking-widest">IQRAA IT TEAM</p>
+                    <p class="text-white/30 text-[10px] font-bold mt-1">JDT Officer Administration Application</p>
+                </div>
+
+                <div class="pt-10">
+                    <a href="https://www.jdtislam.org/" target="_blank" class="text-indigo-400 font-black text-xs uppercase tracking-[0.2em] hover:text-white transition-colors flex items-center gap-2">
+                        Official Website
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT SECTION: Login Form -->
+    <div class="md:w-1/2 flex items-center justify-center p-8 md:p-16 relative bg-slate-50">
+        <div class="w-full max-w-sm">
+            
+            <div class="mb-10">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-200 mb-6 font-black text-white text-2xl italic">
+                    <svg class="w-8 h-8 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                </div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight mb-1 italic">Institutional</h2>
+                <p class="text-slate-400 font-medium">Authorized personnel login only</p>
+            </div>
+
+            {% if messages %}
+                <div class="mb-8 space-y-3">
+                    {% for message in messages %}
+                        <div class="flex items-center gap-3 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-black uppercase tracking-tight">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-5">
+                {% csrf_token %}
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Identifier</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-300">
+                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <input name="username" type="text" placeholder="username_inst" required
+                               class="w-full bg-white border border-slate-200 px-12 py-4 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all outline-none font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between ml-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Key</label>
+                    </div>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-300">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </div>
+                        <input type="password" name="password" placeholder="••••••••" required
+                               class="w-full bg-white border border-slate-200 px-12 py-4 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all outline-none font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button class="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200/50 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 group">
+                        <span>Secure Entry</span>
+                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-12 pt-8 border-t border-slate-100 text-center flex flex-col items-center gap-4">
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-tight">Need institutional credentials?</p>
+                <a href="/institute/register/" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+                    Request Staff Access
+                </a>
+                <div class="mt-4">
+                    <a href="/" class="text-[10px] font-black text-slate-300 hover:text-slate-900 uppercase tracking-[0.4em] transition-all italic">← Return to Main</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+.animate-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+</style>
+{% endblock %}

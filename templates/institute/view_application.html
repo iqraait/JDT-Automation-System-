@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application #{{ app.id }} | {{ app.student.first_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            margin: 20mm auto;
+            background: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+
+        @media print {
+            body { background: white; }
+            .a4-page { 
+                margin: 0; 
+                box-shadow: none;
+                width: 100%;
+                border: none;
+                padding: 10mm;
+            }
+            .no-print { display: none !important; }
+        }
+
+        .print-only { display: none; }
+        @media print {
+            .print-only { display: block; }
+        }
+
+        .header-bar {
+            background: #0f172a;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 14px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 12px 18px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            width: 35%;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            margin: 30px 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            letter-spacing: 1px;
+        }
+
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #cbd5e1;
+        }
+
+        .signature-line {
+            border-top: 2px solid #0f172a;
+            width: 200px;
+            margin-top: 60px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding-top: 8px;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px;
+            color: rgba(0,0,0,0.03);
+            pointer-events: none;
+            z-index: 0;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CONTROLS -->
+    <div class="no-print fixed top-6 right-6 flex gap-4 z-50">
+        <a href="/institute/dashboard/" class="px-6 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-xl hover:bg-slate-900 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Dashboard
+        </a>
+        <button onclick="window.print()" class="px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 00-2 2h2m3 0h10m-10-4h10m-10 4v3a2 2 0 01-2 2H9a2 2 0 01-2-2v-3m10 0v3a2 2 0 01-2 2h-3a2 2 0 01-2-2v-3"></path></svg>
+            Print Form
+        </button>
+        <a href="{% url 'download_application' app.id %}" class="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl hover:bg-emerald-700 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Download ZIP
+        </a>
+    </div>
+
+    <div class="a4-page">
+        <div class="watermark uppercase">{{ app.status }}</div>
+
+        <!-- HEADER -->
+        <div class="flex justify-between items-center relative z-10 border-b-2 border-slate-900 pb-6">
+            <div class="w-24">
+                {% if app.institute.logo %}
+                <img src="{{ app.institute.logo.url }}" alt="Logo" class="max-w-full h-auto">
+                {% else %}
+                <div class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-300 text-[10px] uppercase">No Logo</div>
+                {% endif %}
+            </div>
+            
+            <div class="text-center px-6 flex-1">
+                <h1 class="text-2xl font-black text-slate-900 leading-tight tracking-tight">{{ app.institute.name|upper }}</h1>
+                <div class="inline-block mt-2 px-4 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                    Academic Year {{ app.academic_year|default:"2025-2026" }}
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 font-medium leading-relaxed">
+                    {{ app.institute.address }}<br>
+                    <span class="font-bold">Contact:</span> {{ app.institute.user.email }} | <span class="font-bold">Print Date:</span> {{ print_date }}
+                </p>
+            </div>
+
+            <!-- Student Photo -->
+            <div class="w-32">
+                {% if photo %}
+                <img src="{{ MEDIA_URL }}{{ photo }}" alt="Student Photo" class="w-32 h-40 object-cover border-2 border-gray-900 shadow-lg rounded">
+                {% else %}
+                <div class="w-32 h-40 bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center text-center p-4">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Affix Passport Photograph</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="header-bar">
+            Admission Application Form
+        </div>
+
+        <div class="flex justify-between items-center mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application ID</p>
+                <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">#{{ app.id|stringformat:"05d" }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Course Applied For</p>
+                <p class="text-lg font-black text-blue-700 tracking-tight uppercase">{{ app.course.name }}</p>
+            </div>
+        </div>
+
+        <!-- DYNAMIC SECTIONS -->
+        {% regroup field_values by field.section.name as section_list %}
+        {% for section in section_list %}
+        <div class="section-title">
+            <span class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px]">{{ forloop.counter }}</span>
+            {{ section.grouper|default:"Personal Details" }}
+        </div>
+        <table class="relative z-10 shadow-sm rounded-lg overflow-hidden border-separate border-spacing-0">
+            <tbody>
+                {% for item in section.list %}
+                <tr>
+                    <th class="w-1/3 bg-slate-50/50 font-bold text-slate-600">{{ item.field.label }}</th>
+                    <td class="w-2/3 text-slate-900 font-medium">
+                        {% if item.field.field_type == 'file' %}
+                            {% with label=item.field.label|lower %}
+                                {% if item.field.is_photo or "photo" in label or "passport" in label %}
+                                    <div class="py-1">
+                                        <div class="bg-gray-50 border rounded-lg p-1 w-fit shadow-sm">
+                                            <img src="{{ MEDIA_URL }}{{ item.value }}" class="h-24 w-auto rounded" alt="Photo" onerror="this.parentElement.innerHTML='<span class=\"text-[10px] text-red-400 p-2\">File Not Found</span>'">
+                                        </div>
+                                    </div>
+                                {% elif item.field.is_signature or "signature" in label %}
+                                    <div class="py-1">
+                                        <div class="bg-gray-50 border rounded-lg p-1 w-fit shadow-sm">
+                                            <img src="{{ MEDIA_URL }}{{ item.value }}" class="h-12 w-auto rounded" alt="Signature" onerror="this.parentElement.innerHTML='<span class=\"text-[10px] text-red-400 p-2\">File Not Found</span>'">
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ MEDIA_URL }}{{ item.value }}" target="_blank" class="text-blue-600 underline font-bold text-[11px] no-print">View Document</a>
+                                        <span class="text-[10px] text-slate-400 italic">({{ item.value|truncatechars:20 }})</span>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            {{ item.value|default:"-" }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+
+        <!-- MARKS TABLE -->
+        {% if subject_marks %}
+        <div class="section-title">
+            <span class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px] leading-none">M</span>
+            Qualifying Examination Marks
+        </div>
+        <table class="relative z-10 shadow-sm rounded-lg overflow-hidden">
+            <thead>
+                <tr class="bg-slate-50">
+                    <th class="text-center w-1/2">Subject</th>
+                    <th class="text-center w-1/2">Marks Obtained</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in subject_marks %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="text-center font-bold text-slate-800">{{ m.subject }}</td>
+                    <td class="text-center font-mono font-bold text-blue-700">{{ m.marks }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- DECLARATION -->
+        <div class="mt-12 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <h4 class="text-[11px] font-black uppercase mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Declaration
+            </h4>
+            <p class="text-[10px] text-slate-600 leading-relaxed text-justify italic font-medium">
+                I, {{ app.student.first_name|default:app.student.username|upper }}, hereby declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect, my admission may be cancelled.
+            </p>
+            
+            <div class="flex justify-between items-end mt-12 px-2">
+                <div class="space-y-4">
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Place: .............................</p>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Date: .............................</p>
+                </div>
+                <div class="flex gap-12">
+                    <div class="flex flex-col items-center">
+                        {% if signature %}
+                        <img src="{{ MEDIA_URL }}{{ signature }}" class="max-h-12 w-auto mb-2" alt="Signature">
+                        {% else %}
+                        <div class="h-12"></div>
+                        {% endif %}
+                        <div class="signature-line">Student Signature</div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="h-12"></div>
+                        <div class="signature-line">Guardian Signature</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OFFICE USE -->
+        <div class="mt-12 border-2 border-slate-900 rounded-3xl p-8 bg-slate-50/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-5">
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7l-9-5z"/></svg>
+            </div>
+            <h4 class="text-center text-[12px] font-black uppercase tracking-tighter border-b-2 border-slate-900 pb-4 mb-6">Internal Office Use Only</h4>
+            
+            <div class="grid grid-cols-2 gap-y-6 gap-x-12 text-[10px] font-bold text-slate-600">
+                <div class="space-y-4">
+                    <p class="border-b border-slate-200 pb-1">Verification Status: ............................................</p>
+                    <p class="border-b border-slate-200 pb-1">Admission Number: ............................................</p>
+                </div>
+                <div class="space-y-4">
+                    <p class="border-b border-slate-200 pb-1">Payment Ref: ..................................................</p>
+                    <p class="border-b border-slate-200 pb-1">Checked By: ...................................................</p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-14">
+                <div class="text-center">
+                    <div class="h-10"></div>
+                    <p class="font-black text-[11px] uppercase tracking-tighter border-t-2 border-slate-900 pt-2 px-6">Seal & Signature of Principal</p>
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-12 tracking-widest no-print">
+            Powered by JDT College Automation System • Page 1 of 1
+        </p>
+    </div>
+
+</body>
+</html>

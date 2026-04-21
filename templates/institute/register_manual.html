@@ -1,0 +1,522 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Manual Registration | JDT Automation{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
+
+{% block sidebar_title %}Admission Portal{% endblock %}
+
+{% block header_title %}Student Registration Form{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    
+    <!-- HEADER ACTIONS -->
+    <div class="mb-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-blue-600 text-white rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Manual Admission</h2>
+                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest px-2 py-0.5 bg-slate-100 rounded-lg inline-block mt-1">NEW REGISTRATION RECORD</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+             <button type="button" onclick="document.getElementById('importModal').classList.remove('hidden')" class="px-6 py-3 bg-white text-blue-600 border border-blue-200 font-bold rounded-2xl hover:bg-blue-50 transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Import Excel
+            </button>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-8" id="manualRegForm">
+        {% csrf_token %}
+
+        <!-- 1. ACCOUNT & REGISTRATION DETAILS -->
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <div class="p-8 md:p-12 space-y-8">
+                
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-3 border-l-4 border-blue-600 pl-4">
+                    Basic Information
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Student Name -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Full Name <span class="text-red-500">*</span></label>
+                        <input type="text" name="student_name" required placeholder="Full name of student"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                    </div>
+
+                    <!-- Mobile Number -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Mobile Number <span class="text-red-500">*</span></label>
+                        <input type="text" name="mobile" required placeholder="User username"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                    </div>
+
+                    <!-- Email Address -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Email Address <span class="text-red-500">*</span></label>
+                        <input type="email" name="email" required placeholder="student@example.com"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                    </div>
+
+                    <!-- Registration ID -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Registration ID <span class="text-red-500">*</span></label>
+                        <div class="relative group">
+                            <input type="text" name="registration_id" required placeholder="Custom ID"
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all font-mono font-bold text-lg outline-none">
+                            <span class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-400 uppercase tracking-widest hidden md:block">EDIT OK</span>
+                        </div>
+                    </div>
+
+                    <!-- Date of Join -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Date of Join <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" name="date_of_join" id="date_join_picker" required
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none">
+                            <svg class="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Academic Session -->
+                    <div class="lg:col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Academic Session <span class="text-red-500">*</span></label>
+                        <select name="academic_year_id" id="academic_year_id" required onchange="loadManualClasses()"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            {% for y in academic_years %}
+                            <option value="{{ y.id }}">{{ y.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 2. COURSE & FEE SETUP -->
+                <div class="pt-8 border-t border-slate-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Course Selection -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Select Course <span class="text-red-500">*</span></label>
+                            <select name="course_id" id="course_id" required onchange="loadManualCourseData()"
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                                <option value="">-- Select Course --</option>
+                                {% for c in courses %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Fee Category -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Fee Category <span class="text-red-500">*</span></label>
+                            <select name="fee_category_id" id="fee_cat_id" required onchange="calculateManualFees()"
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                                <option value="">-- Choose Category --</option>
+                                {% for cat in fee_categories %}
+                                <option value="{{ cat.id }}" data-total="{{ cat.total_fee }}" data-breakdown='{{ cat.breakdown|safe }}'>{{ cat.name }} (Total: {{ cat.total_fee }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Joining Period Selection -->
+                <div id="periodSection" class="hidden animate-fade-in pt-8 border-t border-slate-100">
+                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Joining Period (Excludes Previous Fees)</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="labelContainer">
+                        <!-- JS Dynamic Content -->
+                    </div>
+                    <input type="hidden" name="joining_period_id" id="joining_period_id">
+                </div>
+
+                <!-- NEW: CLASS SELECTION -->
+                <div id="classSection" class="animate-fade-in pt-8 border-t border-slate-100">
+                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class <span class="text-red-500">*</span></label>
+                    <select name="assigned_class_id" id="assigned_class_id" required
+                        class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                        <option value="">-- Select Class --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DYNAMIC FEE BREAKDOWN PANEL -->
+            <div id="feeCalculationBox" class="hidden bg-slate-900 p-8 md:p-12 text-white border-t border-white/5 overflow-hidden transition-all">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-8">
+                    <div class="flex-1 space-y-6">
+                        <h4 class="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Financial Overview</h4>
+                        <div id="breakdownList" class="space-y-3 font-medium text-slate-300">
+                             <!-- JS Content -->
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-80 bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 space-y-6">
+                        <div>
+                            <span class="text-[10px] font-black text-blue-300 uppercase tracking-widest block mb-1">Base Fee</span>
+                            <div class="text-3xl font-black flex items-baseline gap-1">
+                                <span class="text-blue-400 text-lg">₹</span>
+                                <input type="number" step="0.01" name="calculated_fee" id="calc_fee" readonly class="bg-transparent border-none outline-none w-full text-white pointer-events-none">
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/10 space-y-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Amount</label>
+                                <input type="number" step="0.01" name="discount_amount" id="disc_amt" value="0" oninput="updateManualFinal()"
+                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all font-bold">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Reason</label>
+                                <input type="text" name="discount_reason" placeholder="Reason (Optional)"
+                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/20">
+                            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Final Amount</span>
+                            <div class="text-4xl font-black text-emerald-400 flex items-baseline gap-1">
+                                <span class="text-lg">₹</span>
+                                <input type="number" step="0.01" name="final_fee" id="final_f" readonly class="bg-transparent border-none outline-none w-full text-emerald-400 pointer-events-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. DYNAMIC FORM FIELDS (Injected by JS) -->
+        <div id="dynamic-fields-container" class="space-y-8"></div>
+
+        <!-- 3.5 ACADEMIC SUBJECT MARKS (Injected by JS) -->
+        <div id="subject-marks-container" class="hidden bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 space-y-8 animate-fade-in">
+            <div class="flex items-center gap-3 border-b border-slate-100 pb-6">
+                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-bold font-mono">Σ</div>
+                <h3 class="text-2xl font-bold text-slate-800">Academic Qualifier Marks</h3>
+            </div>
+            
+            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Subjects will be loaded here -->
+            </div>
+            
+            <!-- MARKS SUMMARY -->
+            <div class="mt-10 pt-10 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-6 bg-slate-50 rounded-3xl text-center">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Aggregate Total</span>
+                    <div class="text-2xl font-black text-slate-800">
+                        <span id="totalMarks">0</span> <span class="text-slate-300 mx-1">/</span> <span id="maxMarks">0</span>
+                    </div>
+                </div>
+                <div class="p-6 bg-blue-50 rounded-3xl text-center">
+                    <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">Percentage</span>
+                    <div class="text-2xl font-black text-blue-600" id="percentage">0.00%</div>
+                </div>
+                <div class="p-6 rounded-3xl text-center flex flex-col justify-center bg-slate-50" id="eligibilityBox">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Eligibility Status</span>
+                    <div class="text-sm font-bold text-slate-500 italic" id="eligibilityMsg">Enter marks to check</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. GUARDIAN DETAILS -->
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 animate-fade-in" style="animation-delay: 200ms">
+            <div class="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                 <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800">Guardian Information</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Care Of</label><input type="text" name="care_of" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Guardian Name <span class="text-red-500">*</span></label><input type="text" name="guardian_name" required class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Mobile <span class="text-red-500">*</span></label><input type="text" name="guardian_mobile" required class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Relationship <span class="text-red-500">*</span></label><input type="text" name="relationship" required placeholder="Father, Mother, etc" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Full Address <span class="text-red-500">*</span></label><textarea name="guardian_address" required rows="2" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></textarea></div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-4 py-10">
+            <a href="/institute/admission/" class="px-8 py-4 text-slate-500 font-bold hover:text-slate-800 transition-all">Cancel</a>
+            <button type="submit" class="px-12 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Complete Manual Admission
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 🔥 IMPORT MODAL (Keep Existing Logic) -->
+<div id="importModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[200] p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all p-10">
+        <div class="text-center mb-10">
+            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm border-2 border-white">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Bulk Student Import</h3>
+            <p class="text-slate-500 font-medium mt-1">Upload an Excel file to register multiple students at once.</p>
+        </div>
+
+        <div class="space-y-8">
+            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-4 text-slate-600">
+                    <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2,0,0,0,4,4V20a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V8ZM18,20H6V4h7V9h5Zm-2-9H8v2h8Zm0,4H8v2h8Z"/></svg>
+                    <div>
+                        <p class="font-black text-slate-700 leading-tight">Excel Template</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">XLSX Format Required</p>
+                    </div>
+                </div>
+                <a href="{% url 'excel_template' %}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm">Download Template</a>
+            </div>
+
+            <form id="importForm" enctype="multipart/form-data" class="space-y-8">
+                <div class="border-4 border-dashed border-slate-100 rounded-[2rem] p-12 text-center hover:bg-slate-50/50 hover:border-blue-200 transition-all group cursor-pointer relative">
+                    <input type="file" id="excel_file" class="absolute inset-0 opacity-0 cursor-pointer" accept=".xlsx" required onchange="updateExcelFileName(this)">
+                    <div id="uploadContent" class="flex flex-col items-center gap-4">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm border border-slate-100 group-hover:scale-110 group-hover:text-blue-500 transition-all">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        </div>
+                        <div id="excelFileInfo">
+                            <p class="text-slate-800 font-black">Choose file to upload</p>
+                            <p class="text-slate-400 text-xs font-medium">or drag and drop here</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all">Dismiss</button>
+                    <button type="submit" class="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-blue-200">Start Upload Process</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let subCategories = [];
+    let currentBreakdown = [];
+    let selectedStartIndex = 0;
+    
+    flatpickr("#date_join_picker", { defaultDate: "today" });
+
+    // --- DYNAMIC FIELD LOADING (Refined Structure) ---
+    function loadManualCourseData() {
+        const courseId = document.getElementById('course_id').value;
+        if(!courseId) return;
+
+        // 1. Load Form Fields (Using premium card structure)
+        fetch(`/load-form-fields/?course_id=${courseId}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('dynamic-fields-container');
+            container.innerHTML = '';
+            let grouped = {};
+            data.forEach(f => {
+                if (!grouped[f.section]) grouped[f.section] = [];
+                grouped[f.section].push(f);
+            });
+
+            for (let section in grouped) {
+                let sectionId = section.replace(/\s+/g, '-').toLowerCase();
+                let card = document.createElement('div');
+                card.className = "bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-fade-in";
+                
+                let header = `
+                    <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-slate-800">${section}</h3>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Form Data</span>
+                    </div>`;
+                
+                let body = `<div class="p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-8">`;
+                grouped[section].forEach(f => {
+                    let input = `<input type="text" name="field_${f.id}" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all">`;
+                    if(f.type === 'select') {
+                        input = `<select name="field_${f.id}" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none appearance-none cursor-pointer">${f.options.map(o => `<option value="${o.value}">${o.text}</option>`).join('')}</select>`;
+                    } else if(f.type === 'textarea') {
+                        input = `<textarea name="field_${f.id}" rows="3" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none"></textarea>`;
+                    } else if(f.type === 'file') {
+                        input = `
+                        <div class="relative group">
+                            <input type="file" name="field_${f.id}" id="file_${f.id}" class="hidden" onchange="document.getElementById('label_${f.id}').textContent = 'Selected: ' + this.files[0].name">
+                            <label for="file_${f.id}" class="flex items-center gap-3 px-6 py-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                <span id="label_${f.id}" class="text-sm font-bold text-slate-500">Upload Document</span>
+                            </label>
+                        </div>`;
+                    }
+                    body += `<div class="space-y-2"><label class="block text-sm font-bold text-slate-600 mb-1 ml-1">${f.label}</label>${input}</div>`;
+                });
+                body += `</div>`;
+                
+                card.innerHTML = header + body;
+                container.appendChild(card);
+            }
+        });
+
+        // 2. Load Exam Subjects
+        fetch(`/load-exam-subjects/?course_id=${courseId}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('subject-marks-container');
+            const grid = document.getElementById('subjects-grid');
+            grid.innerHTML = '';
+            
+            if (data.length > 0) {
+                container.classList.remove('hidden');
+                data.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "space-y-2";
+                    div.innerHTML = `
+                        <label class="block text-sm font-bold text-slate-600 mb-1 ml-1">${s.subject_name} (Max: ${s.max_marks})</label>
+                        <input type="number" name="subject_${s.subject_name}" data-max="${s.max_marks}" oninput="calculateManualTotal()" 
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 transition-all outline-none font-bold text-blue-600">
+                    `;
+                    grid.appendChild(div);
+                });
+                calculateManualTotal();
+            } else {
+                container.classList.add('hidden');
+            }
+        });
+
+        // 3. Load Subcategories (Periods)
+        fetch(`/institute/admission/load-subcategories/?course_id=${courseId}`)
+        .then(res => res.json())
+        .then(data => {
+            subCategories = data;
+            document.getElementById('fee_cat_id').selectedIndex = 0;
+            document.getElementById('feeCalculationBox').classList.add('hidden');
+            document.getElementById('periodSection').classList.add('hidden');
+            loadManualClasses();
+        });
+    }
+
+    function calculateManualTotal() {
+        let total = 0;
+        let maxTotal = 0;
+        let allFilled = true;
+        
+        const inputs = document.querySelectorAll('#subjects-grid input');
+        inputs.forEach(input => {
+            if (input.value === '') allFilled = false;
+            total += parseFloat(input.value) || 0;
+            maxTotal += parseFloat(input.dataset.max) || 0;
+        });
+        
+        const percent = maxTotal ? ((total / maxTotal) * 100) : 0;
+        document.getElementById('totalMarks').innerText = total;
+        document.getElementById('maxMarks').innerText = maxTotal;
+        document.getElementById('percentage').innerText = percent.toFixed(2) + "%";
+        
+        const msgEl = document.getElementById('eligibilityMsg');
+        const boxEl = document.getElementById('eligibilityBox');
+        
+        if (!allFilled) {
+            msgEl.innerText = "Enter all marks to check";
+            boxEl.className = "p-6 rounded-3xl text-center flex flex-col justify-center bg-slate-50";
+        } else if (percent >= 50) {
+            msgEl.innerText = "✅ Eligible";
+            boxEl.className = "p-6 rounded-3xl text-center flex flex-col justify-center bg-emerald-50 text-emerald-600 border border-emerald-100";
+        } else {
+            msgEl.innerText = "❌ Not Eligible (<50%)";
+            boxEl.className = "p-6 rounded-3xl text-center flex flex-col justify-center bg-red-50 text-red-600 border border-red-100";
+        }
+    }
+
+    function calculateManualFees() {
+        const select = document.getElementById('fee_cat_id');
+        const option = select.options[select.selectedIndex];
+        if (!option.value) {
+            document.getElementById('feeCalculationBox').classList.add('hidden');
+            document.getElementById('periodSection').classList.add('hidden');
+            return;
+        }
+
+        const breakdown = JSON.parse(option.dataset.breakdown || '[]');
+        currentBreakdown = breakdown;
+        document.getElementById('feeCalculationBox').classList.remove('hidden');
+        document.getElementById('periodSection').classList.remove('hidden');
+        
+        const container = document.getElementById('labelContainer');
+        container.innerHTML = '';
+        subCategories.forEach((sub, index) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-3 text-center border-2 rounded-xl transition-all font-bold text-xs ${index === 0 ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-blue-300'}`;
+            btn.innerText = sub.name;
+            btn.onclick = () => {
+                document.getElementById('joining_period_id').value = sub.id;
+                selectedStartIndex = index;
+                updateManualBreakdown(index);
+                // Toggle active class
+                Array.from(container.children).forEach(b => b.className = 'p-3 text-center border-2 border-slate-100 bg-slate-50 text-slate-500 rounded-xl transition-all font-bold text-xs hover:border-blue-300');
+                btn.className = 'p-3 text-center border-2 border-blue-600 bg-blue-600 text-white rounded-xl transition-all font-bold text-xs shadow-lg';
+            };
+            container.appendChild(btn);
+            if (index === 0) document.getElementById('joining_period_id').value = sub.id;
+        });
+
+        updateManualBreakdown(0);
+    }
+
+    function updateManualBreakdown(startIndex) {
+        const list = document.getElementById('breakdownList');
+        list.innerHTML = '';
+        let total = 0;
+        currentBreakdown.forEach((amount, i) => {
+            const row = document.createElement('div');
+            row.className = `flex justify-between items-center py-2 border-b border-white/5 ${i < startIndex ? 'opacity-30' : ''}`;
+            row.innerHTML = `<span>${subCategories[i]?.name || 'Period '+(i+1)}</span><span class="font-mono text-blue-300">${i < startIndex ? 'Skipped' : '₹'+parseFloat(amount).toFixed(2)}</span>`;
+            list.appendChild(row);
+            if (i >= startIndex) total += parseFloat(amount);
+        });
+        document.getElementById('calc_fee').value = total.toFixed(2);
+        updateManualFinal();
+    }
+
+    function updateManualFinal() {
+        const base = parseFloat(document.getElementById('calc_fee').value) || 0;
+        const disc = parseFloat(document.getElementById('disc_amt').value) || 0;
+        document.getElementById('final_f').value = Math.max(0, base - disc).toFixed(2);
+    }
+
+    function loadManualClasses() {
+        const courseId = document.getElementById('course_id').value;
+        const yearId = document.getElementById('academic_year_id').value;
+        const periodId = document.getElementById('joining_period_id').value;
+        const classSelect = document.getElementById('assigned_class_id');
+        if (!courseId) return;
+        fetch(`/institute/admission/load-classes/?course_id=${courseId}&academic_year_id=${yearId}&period_id=${periodId}`)
+        .then(res => res.json())
+        .then(data => {
+            classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+            data.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.innerText = c.name;
+                classSelect.appendChild(opt);
+            });
+        });
+    }
+
+    function updateExcelFileName(input) {
+        const info = document.getElementById('excelFileInfo');
+        if (input.files[0]) info.innerHTML = `<p class="text-blue-600 font-black">${input.files[0].name}</p>`;
+    }
+
+    // Modal close logic
+    window.onkeydown = (e) => { if(e.key === "Escape") document.getElementById('importModal').classList.add('hidden'); };
+
+    // Initial load
+    window.onload = () => { if(document.getElementById('course_id').value) loadManualCourseData(); };
+</script>
+
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+</style>
+{% endblock %}

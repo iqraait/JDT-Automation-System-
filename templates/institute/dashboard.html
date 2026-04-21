@@ -1,0 +1,321 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Institute Dashboard | Admissions Panel{% endblock %}
+
+{% block sidebar_title %}Institute Panel{% endblock %}
+
+{% block header_title %}Admissions Overview{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <span class="font-medium">Dashboard</span>
+</a>
+
+<a href="/institute/admission/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+    <span class="font-medium">Admission Module</span>
+</a>
+
+<a href="/institute/rank-list/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+    <span class="font-medium">View Rank List</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- DASHBOARD HEADER ACTIONS -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Student Dashboard</h2>
+            <p class="text-slate-500 font-medium">Manage and monitor institute-wide student registrations</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Buttons moved to Manual Student Registration -->
+        </div>
+    </div>
+
+    <!-- FILTER SECTION -->
+    <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Course Filter</label>
+                <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Academic Year</label>
+                <select name="year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                    <option value="">All Years</option>
+                    {% for y in years %}
+                    <option value="{{ y.id }}" {% if selected_year == y.id|stringformat:"s" %}selected{% endif %}>{{ y.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Student Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                    <option value="">All Statuses</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="warned" {% if selected_status == 'warned' %}selected{% endif %}>Warned</option>
+                    <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                    <option value="trashed" {% if selected_status == 'trashed' %}selected{% endif %}>Trashed</option>
+                </select>
+            </div>
+
+            <div class="flex items-end gap-3">
+                <button class="flex-1 px-8 py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    Apply
+                </button>
+                {% if selected_year or selected_course or selected_status or query %}
+                <a href="/institute/dashboard/" class="p-3.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl transition-all" title="Clear Filters">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- MAIN TABLE SECTION -->
+    <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-slate-800">Student Register</h3>
+            <div class="flex items-center gap-2">
+                <span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider">
+                    {{ page_obj.paginator.count }} TOTAL STUDENTS
+                </span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50/80 text-slate-400 uppercase text-[11px] tracking-widest font-black border-b border-slate-100">
+                        <th class="px-8 py-6 text-left">#</th>
+                        <th class="px-8 py-6 text-left">Applicant Name</th>
+                        <th class="px-8 py-6 text-left">Contact</th>
+                        <th class="px-8 py-6 text-center">Caste/Quota</th>
+                        <th class="px-8 py-6 text-center">Gender</th>
+                        <th class="px-8 py-6 text-center">Status</th>
+                        <th class="px-8 py-6 text-center">Remarks</th>
+                        <th class="px-8 py-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% if admissions %}
+                        {% for student in admissions %}
+                        <tr class="hover:bg-slate-50/80 transition-colors group">
+                            <td class="px-8 py-7 text-xs font-bold text-slate-400">
+                                {{ forloop.counter }}
+                            </td>
+                            <td class="px-8 py-7">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-black text-slate-800 leading-tight">{{ student.student_name }}</span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">FORM #{{ student.form_id }}</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-7">
+                                <span class="text-sm font-bold text-slate-600">{{ student.contact|default:"-" }}</span>
+                            </td>
+                            <td class="px-8 py-7">
+                                <div class="flex flex-col items-center gap-1">
+                                    {% if student.caste %}
+                                    <span class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black rounded-lg border border-slate-200 uppercase tracking-widest">{{ student.caste }}</span>
+                                    {% endif %}
+                                    {% if student.quota %}
+                                    <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg border border-blue-100 uppercase tracking-widest">{{ student.quota }}</span>
+                                    {% endif %}
+                                    {% if not student.caste and not student.quota %}
+                                    <span class="text-slate-300">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-8 py-7 text-center">
+                                <span class="text-xs font-black text-slate-500 uppercase tracking-widest">{{ student.gender|default:"-" }}</span>
+                            </td>
+                            <td class="px-8 py-7 text-center">
+                                {% if student.status == 'pending' %}
+                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full border border-amber-100 uppercase tracking-widest">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Pending
+                                    </span>
+                                {% elif student.status == 'selected' %}
+                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-widest">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Selected
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full border border-slate-200 uppercase tracking-widest">
+                                        {{ student.status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-8 py-7 text-center">
+                                {% if student.remarks %}
+                                    <button onclick="alert('Remarks: {{ student.remarks|escapejs }}')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-xl hover:bg-slate-50 transition-all shadow-sm uppercase tracking-widest">View</button>
+                                {% else %}
+                                    <span class="text-slate-300">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-8 py-7 text-right">
+                                <div class="flex items-center justify-end gap-3">
+                                    <a href="/institute/application/{{ student.form_id }}/view/" class="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </a>
+                                    <a href="/institute/application/{{ student.form_id }}/edit/" class="px-5 py-2.5 bg-slate-800 text-white text-[11px] font-black rounded-2xl hover:bg-slate-900 transition-all shadow-lg flex items-center gap-2 uppercase tracking-widest">
+                                        Review & Action
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="px-8 py-20 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                        <svg class="h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-2 2m-12-2l2 2"></path></svg>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-slate-800 mb-1">No Applicants Found</h4>
+                                    <p class="text-slate-500 text-sm">Try adjusting your filters or search query.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-8 py-6 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
+            <p class="text-sm text-slate-500 font-medium">
+                Showing <span class="text-slate-800">{{ page_obj.start_index }}</span> to <span class="text-slate-800">{{ page_obj.end_index }}</span> of <span class="text-slate-800">{{ page_obj.paginator.count }}</span> results
+            </p>
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                       class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </a>
+                {% endif %}
+                
+                {% for i in page_obj.paginator.page_range %}
+                    {% if page_obj.number == i %}
+                        <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-100">{{ i }}</span>
+                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <a href="?page={{ i }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                           class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-600 font-semibold">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                       class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🔥 STATUS MODAL -->
+<div id="statusModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[200] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all p-10">
+        <div class="text-center mb-8">
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Update Student Status</h3>
+            <p class="text-slate-500 font-medium mt-1">Status changes are recorded for audit purposes</p>
+        </div>
+        
+        <form id="statusForm" class="space-y-6">
+            <input type="hidden" id="statusStudentId">
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">New Status</label>
+                <select id="newStatus" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
+                    <option value="active">Active</option>
+                    <option value="warned">Warned</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="trashed">Trashed</option>
+                </select>
+            </div>
+            
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Reason for update *</label>
+                <textarea id="statusReason" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none h-32 resize-none" placeholder="Explain why the status is being changed..."></textarea>
+            </div>
+
+            <div class="flex gap-4 pt-2">
+                <button type="button" onclick="closeStatusModal()" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all">Cancel</button>
+                <button type="submit" class="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-blue-200">Update Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 🔥 IMPORT MODAL REMOVED -->
+
+<script>
+function openStatusModal(id, currentStatus) {
+    document.getElementById('statusStudentId').value = id;
+    document.getElementById('newStatus').value = currentStatus;
+    document.getElementById('statusReason').value = '';
+    document.getElementById('statusModal').classList.remove('hidden');
+    document.getElementById('statusModal').classList.add('flex');
+}
+
+function closeStatusModal() {
+    document.getElementById('statusModal').classList.add('hidden');
+}
+
+document.getElementById('statusForm').onsubmit = function(e) {
+    e.preventDefault();
+    const id = document.getElementById('statusStudentId').value;
+    const status = document.getElementById('newStatus').value;
+    const reason = document.getElementById('statusReason').value;
+    
+    if (!reason) {
+        alert("Please provide a reason for the status update.");
+        return;
+    }
+    
+    fetch(`/institute/admission/status/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `status=${status}&reason=${encodeURIComponent(reason)}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            window.location.reload();
+        } else {
+            alert(data.message);
+        }
+    });
+};
+
+// Status modal script remains as is
+
+// Close modal on escape
+window.onkeydown = function(e) {
+    if (e.key === "Escape") {
+        closeStatusModal();
+        document.getElementById('importModal').classList.add('hidden');
+    }
+};
+</script>
+{% endblock %}

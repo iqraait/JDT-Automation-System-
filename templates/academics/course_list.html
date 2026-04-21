@@ -1,0 +1,68 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Course Management | Academic Panel{% endblock %}
+
+{% block header_title %}Programs & Courses{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <span class="font-medium">Dashboard</span>
+</a>
+
+<a href="/academics/courses/" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+    <span class="font-medium">Courses</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    
+    <div class="flex items-center justify-between bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">Academic Inventory</h2>
+            <p class="text-slate-500 font-medium">Manage course offerings and dynamic application forms</p>
+        </div>
+        <a href="/academics/course/create/" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 group">
+            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Add New Program
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for course in courses %}
+        <div class="group bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200 transition-all duration-300 flex flex-col h-full overflow-hidden relative">
+            
+            <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-[3] transition-transform duration-700 ease-in-out"></div>
+            
+            <div class="relative z-10 flex-1">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 border border-blue-50 shadow-sm">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                </div>
+                
+                <h3 class="text-xl font-bold text-slate-800 mb-2 truncate" title="{{ course.name }}">{{ course.name }}</h3>
+                
+                <div class="flex items-center gap-2 mb-8">
+                    <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest">{{ course.duration }}</span>
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest">Active</span>
+                </div>
+            </div>
+
+            <div class="relative z-10 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration</p>
+                <a href="/academics/form/{{ course.id }}/"
+                   class="inline-flex items-center gap-2 text-blue-600 font-bold text-xs hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl transition-all border border-blue-200">
+                    Build Form 🛠️
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+            <p class="text-slate-400 font-medium italic">No programs have been established yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

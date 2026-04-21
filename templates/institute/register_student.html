@@ -1,0 +1,492 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Register Student | JDT Automation{% endblock %}
+
+{% block extra_head %}
+<!-- Flatpickr for Modern Date Picking -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
+
+{% block sidebar_title %}Admission Portal{% endblock %}
+
+{% block header_title %}Student Registration Form{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-blue-600 text-white rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Student Admission</h2>
+                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest px-2 py-0.5 bg-slate-100 rounded-lg inline-block mt-1">NEW REGISTRATION RECORD</p>
+            </div>
+        </div>
+        <div class="text-right">
+             <span class="text-slate-400 text-xs font-bold block mb-1">SELECTED APP ID</span>
+             <span class="text-xl font-black text-blue-600 font-mono">#{{ app.id }}</span>
+        </div>
+    </div>
+
+    <form method="POST" class="space-y-8" id="registrationForm">
+        {% csrf_token %}
+        
+        <!-- REGISTRATION DETAILS -->
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <div class="p-8 md:p-12 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-slate-100">
+                    <!-- Registration ID -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Registration ID <span class="text-red-500">*</span></label>
+                        <div class="relative group">
+                            <input type="text" name="registration_id" id="registration_id" value="{{ registration_id }}" required
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all font-mono font-bold text-lg outline-none group-hover:border-slate-200">
+                            <span class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-400 uppercase tracking-widest hidden md:block">EDIT OK</span>
+                        </div>
+                    </div>
+
+                    <!-- Student Email -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Student Email <span class="text-red-500">*</span></label>
+                        <input type="email" name="student_email" value="{{ app.student.email }}" required
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none group-hover:border-slate-200">
+                    </div>
+
+                    <!-- Date of Join -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Date of Join <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" name="date_of_join" id="datepicker" required placeholder="Select Join Date"
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none">
+                            <svg class="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Academic Session -->
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Academic Session <span class="text-red-500">*</span></label>
+                        <select name="academic_year_id" id="academic_year_id" required onchange="loadClasses()"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            {% for year in academic_years %}
+                            <option value="{{ year.id }}" {% if app.academic_year.id == year.id %}selected{% endif %}>{{ year.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Course & Fee Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Course Selection -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assigned Course</label>
+                        <select name="course_id" id="course_id" required onchange="loadCourseData()"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if app.course.id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Fee Category Tagging -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Fee Category <span class="text-red-500">*</span></label>
+                        <select name="fee_category_id" id="fee_category_id" required onchange="calculateFees()"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            <option value="">-- Choose Category --</option>
+                            {% for cat in fee_categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }} (Total: {{ cat.total_fee }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Joining Period Selection -->
+                <div id="periodSection" class="hidden animate-fade-in">
+                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Joining From (Excludes Previous Fees)</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="labelContainer">
+                        <!-- JS Dynamic Content -->
+                    </div>
+                    <input type="hidden" name="joining_period_id" id="joining_period_id">
+                    <p class="mt-4 text-xs text-slate-400 italic flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Fee will be calculated from the selected period to the end of course.
+                    </p>
+                </div>
+
+                <!-- NEW: CLASS SELECTION -->
+                <div id="classSection" class="animate-fade-in pt-4 border-t border-slate-50">
+                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class <span class="text-red-500">*</span></label>
+                    <select name="assigned_class_id" id="assigned_class_id" required
+                        class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                        <option value="">-- Select Class --</option>
+                    </select>
+                    <p class="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-2">Groups students for attendance and subjects</p>
+                </div>
+            </div>
+
+            <!-- DYNAMIC FEE BREAKDOWN PANEL -->
+            <div id="feeBreakdown" class="hidden bg-slate-900 p-8 md:p-12 text-white border-t border-white/5">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-8">
+                    <div class="flex-1 space-y-6">
+                        <h4 class="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Assigned Fee Breakdown</h4>
+                        <div id="breakdownList" class="space-y-3 font-medium text-slate-300">
+                             <!-- JS Content -->
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-80 bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 space-y-6">
+                        <div>
+                            <span class="text-[10px] font-black text-blue-300 uppercase tracking-widest block mb-1">Calculated base fee</span>
+                            <div class="text-3xl font-black flex items-baseline gap-1">
+                                <span class="text-blue-400 text-lg">₹</span>
+                                <input type="number" step="0.01" name="calculated_fee" id="calculated_fee" readonly class="bg-transparent border-none outline-none w-full text-white pointer-events-none">
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/10 space-y-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Amount</label>
+                                <input type="number" step="0.01" name="discount_amount" id="discount_amount" value="0" oninput="updateFinalFee()"
+                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Reason</label>
+                                <input type="text" name="discount_reason" id="discount_reason" placeholder="Scholarship, sibling, etc"
+                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/20">
+                            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Final Payable Fee</span>
+                            <div class="text-4xl font-black text-emerald-400 flex items-baseline gap-1">
+                                <span class="text-lg">₹</span>
+                                <input type="number" step="0.01" name="final_fee" id="final_fee" readonly class="bg-transparent border-none outline-none w-full text-emerald-400 pointer-events-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DYNAMIC FORM SECTIONS (FROM BACKEND CONFIG) -->
+        {% for section, fields in sections.items %}
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1 }}00ms">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-slate-800">{{ section.name }}</h3>
+                <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Section Data</span>
+            </div>
+            <div class="p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {% for field in fields %}
+                <div class="space-y-2">
+                    <label class="block text-sm font-bold text-slate-600 mb-1 ml-1">
+                        {{ field.label }} {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.field_type == 'text' %}
+                        <input type="text" name="field_{{ field.id }}" value="{{ field.current_value }}" {% if field.required %}required{% endif %}
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all">
+                    
+                    {% elif field.field_type == 'number' %}
+                        <input type="number" name="field_{{ field.id }}" value="{{ field.current_value }}" {% if field.required %}required{% endif %}
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all">
+                    
+                    {% elif field.field_type == 'date' %}
+                        <input type="date" name="field_{{ field.id }}" value="{{ field.current_value }}" {% if field.required %}required{% endif %}
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all">
+                    
+                    {% elif field.field_type == 'textarea' %}
+                        <textarea name="field_{{ field.id }}" rows="3" {% if field.required %}required{% endif %}
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all">{{ field.current_value }}</textarea>
+                    
+                    {% elif field.field_type == 'select' %}
+                        <select name="field_{{ field.id }}" {% if field.required %}required{% endif %}
+                            class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl focus:border-blue-600 outline-none transition-all appearance-none cursor-pointer">
+                            <option value="">Select Option</option>
+                            {% for opt in field.options.all %}
+                            <option value="{{ opt.value }}" {% if field.current_value == opt.value %}selected{% endif %}>{{ opt.display_text }}</option>
+                            {% endfor %}
+                        </select>
+                    
+                        <!-- MARKS MATRIX -->
+                        {% if "exam" in field.label|lower and subjects %}
+                        <div class="mt-6 p-6 bg-blue-50/50 rounded-3xl border-2 border-blue-100 col-span-1 md:col-span-2">
+                            <h4 class="text-[10px] font-black text-blue-600 mb-4 uppercase tracking-[0.2em] flex items-center gap-3">
+                                <span class="w-6 h-6 bg-blue-600 text-white rounded-md flex items-center justify-center font-mono">Σ</span>
+                                Metric Performance Data
+                            </h4>
+                            <div class="bg-white rounded-2xl border border-blue-100 overflow-hidden">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-400">
+                                            <th class="px-4 py-3 text-left uppercase font-black">Subject</th>
+                                            <th class="px-4 py-3 text-center uppercase font-black">Marks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        {% for s in subjects %}
+                                        <tr>
+                                            <td class="px-4 py-3 font-bold text-slate-700">{{ s.name }}</td>
+                                            <td class="px-4 py-3">
+                                                <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}"
+                                                       class="w-20 bg-slate-50 border border-slate-200 p-2 rounded-lg text-center font-black text-blue-600 focus:border-blue-500 outline-none">
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    {% elif field.field_type == 'file' %}
+                        <div class="relative group">
+                            <input type="file" name="field_{{ field.id }}" id="file_{{ field.id }}" 
+                                   class="hidden file-input" onchange="updateFileName(this, 'label_{{ field.id }}')">
+                            <label for="file_{{ field.id }}" 
+                                   class="flex items-center gap-3 px-6 py-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                <span id="label_{{ field.id }}" class="text-sm font-bold text-slate-500">
+                                    Upload Document
+                                </span>
+                            </label>
+                            {% if field.current_value %}
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">Uploaded</span>
+                                <a href="/media/{{ field.current_value }}" target="_blank" class="text-[10px] font-bold text-blue-600 hover:underline">View Current File</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- GUARDIAN DETAILS SECTION -->
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 animate-fade-in" style="animation-delay: 400ms">
+            <div class="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354l1.1 1.1a1 1 0 001.414 0l1.1-1.1m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47m14.24 0l-.47.47a1 1 0 01-1.414 0l-.47-.47m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47"></path></svg>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800">Guardian Details</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-3">Care Of (Optional)</label>
+                    <input type="text" name="care_of" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-3">Guardian Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="guardian_name" required class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-3">Mobile <span class="text-red-500">*</span></label>
+                    <input type="text" name="guardian_mobile" required class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-3">Relationship <span class="text-red-500">*</span></label>
+                    <input type="text" name="relationship" required placeholder="Father, Mother, etc" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-bold text-slate-600 mb-3">Full Address <span class="text-red-500">*</span></label>
+                    <textarea name="guardian_address" required rows="2" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM ACTIONS -->
+        <div class="flex items-center justify-end gap-4 py-8">
+            <a href="/institute/admission/" class="px-8 py-4 text-slate-500 font-bold hover:text-slate-800 transition-all">Discard Changes</a>
+            <button type="submit" class="px-12 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-xl shadow-emerald-100 flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Complete Admission
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Initialize Data
+    const feeCategories = JSON.parse('{{ fee_cats_json|safe }}');
+    const subCategories = [
+        {% for sub in subcategories %}
+        { id: "{{ sub.id }}", name: "{{ sub.name }}" },
+        {% endfor %}
+    ];
+    
+    let currentBreakdown = [];
+    let selectedStartIndex = 0;
+
+    // Datepicker
+    flatpickr("#datepicker", {
+        dateFormat: "Y-m-d",
+        defaultDate: new Date()
+    });
+
+    function updateFileName(input, labelId) {
+        const label = document.getElementById(labelId);
+        if (input.files && input.files[0]) {
+            label.textContent = "Selected: " + input.files[0].name;
+            label.classList.remove('text-slate-500');
+            label.classList.add('text-blue-600');
+        }
+    }
+
+    function calculateFees() {
+        const catId = document.getElementById('fee_category_id').value;
+        const section = document.getElementById('feeBreakdown');
+        const periodSection = document.getElementById('periodSection');
+        const container = document.getElementById('labelContainer');
+        
+        if (!catId) {
+            section.classList.add('hidden');
+            periodSection.classList.add('hidden');
+            return;
+        }
+
+        const category = feeCategories.find(c => c.id == catId);
+        if (!category) return;
+
+        section.classList.remove('hidden');
+        periodSection.classList.remove('hidden');
+        currentBreakdown = category.breakdown;
+
+        // Generate Label Buttons
+        container.innerHTML = '';
+        subCategories.forEach((sub, index) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-3 text-center border-2 rounded-xl transition-all font-bold text-xs ${index === 0 ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-blue-300'}`;
+            btn.innerText = sub.name;
+            btn.onclick = () => selectPeriod(index, btn, sub.id);
+            container.appendChild(btn);
+            
+            if (index === 0) {
+                document.getElementById('joining_period_id').value = sub.id;
+            }
+        });
+
+        updateBreakdown(0);
+    }
+
+    function selectPeriod(index, btn, subId) {
+        // Toggle UI
+        const btns = document.getElementById('labelContainer').children;
+        for (let b of btns) {
+            b.className = 'p-3 text-center border-2 border-slate-100 bg-slate-50 text-slate-500 rounded-xl transition-all font-bold text-xs hover:border-blue-300';
+        }
+        btn.className = 'p-3 text-center border-2 border-blue-600 bg-blue-600 text-white rounded-xl transition-all font-bold text-xs shadow-lg';
+        
+        selectedStartIndex = index;
+        document.getElementById('joining_period_id').value = subId;
+        updateBreakdown(index);
+        loadClasses(); // Reload classes when period changes
+    }
+    
+    // ✅ NEW: LOAD CLASSES DYNAMICALLY
+    function loadClasses() {
+        const courseId = document.getElementById('course_id').value;
+        const yearId = document.getElementById('academic_year_id').value;
+        const periodId = document.getElementById('joining_period_id').value;
+        const classSelect = document.getElementById('assigned_class_id');
+        
+        if (!courseId) return;
+
+        // Fetch course details first to get the category
+        fetch(`/institute/admission/load-subcategories/?course_id=${courseId}`)
+            .then(res => res.json())
+            .then(subData => {
+                // Assuming the first subcategory gives us the category link if needed, 
+                // but actually we just need the category ID from the course.
+                // For simplicity, we filter by course_id and period_id which is Year/Sem.
+                
+                fetch(`/institute/admission/load-classes/?course_id=${courseId}&academic_year_id=${yearId}&period_id=${periodId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+                        data.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.innerText = c.name;
+                            classSelect.appendChild(opt);
+                        });
+                    });
+            });
+    }
+
+    function loadCourseData() {
+        // Handle course change - reload subcategories (joining periods) and then classes
+        const courseId = document.getElementById('course_id').value;
+        fetch(`/institute/admission/load-subcategories/?course_id=${courseId}`)
+            .then(res => res.json())
+            .then(data => {
+                // Update subCategories global var
+                subCategories.length = 0;
+                data.forEach(s => subCategories.push(s));
+                
+                // Re-calculate fees (which re-renders period buttons)
+                calculateFees();
+                loadClasses();
+            });
+    }
+
+    // Initial load
+    window.onload = () => {
+        if(document.getElementById('fee_category_id').value) {
+            calculateFees();
+        }
+        loadClasses();
+    };
+
+    function updateBreakdown(startIndex) {
+        const list = document.getElementById('breakdownList');
+        const calculatedFeeInput = document.getElementById('calculated_fee');
+        list.innerHTML = '';
+        
+        let total = 0;
+        currentBreakdown.forEach((amount, i) => {
+            const row = document.createElement('div');
+            row.className = `flex justify-between items-center py-2 border-b border-white/5 ${i < startIndex ? 'opacity-30' : ''}`;
+            
+            const labelSpan = document.createElement('span');
+            labelSpan.innerText = subCategories[i] ? subCategories[i].name : `Period ${i+1}`;
+            
+            const amountSpan = document.createElement('span');
+            amountSpan.className = 'font-mono text-blue-300';
+            amountSpan.innerText = i < startIndex ? 'Skipped' : `₹${parseFloat(amount).toFixed(2)}`;
+            
+            row.appendChild(labelSpan);
+            row.appendChild(amountSpan);
+            list.appendChild(row);
+
+            if (i >= startIndex) {
+                total += parseFloat(amount);
+            }
+        });
+
+        calculatedFeeInput.value = total.toFixed(2);
+        updateFinalFee();
+    }
+
+    function updateFinalFee() {
+        const calculated = parseFloat(document.getElementById('calculated_fee').value) || 0;
+        const discount = parseFloat(document.getElementById('discount_amount').value) || 0;
+        const final = Math.max(0, calculated - discount);
+        document.getElementById('final_fee').value = final.toFixed(2);
+    }
+</script>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,144 @@
+/* 💎 JDT Admin Sapphire & Platinum Theme */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+    --sapphire-blue: #1e3a8a;
+    --sapphire-hover: #1e40af;
+    --platinum-slate: #f8fafc;
+    --platinum-border: #e2e8f0;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-blur: blur(12px);
+}
+
+body {
+    font-family: 'Poppins', sans-serif !important;
+    background-color: var(--platinum-slate) !important;
+}
+
+/* 💎 NAVBAR & BRANDING */
+.main-header {
+    background: var(--glass-bg) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    border-bottom: 1px solid var(--platinum-border) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+}
+
+.brand-link {
+    background: var(--sapphire-blue) !important;
+    color: #fff !important;
+    border-bottom: none !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px !important;
+    padding: 1.25rem 1.5rem !important;
+    height: auto !important;
+}
+
+.brand-link:hover {
+    background: var(--sapphire-hover) !important;
+}
+
+/* 💎 SIDEBAR */
+.main-sidebar {
+    background: var(--sapphire-blue) !important;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.1) !important;
+}
+
+.nav-sidebar .nav-item > .nav-link {
+    border-radius: 12px !important;
+    margin-bottom: 4px !important;
+    padding: 0.8rem 1rem !important;
+    font-weight: 500 !important;
+    color: rgba(255,255,255,0.8) !important;
+    transition: all 0.3s ease !important;
+}
+
+.nav-sidebar .nav-item > .nav-link.active {
+    background: rgba(255,255,255,0.15) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.nav-sidebar .nav-item > .nav-link:hover {
+    background: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+}
+
+/* 💎 CARDS & PANELS */
+.card {
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.03) !important;
+    border: 1px solid var(--platinum-border) !important;
+}
+
+.card-header {
+    background: #fff !important;
+    border-bottom: 1px solid var(--platinum-border) !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.card-title {
+    font-weight: 700 !important;
+    color: var(--sapphire-blue) !important;
+    font-size: 1.1rem !important;
+}
+
+/* 💎 BUTTONS */
+.btn-primary, .btn-success {
+    background: var(--sapphire-blue) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-size: 0.75rem !important;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background: var(--sapphire-hover) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(30, 58, 138, 0.3) !important;
+}
+
+/* 💎 TABLES */
+.table thead th {
+    background: var(--platinum-slate) !important;
+    text-transform: uppercase !important;
+    font-size: 0.7rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 1px !important;
+    color: #64748b !important;
+    border-top: none !important;
+}
+
+.table td {
+    vertical-align: middle !important;
+    padding: 1rem 0.75rem !important;
+}
+
+/* 💎 FORM CONTROLS */
+.form-control {
+    border-radius: 12px !important;
+    border: 1px solid var(--platinum-border) !important;
+    padding: 0.75rem 1rem !important;
+    background: var(--platinum-slate) !important;
+}
+
+.form-control:focus {
+    background: #fff !important;
+    border-color: var(--sapphire-blue) !important;
+    box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.05) !important;
+}
+
+/* 💎 STATUS BADGES */
+.badge {
+    padding: 0.5em 1em !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    font-size: 0.65rem !important;
+}
