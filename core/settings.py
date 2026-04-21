@@ -9,7 +9,12 @@ SECRET_KEY = 'secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['43.205.194.221']
+ALLOWED_HOSTS = [
+    '43.205.194.221',
+    '43.205.194.221:8000',
+    'localhost',
+    '127.0.0.1',
+]
 
 INSTALLED_APPS = [
      'jazzmin',
