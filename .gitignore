@@ -4,3 +4,4 @@ __pycache__/
 .env
 scratch/
 .gemini/
+db.sqlite3
