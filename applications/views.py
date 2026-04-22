@@ -356,6 +356,18 @@ def payment_success(request, app_id):
 # =========================
 # AJAX
 # =========================
+def load_academic_years(request):
+    institute_id = request.GET.get('institute_id')
+    # Fetch years that have active application forms in this institute
+    year_ids = ApplicationForm.objects.filter(
+        course__institute_id=institute_id, 
+        is_active=True
+    ).values_list('academic_year_id', flat=True).distinct()
+    
+    years = AcademicYear.objects.filter(id__in=year_ids).values('id', 'name')
+    return JsonResponse(list(years), safe=False)
+
+
 def load_courses(request):
     institute_id = request.GET.get('institute_id')
     year_id = request.GET.get('academic_year_id')

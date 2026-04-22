@@ -181,7 +181,7 @@
                 {% for field in fields %}
                 <div class="space-y-2">
                     <label class="block text-sm font-bold text-slate-600 mb-1 ml-1">
-                        {{ field.label }} {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                        {% if field.label == "Full Name" %}Student First Name{% else %}{{ field.label }}{% endif %} {% if field.required %}<span class="text-red-500">*</span>{% endif %}
                     </label>
                     
                     {% if field.field_type == 'text' %}

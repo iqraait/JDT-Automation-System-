@@ -62,7 +62,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10 p-12">
                     {% for field in section.list %}
                     <div class="space-y-3">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{{ field.label }}</label>
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{% if field.label == "Full Name" %}Student First Name{% else %}{{ field.label }}{% endif %}</label>
 
                         {% if field.field_type == "text" %}
                         <input type="text" name="field_{{ field.id }}" value="{{ field.value }}"

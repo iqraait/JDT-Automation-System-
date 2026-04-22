@@ -7,6 +7,7 @@ urlpatterns = [
     path('my-applications/', my_applications, name='my_applications'),
 
     # ✅ AJAX
+    path('load-academic-years/', load_academic_years, name='load_academic_years'),
     path('load-courses/', load_courses, name='load_courses'),
     path('load-form-fields/', load_form_fields, name='load_form_fields'),
 

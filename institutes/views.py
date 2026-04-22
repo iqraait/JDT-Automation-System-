@@ -215,7 +215,11 @@ def register_student(request, app_id):
                         )
         
         # 3. Save Qualifying Exam Marks
-        qe_field = FormField.objects.filter(form=course.form, section__name__icontains="Qualifying Examination").first()
+        # Only target fields in the 'Qualifying Examination' section
+        qe_field = FormField.objects.filter(
+            form=course.form, 
+            section__name__icontains="Qualifying Examination"
+        ).first()
         if qe_field:
             # Delete old marks for this field before re-saving
             ApplicationFieldValue.objects.filter(application=app, field=qe_field, value__contains=":").delete()
@@ -271,6 +275,10 @@ def register_student(request, app_id):
     field_values = {v.field_id: v.value for v in app.field_values.all()}
     for f in form_fields:
         f.current_value = field_values.get(f.id, "")
+        # FIX: Ensure Full Name shows student name, not corrupted subject marks
+        if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
+            f.current_value = app.student.first_name
+        f.value = f.current_value  # Support templates using .value or .current_value
 
     # Fetch marks for display
     subjects = []
@@ -677,12 +685,19 @@ def view_application(request, app_id):
                     normal_fields.append(fv)
         else:
             if not is_media:
-                # Resolve Qualifying Exam ID to Name
-                if fv.field and "exam" in fv.field.label.lower() and str(fv.value).isdigit():
-                    from academics.models import QualifyingExam
-                    exam_obj = QualifyingExam.objects.filter(id=fv.value).first()
-                    if exam_obj:
-                        fv.value = exam_obj.name
+                # Robust ID-to-Name resolution for Qualifying Examination
+                val = str(fv.value).strip()
+                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
+                
+                if label_orig == "Full Name" and (not val or ":" in val):
+                    fv.value = application.student.first_name
+                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
+                    if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
+                        clean_id = val[3:].strip() if val.lower().startswith('id:') else val
+                        from academics.models import QualifyingExam
+                        exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
+                        if exam_obj:
+                            fv.value = exam_obj.name
                 normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
@@ -762,7 +777,7 @@ def calculate_total_and_percentage(application):
     # Robust Exam Identification
     exam_id = None
     for v in application.field_values.all():
-        if "exam" in v.field.label.lower():
+        if v.field and "exam" in v.field.label.lower():
             # v.value could be an ID (integer) or a string name
             val = str(v.value).strip()
             if val.isdigit():
@@ -787,28 +802,29 @@ def calculate_total_and_percentage(application):
             }
 
     # calculate
-    for val in application.field_values.all():
-        val_str = str(val.value or "").strip()
+    for fv in application.field_values.all():
+        val_str = str(fv.value or "").strip()
         if ":" in val_str:
             try:
-                subject, mark = val_str.split(":", 1)
-                subject = subject.lower().strip()
-                mark_val = float(mark.strip())
+                # Minimal fix to handle Name:Marks:Max format
+                parts = val_str.split(":")
+                subject = parts[0].lower().strip()
+                mark_val = float(parts[1].strip())
 
                 config = subjects_config.get(subject)
                 if config and config["include"]:
                     total += mark_val
                     max_total += config["max"]
 
-                # main subject for tie
-                if config and config["main"]:
-                    main_subject_marks = max(main_subject_marks, mark_val)
-                
-                # sub subject for secondary tie
-                if config and config["sub"]:
-                    sub_subject_marks = max(sub_subject_marks, mark_val)
+                    # main subject for tie
+                    if config["main"]:
+                        main_subject_marks = max(main_subject_marks, mark_val)
+                    
+                    # sub subject for secondary tie
+                    if config["sub"]:
+                        sub_subject_marks = max(sub_subject_marks, mark_val)
 
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, IndexError):
                 continue
 
     percentage = (total / max_total * 100) if max_total > 0 else 0
@@ -1157,18 +1173,18 @@ def edit_application(request, app_id):
     # =========================
     fields = FormField.objects.filter(
         form=app.course.form
-    ).order_by('order')
+    ).select_related('section').order_by('section__order', 'order')
 
     # =========================
     # ATTACH VALUES TO FIELDS
     # =========================
-    for field in fields:
-        value_obj = ApplicationFieldValue.objects.filter(
-            application=app,
-            field=field
-        ).first()
-
-        field.value = value_obj.value if value_obj else ""
+    field_values = {v.field_id: v.value for v in app.field_values.all()}
+    for f in fields:
+        f.current_value = field_values.get(f.id, "")
+        # FIX: Ensure Full Name shows student name, not corrupted subject marks
+        if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
+            f.current_value = app.student.first_name
+        f.value = f.current_value  # Support templates using .value or .current_value
 
     
 
@@ -1223,8 +1239,11 @@ def edit_application(request, app_id):
             field__field_type='file' # Don't delete file values which might have colons (rare but possible)
         ).delete()
 
-        # Find the Qualifying Examination field to link marks to it
-        qe_field = FormField.objects.filter(form=app.course.form, section__name__icontains="Qualifying Examination").first() or fields.first()
+        # Only target fields in the 'Qualifying Examination' section
+        qe_field = FormField.objects.filter(
+            form=app.course.form, 
+            section__name__icontains="Qualifying Examination"
+        ).first()
 
         for key in request.POST:
             if key.startswith("subject_"):
