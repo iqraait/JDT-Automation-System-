@@ -157,7 +157,7 @@
                 </div>
                 <p class="text-[10px] text-slate-500 mt-2 font-medium leading-relaxed">
                     {{ app.institute.address }}<br>
-                    <span class="font-bold">Contact:</span> {{ app.institute.user.email }} | <span class="font-bold">Print Date:</span> {{ print_date }}
+                    <span class="font-bold">Contact:</span> {{ app.institute.user.email }}
                 </p>
             </div>
 
@@ -184,7 +184,8 @@
             </div>
             <div class="text-right">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Course Applied For</p>
-                <p class="text-lg font-black text-blue-700 tracking-tight uppercase">{{ app.course.name }}</p>
+                <p class="text-lg font-black text-blue-700 tracking-tight uppercase leading-none">{{ app.course.name }}</p>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Generated on: {{ print_date }}</p>
             </div>
         </div>
 
@@ -223,7 +224,7 @@
                                 {% endif %}
                             {% endwith %}
                         {% else %}
-                            {{ item.value|default:"-" }}
+                            {{ item.display_value|default:item.value|default:"-" }}
                         {% endif %}
                     </td>
                 </tr>
@@ -287,9 +288,11 @@
                 <div class="flex gap-12">
                     <div class="flex flex-col items-center">
                         {% if signature %}
-                        <img src="{{ MEDIA_URL }}{{ signature }}" class="max-h-12 w-auto mb-2" alt="Signature">
+                        <div class="h-16 flex items-end -mb-2">
+                             <img src="{{ MEDIA_URL }}{{ signature }}" class="max-h-16 w-auto" alt="Signature">
+                        </div>
                         {% else %}
-                        <div class="h-12"></div>
+                        <div class="h-14"></div>
                         {% endif %}
                         <div class="signature-line">Student Signature</div>
                     </div>

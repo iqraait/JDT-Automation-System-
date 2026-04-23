@@ -32,6 +32,31 @@
             <p class="text-slate-500">Please fill in the details below to complete your course application.</p>
         </div>
 
+        {% comment %}
+        <!-- NOTIFICATIONS (Move this for specific forms later) -->
+        {% if notifications %}
+        <div class="px-8 md:px-10 pt-8">
+            <div class="space-y-4">
+                {% for note in notifications %}
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-2xl shadow-sm animate-fade-in">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-amber-800 text-sm uppercase tracking-wider">{{ note.title }}</h4>
+                            <p class="text-amber-700 font-medium">{{ note.message }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endcomment %}
+
         <form method="POST" enctype="multipart/form-data" class="p-8 md:p-10 space-y-8">
             {% csrf_token %}
 

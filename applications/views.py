@@ -90,7 +90,7 @@ def apply_course(request):
                         
                         if marks_val > max_val or marks_val < pass_val:
                             from django.contrib import messages
-                            messages.error(request, f"Invalid marks for {subject_name.replace('_', ' ')}. Must be between {pass_val} and {max_val}.")
+                            # messages.error(request, f"Invalid marks for {subject_name.replace('_', ' ')}. Must be between {pass_val} and {max_val}.")
                             return redirect('/apply/')
                             
                         subjects_to_save.append({
@@ -472,6 +472,29 @@ def view_application(request, app_id):
                     normal_fields.append(fv)
         else:
             if not is_media:
+                # NEW: Resolve Display Text for Select/Dropdown fields
+                val = str(fv.value).strip()
+                fv.display_value = val
+                if fv.field and fv.field.field_type in ['select', 'radio', 'checkbox']:
+                    from academics.models import FieldOption
+                    opt = FieldOption.objects.filter(field=fv.field, value=val).first()
+                    if opt:
+                        fv.display_value = opt.display_text
+                
+                # Robust ID-to-Name resolution for Qualifying Examination
+                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
+                if label_orig == "Full Name" and (not val or ":" in val):
+                    fv.value = application.student.first_name
+                    fv.display_value = application.student.first_name
+                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
+                    if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
+                        clean_id = val[3:].strip() if val.lower().startswith('id:') else val
+                        from academics.models import QualifyingExam
+                        exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
+                        if exam_obj:
+                            fv.value = exam_obj.name
+                            fv.display_value = exam_obj.name
+                
                 normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0

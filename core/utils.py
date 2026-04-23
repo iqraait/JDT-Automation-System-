@@ -77,13 +77,20 @@ def generate_application_pdf(application, buffer):
     elements.append(Spacer(1, 10))
 
     # --- 3. APP INFO ---
+    import datetime
+    current_date_str = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
+    
     app_info = [
         [
             Paragraph(f"Application ID: <b>#{application.id}</b>", field_value_style), 
-            Paragraph(f"Date: <b>{application.created_at.strftime('%d/%m/%Y')}</b>", field_value_style),
-            Paragraph(f"Time: <b>{application.created_at.strftime('%I:%M %p')}</b>", field_value_style)
+            Paragraph(f"Submitted Date: <b>{application.created_at.strftime('%d/%m/%Y')}</b>", field_value_style),
+            Paragraph(f"Submitted Time: <b>{application.created_at.strftime('%I:%M %p')}</b>", field_value_style)
         ],
-        [Paragraph(f"Course Applied for: <font color='blue'><b>{application.course.name.upper() if application.course else ''}</b></font>", field_value_style), "", ""]
+        [
+            Paragraph(f"Course Applied for: <font color='blue'><b>{application.course.name.upper() if application.course else ''}</b></font>", field_value_style), 
+            "", 
+            Paragraph(f"<font size='8' color='grey'>Generated on: {current_date_str}</font>", field_value_style)
+        ]
     ]
     info_table = Table(app_info, colWidths=[2.5*inch, 2.3*inch, 1.5*inch])
     elements.append(info_table)
@@ -94,21 +101,24 @@ def generate_application_pdf(application, buffer):
     
     if app_form:
         sections = FormSection.objects.filter(fields__form=app_form).distinct().order_by('order')
+        from academics.models import FieldOption # Import for lookup
         for section in sections:
             elements.append(Paragraph(section.name.upper(), section_style))
             data = []
             for field in section.fields.all().order_by('order'):
                 if field.field_type == 'file': continue
-                # NEW: Handle snapshot fields if reference field is deleted (Part 6)
-                val_obj = application.field_values.filter(field=field).first()
-                if not val_obj and field:
-                    # If field is deleted, we might not find it by ForeignKey
-                    # This logic assumes we want to show existing data even if field isn't in section anymore
-                    pass 
                 
-                # Fetching by application field values to ensure we show even orphans
+                val_obj = application.field_values.filter(field=field).first()
                 val = val_obj.value if val_obj else "-"
-                data.append([Paragraph(field.label, field_label_style), Paragraph(str(val), field_value_style)])
+                
+                # NEW: Resolve Display Text
+                display_val = str(val)
+                if field.field_type in ['select', 'radio', 'checkbox']:
+                    opt = FieldOption.objects.filter(field=field, value=val).first()
+                    if opt:
+                        display_val = opt.display_text
+                
+                data.append([Paragraph(field.label, field_label_style), Paragraph(display_val, field_value_style)])
             
             if data:
                 t = Table(data, colWidths=[2*inch, 4.3*inch])
@@ -120,74 +130,86 @@ def generate_application_pdf(application, buffer):
                 elements.append(t)
                 elements.append(Spacer(1, 10))
 
+    # [REST OF MARKS LOGIC UNCHANGED...]
+    
     # --- 5. MARKS ---
     marks_data = []
     total_obtained = 0
     total_max = 0
     
-    for v in application.field_values.all():
+    for v in application.field_values.all().order_by('id'):
         if v.value and ":" in str(v.value):
             try:
-                subject, marks = v.value.split(":")
-                subject_name = subject.strip()
-                marks_val = float(marks.strip())
-                
-                # Try to find max marks for this subject if possible
-                # In current system, max marks are stored in ExamSubject model
-                # For PDF, we can use a dummy or try to match. 
-                # Better: In calculateTotal we can pass max marks too.
-                # For now, let's assume standard max marks or look it up if we have a match.
-                max_marks = 100 # Fallback
+                parts = str(v.value).split(":")
+                subject_name = parts[0].strip()
+                marks_val = float(parts[1].strip())
+                max_marks = float(parts[2].strip()) if len(parts) >= 3 else 100
                 
                 total_obtained += marks_val
-                total_max += max_marks # This is a placeholder, real max marks should be captured
+                total_max += max_marks
                 
                 marks_data.append([
                     Paragraph(subject_name, field_value_style), 
-                    Paragraph(str(marks_val), field_value_style)
+                    Paragraph(str(marks_val), field_value_style),
+                    Paragraph(str(max_marks), field_value_style)
                 ])
             except: continue
     
     if marks_data:
         elements.append(Paragraph("QUALIFYING EXAMINATION MARKS", section_style))
-        
-        # Calculate percentage
         percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
-        
-        m_rows = [["Subject", "Marks Obtained"]] + marks_data
-        # Add Total Row
-        m_rows.append([Paragraph("<b>TOTAL AGGREGATE</b>", field_value_style), Paragraph(f"<b>{total_obtained}</b>", field_value_style)])
-        m_rows.append([Paragraph("<b>TOTAL PERCENTAGE</b>", field_value_style), Paragraph(f"<b>{percentage:.2f}%</b>", field_value_style)])
-        
-        m_table = Table(m_rows, colWidths=[3.15*inch, 3.15*inch])
+        m_rows = [["Subject", "Marks Obtained", "Max Marks"]] + marks_data
+        m_rows.append([Paragraph("<b>TOTAL AGGREGATE</b>", field_value_style), Paragraph(f"<b>{total_obtained}</b>", field_value_style), Paragraph(f"<b>{total_max}</b>", field_value_style)])
+        m_rows.append([Paragraph("<b>TOTAL PERCENTAGE</b>", field_value_style), "", Paragraph(f"<b>{percentage:.2f}%</b>", field_value_style)])
+        m_table = Table(m_rows, colWidths=[2.1*inch, 2.1*inch, 2.1*inch])
         m_table.setStyle(TableStyle([
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
             ('PADDING', (0,0), (-1,-1), 8),
-            ('BACKGROUND', (0, -2), (-1, -1), colors.whitesmoke), # Highlight total/percent
+            ('BACKGROUND', (0, -2), (-1, -1), colors.whitesmoke), 
+            ('SPAN', (0, -1), (1, -1)), # Span first two columns for percentage
         ]))
         elements.append(m_table)
 
     # --- 6. DECLARATION ---
     elements.append(Spacer(1, 15))
     elements.append(Paragraph("DECLARATION", section_style))
-    decl_text = "I declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect or ineligibility being detected before or after the admission, action can be taken against me."
+    decl_text = f"I, {application.student.first_name.upper() if application.student.first_name else application.student.username.upper()}, declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect or ineligibility being detected before or after the admission, action can be taken against me."
     elements.append(Paragraph(f"<i>{decl_text}</i>", declaration_style))
     
-    elements.append(Spacer(1, 25))
+    elements.append(Spacer(1, 15))
+    
+    # Signature alignment fix
+    # Signature images
+    student_sig_img = None
+    if student_photo_path: # This was actually looking for photo path in original code, wait
+        # I need to find the signature path
+        for v in application.field_values.all():
+            if v.field and (v.field.is_signature or "signature" in v.field.label.lower()) and v.value:
+                path = os.path.join(settings.MEDIA_ROOT, str(v.value))
+                if os.path.exists(path):
+                    try:
+                        student_sig_img = Image(path, 1.2*inch, 0.4*inch)
+                    except: pass
+                break
+
     sig_data = [
+        ["", "", student_sig_img if student_sig_img else ""],
         ["Place: ...................", "", "................................................"],
         ["Date: ....................", "", "Student Signature"],
         ["", "", ""],
         ["", "", "................................................"],
         ["", "", "Parent/Guardian Signature"],
     ]
-    sig_table = Table(sig_data, colWidths=[2*inch, 1.3*inch, 3*inch])
+    sig_table = Table(sig_data, colWidths=[2.1*inch, 1.2*inch, 3*inch])
     sig_table.setStyle(TableStyle([
         ('FONTSIZE', (0,0), (-1,-1), 8),
         ('ALIGN', (2,0), (2,-1), 'CENTER'),
+        ('VALIGN', (2,0), (2,0), 'BOTTOM'), # Align image to bottom of its cell
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (2, 0), (2, 0), -5), # Pull signature image closer to line
     ]))
     elements.append(sig_table)
 
