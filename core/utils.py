@@ -34,7 +34,9 @@ def generate_application_pdf(application, buffer):
 
     student_photo_path = None
     for v in application.field_values.all():
-        if v.field.field_type == 'file' and 'photo' in v.field.label.lower() and v.value:
+        field_type = v.field.field_type if v.field else v.field_type
+        field_label = v.field.label if v.field else v.field_label
+        if field_type == 'file' and field_label and 'photo' in field_label.lower() and v.value:
             path = os.path.join(settings.MEDIA_ROOT, str(v.value))
             if os.path.exists(path):
                 student_photo_path = path; break
@@ -113,10 +115,21 @@ def generate_application_pdf(application, buffer):
                 
                 # NEW: Resolve Display Text
                 display_val = str(val)
-                if field.field_type in ['select', 'radio', 'checkbox']:
-                    opt = FieldOption.objects.filter(field=field, value=val).first()
-                    if opt:
-                        display_val = opt.display_text
+                label_lower = field.label.lower()
+                
+                # Check for Field Options regardless of field type
+                opt = FieldOption.objects.filter(field=field, value=val).first()
+                if opt:
+                    display_val = opt.display_text
+                
+                # Resolve Qualifying Examination name
+                if "exam" in label_lower or "qualifying" in label_lower:
+                    if display_val.isdigit() or (display_val.lower().startswith('id:') and display_val[3:].strip().isdigit()):
+                        clean_id = display_val[3:].strip() if display_val.lower().startswith('id:') else display_val
+                        from academics.models import QualifyingExam
+                        exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
+                        if exam_obj:
+                            display_val = exam_obj.name
                 
                 data.append([Paragraph(field.label, field_label_style), Paragraph(display_val, field_value_style)])
             
@@ -187,7 +200,9 @@ def generate_application_pdf(application, buffer):
     if student_photo_path: # This was actually looking for photo path in original code, wait
         # I need to find the signature path
         for v in application.field_values.all():
-            if v.field and (v.field.is_signature or "signature" in v.field.label.lower()) and v.value:
+            field_label = v.field.label if v.field else v.field_label
+            is_signature = getattr(v.field, 'is_signature', False) if v.field else False
+            if (is_signature or (field_label and "signature" in field_label.lower())) and v.value:
                 path = os.path.join(settings.MEDIA_ROOT, str(v.value))
                 if os.path.exists(path):
                     try:

@@ -284,7 +284,7 @@ def register_student(request, app_id):
     subjects = []
     latest_subjects = {}
     for v in app.field_values.all().order_by('-id'):
-        if v.value and ":" in str(v.value) and not v.field.is_photo and not v.field.is_signature:
+        if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
             parts = str(v.value).split(":")
             if len(parts) >= 2:
                 name = parts[0].strip()
@@ -610,7 +610,8 @@ def download_application_zip(request, app_id):
                      with open(file_path, 'rb') as f:
                          filename = os.path.basename(file_path)
                          # Add prefix to distinguish files
-                         label_slug = v.field.label.replace(" ", "_").lower()
+                         field_label = v.field.label if v.field else v.field_label
+                         label_slug = field_label.replace(" ", "_").lower() if field_label else f"field_{v.id}"
                          zip_file.writestr(f"documents/{label_slug}_{filename}", f.read())
 
 
@@ -903,14 +904,16 @@ def get_student_name(application):
 
     # 2. Check for field marked as is_name_field
     for v in application.field_values.all():
-        if v.field.is_name_field:
+        if v.field and getattr(v.field, 'is_name_field', False):
             return v.value
         
     # 3. Fallback to label search
     for v in application.field_values.all():
-        label = v.field.label.lower()
-        if "name" in label and ":" not in str(v.value):
-            return v.value
+        field_label = v.field.label if v.field else v.field_label
+        if field_label:
+            label = field_label.lower()
+            if "name" in label and ":" not in str(v.value):
+                return v.value
 
     return application.student.username
 
@@ -1120,7 +1123,11 @@ def institute_dashboard(request):
 
         # Optimized field extraction
         for v in app.field_values.all():
-            lbl = v.field.label.lower()
+            field_label = v.field.label if v.field else v.field_label
+            if not field_label:
+                continue
+
+            lbl = field_label.lower()
             val = v.value
             
             if not val or val == "None": continue
@@ -1191,9 +1198,29 @@ def edit_application(request, app_id):
     field_values = {v.field_id: v.value for v in app.field_values.all()}
     for f in fields:
         f.current_value = field_values.get(f.id, "")
+        label_lower = f.label.lower()
+
         # FIX: Ensure Full Name shows student name, not corrupted subject marks
         if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
             f.current_value = app.student.first_name
+        
+        # NEW: Resolve Qualifying Examination name if it's an ID
+        elif "exam" in label_lower or "qualifying" in label_lower:
+            val = str(f.current_value).strip()
+            if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
+                clean_id = val[3:].strip() if val.lower().startswith('id:') else val
+                from academics.models import QualifyingExam
+                exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
+                if exam_obj:
+                    f.current_value = exam_obj.name
+
+        # Resolve Field Options for non-choice fields (e.g. text fields used as ID holders)
+        if f.field_type not in ['select', 'radio', 'checkbox'] and f.current_value:
+            from academics.models import FieldOption
+            opt = FieldOption.objects.filter(field=f, value=f.current_value).first()
+            if opt:
+                f.current_value = opt.display_text
+
         f.value = f.current_value  # Support templates using .value or .current_value
 
     
@@ -1282,7 +1309,7 @@ def edit_application(request, app_id):
     latest_subjects = {}
 
     for v in app.field_values.all().order_by('-id'):
-        if v.value and ":" in str(v.value) and not v.field.is_photo and not v.field.is_signature:
+        if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
             parts = str(v.value).split(":")
             if len(parts) >= 2:
                 name = parts[0].strip()

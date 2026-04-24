@@ -45,14 +45,16 @@ class Application(models.Model):
 
         # Avoid redundant DB hits if field_values is pre-fetched
         for fv in self.field_values.all():
-            if fv.field.is_name_field:
+            if fv.field and getattr(fv.field, 'is_name_field', False):
                 return fv.value
             
         # secondary check for common labels if no flag is set
         for fv in self.field_values.all():
-            label = fv.field.label.lower()
-            if "name" in label and ":" not in str(fv.value):
-                return fv.value
+            field_label = fv.field.label if fv.field else fv.field_label
+            if field_label:
+                label = field_label.lower()
+                if "name" in label and ":" not in str(fv.value):
+                    return fv.value
 
         return self.student.username
 

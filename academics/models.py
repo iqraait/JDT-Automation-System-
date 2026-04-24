@@ -185,6 +185,8 @@ class QualifyingExam(models.Model):
     )
 
     def __str__(self):
+        if self.course:
+            return f"{self.name} - {self.course.name}"
         return self.name
 
 

@@ -472,10 +472,10 @@ def view_application(request, app_id):
                     normal_fields.append(fv)
         else:
             if not is_media:
-                # NEW: Resolve Display Text for Select/Dropdown fields
+                # NEW: Resolve Display Text for Select/Dropdown fields or any field with options
                 val = str(fv.value).strip()
                 fv.display_value = val
-                if fv.field and fv.field.field_type in ['select', 'radio', 'checkbox']:
+                if fv.field:
                     from academics.models import FieldOption
                     opt = FieldOption.objects.filter(field=fv.field, value=val).first()
                     if opt:
@@ -486,14 +486,21 @@ def view_application(request, app_id):
                 if label_orig == "Full Name" and (not val or ":" in val):
                     fv.value = application.student.first_name
                     fv.display_value = application.student.first_name
-                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
+                elif "exam" in label_lower or "qualifying" in label_lower:
                     if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
                         clean_id = val[3:].strip() if val.lower().startswith('id:') else val
                         from academics.models import QualifyingExam
                         exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
                         if exam_obj:
-                            fv.value = exam_obj.name
-                            fv.display_value = exam_obj.name
+                            fv.value = str(exam_obj)
+                            fv.display_value = str(exam_obj)
+                    else:
+                        # Fallback: try to resolve by name if it's already a string
+                        from academics.models import QualifyingExam
+                        exam_obj = QualifyingExam.objects.filter(name__iexact=val).first()
+                        if exam_obj:
+                            fv.value = str(exam_obj)
+                            fv.display_value = str(exam_obj)
                 
                 normal_fields.append(fv)
 

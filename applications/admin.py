@@ -15,8 +15,17 @@ class ApplicationFieldValueInline(admin.TabularInline):
             return ""
         
         # Check if it's an image based on field flags or labels
-        label = obj.field.label.lower()
-        if obj.field.field_type == 'file' and (obj.field.is_photo or obj.field.is_signature or "photo" in label or "signature" in label or "passport" in label):
+        field_label = obj.field.label if obj.field else obj.field_label
+        field_type = obj.field.field_type if obj.field else obj.field_type
+        
+        if not field_label:
+            return "No Preview"
+            
+        label = field_label.lower()
+        is_photo = getattr(obj.field, 'is_photo', False) if obj.field else False
+        is_signature = getattr(obj.field, 'is_signature', False) if obj.field else False
+        
+        if field_type == 'file' and (is_photo or is_signature or "photo" in label or "signature" in label or "passport" in label):
             url = f"{settings.MEDIA_URL}{obj.value}"
             # Signature usually needs a wide thumbnail, photo a tall one
             height = "40px" if "signature" in label else "80px"
