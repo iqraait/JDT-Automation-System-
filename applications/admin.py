@@ -35,20 +35,34 @@ class ApplicationFieldValueInline(admin.TabularInline):
     image_preview.short_description = 'Preview'
 
 
+from django import forms
+
+class ApplicationAdminForm(forms.ModelForm):
+    student_email = forms.EmailField(required=False, label="Student Email (Updateable)")
+
+    class Meta:
+        model = Application
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.student:
+            self.fields['student_email'].initial = self.instance.student.email
+
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
+    form = ApplicationAdminForm
     list_display = ['id', 'display_student_name', 'course', 'academic_year', 'status', 'created_at']
     list_filter = ['status', 'course', 'academic_year']
     search_fields = ['student__username', 'student__first_name']
     inlines = [ApplicationFieldValueInline]
-    readonly_fields = ['student_email']
-
-    def student_email(self, obj):
-        if obj.student and obj.student.email:
-            return obj.student.email
-        return mark_safe('<span style="color: red; font-weight: bold;">⚠️ NO EMAIL ENTERED (Emails will not send)</span>')
     
-    student_email.short_description = 'Student Email'
+    def save_model(self, request, obj, form, change):
+        email = form.cleaned_data.get('student_email')
+        if email and obj.student:
+            obj.student.email = email
+            obj.student.save()
+        super().save_model(request, obj, form, change)
 
     def display_student_name(self, obj):
         return obj.display_name
