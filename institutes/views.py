@@ -78,20 +78,29 @@ def send_status_email(application, new_status):
     """Sends a professional HTML status update email to the student."""
     try:
         student = application.student
-        if not student.email: return
+        if not student or not student.email:
+            print(f"Skipping email for Application #{application.id}: No student email found.")
+            return
         
         status_map = {'pending': 'Under Audit', 'selected': 'Verified', 'rejected': 'Rejected', 'hold': 'On Hold'}
-        status_display = status_map.get(new_status, new_status.title())
+        status_display = status_map.get(new_status, str(new_status).title())
         
         subject = f"Update: Application for {application.course.name} is {status_display}"
-        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
+        
+        # Use a safe fallback for the login URL
+        try:
+            domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'
+        except:
+            domain = '127.0.0.1'
+            
+        login_url = f"http://{domain}:8000/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
             'student_name': student.first_name or student.username,
-            'course_name': application.course.name,
+            'course_name': application.course.name if application.course else "Course",
             'status_display': status_display,
             'status_slug': new_status,
-            'remarks': application.remarks,
+            'remarks': application.remarks or "",
             'login_url': login_url
         })
         plain_message = strip_tags(html_message)
@@ -102,10 +111,11 @@ def send_status_email(application, new_status):
             settings.EMAIL_HOST_USER, 
             [student.email], 
             html_message=html_message,
-            fail_silently=True
+            fail_silently=False  # Changed to False to see errors
         )
+        print(f"Status email sent to {student.email} for Application #{application.id}")
     except Exception as e:
-        print(f"Status email failed: {e}")
+        print(f"CRITICAL: Status email failed for App #{application.id}: {e}")
 
 def send_admission_status_email(admission, new_status):
     """Sends a professional HTML status update email for already admitted students."""
