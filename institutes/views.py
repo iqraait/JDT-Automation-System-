@@ -42,41 +42,73 @@ User = get_user_model()
 # EMAIL_HOST_USER = 'your-email@gmail.com'
 # EMAIL_HOST_PASSWORD = 'your-app-password'
 
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
 def send_admission_email(admission):
     """Sends a selection/admission memo to the student email."""
     try:
         student = admission.application.student
         subject = f"Admission Selected - {admission.application.course.name}"
-        message = f"Congratulations!\n\nYou are selected with a registered number {admission.register_number} and please login to your student portal to see the more details http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
         
-        from_email = settings.EMAIL_HOST_USER
-        recipient_list = [student.email]
+        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
         
-        send_mail(subject, message, from_email, recipient_list, fail_silently=True)
+        html_message = render_to_string('emails/status_update.html', {
+            'student_name': student.first_name or student.username,
+            'course_name': admission.application.course.name,
+            'status_display': 'Selected for Admission',
+            'status_slug': 'selected',
+            'remarks': f"Registered Number: {admission.register_number}",
+            'login_url': login_url
+        })
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject, 
+            plain_message, 
+            settings.EMAIL_HOST_USER, 
+            [student.email], 
+            html_message=html_message,
+            fail_silently=True
+        )
     except Exception as e:
         print(f"Email failed: {e}")
 
 def send_status_email(application, new_status):
-    """Sends a status update email to the student for application stage."""
+    """Sends a professional HTML status update email to the student."""
     try:
         student = application.student
         if not student.email: return
         
-        status_map = {'pending': 'Pending', 'selected': 'Selected', 'rejected': 'Rejected', 'hold': 'On Hold'}
-        status_display = status_map.get(new_status, new_status)
+        status_map = {'pending': 'Under Audit', 'selected': 'Verified', 'rejected': 'Rejected', 'hold': 'On Hold'}
+        status_display = status_map.get(new_status, new_status.title())
         
-        subject = f"Application Status Updated: {status_display}"
-        message = f"Hello {student.first_name or student.username},\n\nYour application status for {application.course.name} has been updated to: {status_display}.\n"
-        if application.remarks:
-            message += f"Remarks: {application.remarks}\n"
-        message += f"\nLogin here: http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
+        subject = f"Update: Application for {application.course.name} is {status_display}"
+        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
         
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email], fail_silently=True)
+        html_message = render_to_string('emails/status_update.html', {
+            'student_name': student.first_name or student.username,
+            'course_name': application.course.name,
+            'status_display': status_display,
+            'status_slug': new_status,
+            'remarks': application.remarks,
+            'login_url': login_url
+        })
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject, 
+            plain_message, 
+            settings.EMAIL_HOST_USER, 
+            [student.email], 
+            html_message=html_message,
+            fail_silently=True
+        )
     except Exception as e:
         print(f"Status email failed: {e}")
 
 def send_admission_status_email(admission, new_status):
-    """Sends a status update email for already admitted students."""
+    """Sends a professional HTML status update email for already admitted students."""
     try:
         student = admission.application.student
         if not student.email: return
@@ -84,13 +116,27 @@ def send_admission_status_email(admission, new_status):
         status_map = dict(Admission.ADMISSION_STATUS)
         status_display = status_map.get(new_status, new_status)
         
-        subject = f"Student Status Alert: {status_display}"
-        message = f"Hello {student.first_name or student.username},\n\nYour current student status has been updated to: {status_display}.\n"
-        if admission.status_reason:
-            message += f"Reason: {admission.status_reason}\n"
-        message += f"\nPlease contact the office if you have any questions."
+        subject = f"Student Record Alert: {status_display}"
+        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
         
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email], fail_silently=True)
+        html_message = render_to_string('emails/status_update.html', {
+            'student_name': student.first_name or student.username,
+            'course_name': admission.application.course.name,
+            'status_display': status_display,
+            'status_slug': new_status if new_status != 'active' else 'selected',
+            'remarks': admission.status_reason,
+            'login_url': login_url
+        })
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject, 
+            plain_message, 
+            settings.EMAIL_HOST_USER, 
+            [student.email], 
+            html_message=html_message,
+            fail_silently=True
+        )
     except Exception as e:
         print(f"Admission status email failed: {e}")
 
@@ -699,6 +745,42 @@ def view_application(request, app_id):
     total_obtained = 0
     total_max = 0
 
+    # 1. Identify Qualifying Exam and Subjects Configuration
+    from academics.models import QualifyingExam, ExamSubject
+    exam_obj = None
+    
+    # Step A: Find the examination name from the form values
+    exam_name_from_form = None
+    for fv in field_values:
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if ("exam" in label or "qualifying" in label) and "marks" not in label:
+            val = str(fv.value).strip()
+            # If it's a choice field, get the display text first
+            if fv.field and fv.field.field_type in ['select', 'radio']:
+                from academics.models import FieldOption
+                opt = FieldOption.objects.filter(field=fv.field, value=val).first()
+                if opt:
+                    exam_name_from_form = opt.display_text
+            
+            # Fallback to the raw value if no option found
+            if not exam_name_from_form:
+                exam_name_from_form = val
+            break
+
+    # Step B: Resolve the QualifyingExam object based on the name we found
+    if exam_name_from_form:
+        # Try finding by name (this is more reliable than ID which might mismatch with FieldOptions)
+        exam_obj = QualifyingExam.objects.filter(name__iexact=exam_name_from_form).first()
+        
+        # Fallback to ID if name lookup fails and it's numeric
+        if not exam_obj and exam_name_from_form.isdigit():
+            exam_obj = QualifyingExam.objects.filter(id=exam_name_from_form).first()
+
+    subjects_config = {}
+    if exam_obj:
+        for s in ExamSubject.objects.filter(exam=exam_obj):
+            subjects_config[s.name.lower().strip()] = s.max_marks
+
     for fv in field_values:
         label_lower = fv.field.label.lower() if fv.field else (fv.field_label.lower() if fv.field_label else "")
         
@@ -716,13 +798,17 @@ def view_application(request, app_id):
         if fv.value and ":" in str(fv.value) and not is_media:
             try:
                 parts = str(fv.value).split(":")
-                name = parts[0]
-                marks = parts[1]
+                name = parts[0].strip()
+                marks = parts[1].strip()
                 
-                # Check for 3 parts (Name:Marks:Max)
-                max_val = 100
-                if len(parts) >= 3:
-                     max_val = float(parts[2])
+                # Dynamic Max Marks Lookup
+                max_val = subjects_config.get(name.lower().strip(), 100)
+                
+                # Fallback to 3rd part if present
+                if len(parts) >= 3 and name.lower().strip() not in subjects_config:
+                     try:
+                         max_val = float(parts[2])
+                     except: pass
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
@@ -744,27 +830,14 @@ def view_application(request, app_id):
                     if opt:
                         fv.display_value = opt.display_text
 
-                # Robust ID-to-Name resolution for Qualifying Examination or Full Name
-                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
-                
-                if label_orig == "Full Name" and (not val or ":" in val):
-                    fv.value = application.student.first_name
+                # Fix: If this is the exam field, ensure it shows the correctly resolved name
+                if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
+                    if exam_obj:
+                        fv.display_value = exam_obj.name
+
+                # Robust ID-to-Name resolution for Full Name fallback
+                if label_lower == "full name" and (not val or ":" in val):
                     fv.display_value = application.student.first_name
-                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
-                    from academics.models import QualifyingExam
-                    # Try resolving by ID if it's numeric
-                    clean_id = None
-                    if val.isdigit(): clean_id = val
-                    elif val.lower().startswith('id:') and val[3:].strip().isdigit(): clean_id = val[3:].strip()
-                    
-                    if clean_id:
-                        exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
-                        if exam_obj:
-                            fv.display_value = exam_obj.name
-                    elif label_orig.lower() == "qualifying examination":
-                        # Direct lookup as requested
-                        exam = QualifyingExam.objects.filter(id=val).first()
-                        if exam: fv.display_value = exam.name
 
                 normal_fields.append(fv)
 

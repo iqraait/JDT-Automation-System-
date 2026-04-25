@@ -59,6 +59,12 @@
             <form method="POST" class="space-y-5">
                 {% csrf_token %}
 
+                {% if error %}
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-xl animate-pulse">
+                    <p class="text-xs font-bold text-red-600 uppercase tracking-widest">{{ error }}</p>
+                </div>
+                {% endif %}
+
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username / ID</label>
                     <div class="relative group">

@@ -34,17 +34,30 @@ def student_signup(request):
 
 # ✅ STUDENT LOGIN
 def student_login(request):
+    error = None
     if request.method == 'POST':
-        user = authenticate(
-            username=request.POST.get('username'),
-            password=request.POST.get('password')
-        )
+        identifier = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Try authenticating with username
+        user = authenticate(request, username=identifier, password=password)
+
+        # Fallback: Try authenticating with email
+        if not user:
+            from .models import User
+            try:
+                user_obj = User.objects.get(email=identifier)
+                user = authenticate(request, username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
 
         if user:
             login(request, user)
             return redirect('/dashboard/')
+        else:
+            error = "Invalid credentials. Please check your username/email and password."
 
-    return render(request, 'student/login.html')
+    return render(request, 'student/login.html', {'error': error})
 
 
 # ✅ LOGOUT (COMMON FOR ALL USERS )
@@ -76,12 +89,22 @@ def forgot_password(request):
             reset_url = f"http://{domain}/accounts/reset/{uid}/{token}/"
 
             # Send Email
+            from django.utils.html import strip_tags
             subject = "Password Reset Request - JDT Automation"
-            message = render_to_string('accounts/password_reset_email.html', {
+            html_message = render_to_string('accounts/password_reset_email.html', {
                 'user': user,
                 'reset_url': reset_url,
             })
-            send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email], fail_silently=False)
+            plain_message = strip_tags(html_message)
+            
+            send_mail(
+                subject, 
+                plain_message, 
+                settings.EMAIL_HOST_USER, 
+                [user.email], 
+                html_message=html_message,
+                fail_silently=False
+            )
             
             return render(request, 'student/forgot_password.html', {'success': 'Reset link sent to your registered email.'})
         else:

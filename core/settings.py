@@ -166,3 +166,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 PHICOMMERCE_USE_UAT = True
+
+# Email Configuration (Real Gmail)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'erp@jdticas.in'
+EMAIL_HOST_PASSWORD = 'crfk wcys naik svzv'
+DEFAULT_FROM_EMAIL = 'erp@jdticas.in'

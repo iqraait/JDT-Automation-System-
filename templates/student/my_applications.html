@@ -92,9 +92,9 @@
                         </td>
                         <td class="px-8 py-5">
                             {% if app.status == "selected" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100 uppercase tracking-wider">✅ Merit Admitted</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100 uppercase tracking-wider">✅ Verified</span>
                             {% elif app.status == "rejected" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100 uppercase tracking-wider">❌ Eligibility Denied</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100 uppercase tracking-wider">❌ Rejected</span>
                             {% elif app.status == "hold" %}
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold border border-amber-100 uppercase tracking-wider">⏸ Review Hold</span>
                             {% elif app.status == "submitted" %}

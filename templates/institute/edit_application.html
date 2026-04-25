@@ -174,7 +174,7 @@
                         <div class="relative">
                             <select name="status" class="w-full bg-white/5 border-2 border-white/10 text-white px-8 py-5 rounded-[2rem] focus:ring-4 focus:ring-blue-500/20 focus:bg-white/10 outline-none transition-all font-black text-lg appearance-none cursor-pointer">
                                 <option class="text-slate-900 bg-white" value="pending" {% if app.status == "pending" %}selected{% endif %}>🕒 Under Audit</option>
-                                <option class="text-slate-900 bg-white" value="selected" {% if app.status == "selected" %}selected{% endif %}>✅ Merit Admitted</option>
+                                <option class="text-slate-900 bg-white" value="selected" {% if app.status == "selected" %}selected{% endif %}>✅ Verified</option>
                                 <option class="text-slate-900 bg-white" value="rejected" {% if app.status == "rejected" %}selected{% endif %}>❌ Eligibility Denied</option>
                                 <option class="text-slate-900 bg-white" value="hold" {% if app.status == "hold" %}selected{% endif %}>⏸ Review Hold</option>
                             </select>

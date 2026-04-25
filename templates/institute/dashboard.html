@@ -152,7 +152,7 @@
                                 {% elif student.status == 'selected' %}
                                     <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-widest">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        Selected
+                                        Verified
                                     </span>
                                 {% else %}
                                     <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full border border-slate-200 uppercase tracking-widest">
@@ -162,7 +162,7 @@
                             </td>
                             <td class="px-8 py-7 text-center">
                                 {% if student.remarks %}
-                                    <button onclick="alert('Remarks: {{ student.remarks|escapejs }}')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-xl hover:bg-slate-50 transition-all shadow-sm uppercase tracking-widest">View</button>
+                                    <button onclick="openRemarksModal('{{ student.name|escapejs }}', '{{ student.remarks|escapejs }}')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-xl hover:bg-slate-50 transition-all shadow-sm uppercase tracking-widest">View</button>
                                 {% else %}
                                     <span class="text-slate-300">-</span>
                                 {% endif %}
@@ -266,7 +266,41 @@
 
 <!-- 🔥 IMPORT MODAL REMOVED -->
 
+<!-- 💎 REMARKS MODAL -->
+<div id="remarksModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[250] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all">
+        <div class="bg-slate-900 p-8 text-white relative">
+            <div class="absolute top-0 right-0 p-6">
+                <button onclick="closeRemarksModal()" class="text-slate-400 hover:text-white transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <h3 class="text-xl font-black tracking-tight" id="remarksStudentName">Reviewer Remarks</h3>
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Internal Audit Findings</p>
+        </div>
+        <div class="p-10">
+            <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100 min-h-[150px]">
+                <p id="remarksContent" class="text-slate-700 font-medium leading-relaxed italic text-lg"></p>
+            </div>
+            <div class="mt-8">
+                <button onclick="closeRemarksModal()" class="w-full py-5 bg-slate-900 text-white font-black rounded-[1.5rem] uppercase tracking-widest text-sm hover:bg-slate-800 transition-all shadow-xl">Close Review</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function openRemarksModal(name, remarks) {
+    document.getElementById('remarksStudentName').innerText = name + "'s Remarks";
+    document.getElementById('remarksContent').innerText = remarks || "No remarks entered.";
+    document.getElementById('remarksModal').classList.remove('hidden');
+    document.getElementById('remarksModal').classList.add('flex');
+}
+
+function closeRemarksModal() {
+    document.getElementById('remarksModal').classList.add('hidden');
+    document.getElementById('remarksModal').classList.remove('flex');
+}
 function openStatusModal(id, currentStatus) {
     document.getElementById('statusStudentId').value = id;
     document.getElementById('newStatus').value = currentStatus;

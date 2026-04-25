@@ -438,23 +438,39 @@ def view_application(request, app_id):
     total_max = 0
 
     # 1. Identify Qualifying Exam and Subjects Configuration
-    exam_id = None
+    from academics.models import QualifyingExam, ExamSubject
+    exam_obj = None
+    
+    # Step A: Find the examination name from the form values
+    exam_name_from_form = None
     for fv in field_values:
-        lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if "exam" in lbl or "qualifying" in lbl:
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if ("exam" in label or "qualifying" in label) and "marks" not in label:
             val = str(fv.value).strip()
-            if val.isdigit():
-                exam_id = int(val)
-            else:
-                from academics.models import QualifyingExam
-                ex = QualifyingExam.objects.filter(name__iexact=val).first()
-                if ex: exam_id = ex.id
-            if exam_id: break
+            # If it's a choice field, get the display text first
+            if fv.field and fv.field.field_type in ['select', 'radio']:
+                from academics.models import FieldOption
+                opt = FieldOption.objects.filter(field=fv.field, value=val).first()
+                if opt:
+                    exam_name_from_form = opt.display_text
+            
+            # Fallback to the raw value if no option found
+            if not exam_name_from_form:
+                exam_name_from_form = val
+            break
+
+    # Step B: Resolve the QualifyingExam object based on the name we found
+    if exam_name_from_form:
+        # Try finding by name (this is more reliable than ID which might mismatch with FieldOptions)
+        exam_obj = QualifyingExam.objects.filter(name__iexact=exam_name_from_form).first()
+        
+        # Fallback to ID if name lookup fails and it's numeric
+        if not exam_obj and exam_name_from_form.isdigit():
+            exam_obj = QualifyingExam.objects.filter(id=exam_name_from_form).first()
 
     subjects_config = {}
-    if exam_id:
-        from academics.models import ExamSubject
-        for s in ExamSubject.objects.filter(exam_id=exam_id):
+    if exam_obj:
+        for s in ExamSubject.objects.filter(exam=exam_obj):
             subjects_config[s.name.lower().strip()] = s.max_marks
 
     for fv in field_values:
@@ -478,10 +494,13 @@ def view_application(request, app_id):
                 marks = parts[1].strip()
                 
                 # Dynamic Max Marks Lookup
-                max_val = subjects_config.get(name.lower(), 100)
-                # If the string actually has a 3rd part, use it ONLY if no config found
-                if len(parts) >= 3 and name.lower() not in subjects_config:
-                     max_val = float(parts[2])
+                max_val = subjects_config.get(name.lower().strip(), 100)
+                
+                # Fallback to 3rd part if present
+                if len(parts) >= 3 and name.lower().strip() not in subjects_config:
+                     try:
+                         max_val = float(parts[2])
+                     except: pass
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
@@ -503,27 +522,14 @@ def view_application(request, app_id):
                     if opt:
                         fv.display_value = opt.display_text
 
-                # Robust ID-to-Name resolution for Qualifying Examination or Full Name
-                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
+                # Fix: If this is the exam field, ensure it shows the correctly resolved name
+                if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
+                    if exam_obj:
+                        fv.display_value = exam_obj.name
                 
-                if label_orig == "Full Name" and (not val or ":" in val):
-                    fv.value = application.student.first_name
+                # Robust ID-to-Name resolution for Full Name fallback
+                if label_lower == "full name" and (not val or ":" in val):
                     fv.display_value = application.student.first_name
-                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
-                    from academics.models import QualifyingExam
-                    # Try resolving by ID if it's numeric
-                    clean_id = None
-                    if val.isdigit(): clean_id = val
-                    elif val.lower().startswith('id:') and val[3:].strip().isdigit(): clean_id = val[3:].strip()
-                    
-                    if clean_id:
-                        exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
-                        if exam_obj:
-                            fv.display_value = exam_obj.name
-                    elif label_orig.lower() == "qualifying examination":
-                        # Direct lookup as requested
-                        exam = QualifyingExam.objects.filter(id=val).first()
-                        if exam: fv.display_value = exam.name
                 
                 normal_fields.append(fv)
 
