@@ -41,6 +41,14 @@ class ApplicationAdmin(admin.ModelAdmin):
     list_filter = ['status', 'course', 'academic_year']
     search_fields = ['student__username', 'student__first_name']
     inlines = [ApplicationFieldValueInline]
+    readonly_fields = ['student_email']
+
+    def student_email(self, obj):
+        if obj.student and obj.student.email:
+            return obj.student.email
+        return mark_safe('<span style="color: red; font-weight: bold;">⚠️ NO EMAIL ENTERED (Emails will not send)</span>')
+    
+    student_email.short_description = 'Student Email'
 
     def display_student_name(self, obj):
         return obj.display_name
