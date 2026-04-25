@@ -110,7 +110,7 @@
                                                 <div class="flex items-center justify-center gap-3">
                                                     <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}"
                                                            class="w-24 bg-slate-50 border-2 border-slate-100 p-3 rounded-xl font-black text-blue-600 text-center focus:border-blue-500 outline-none transition-all">
-                                                    <span class="text-slate-300 font-bold text-[10px] italic">MAX 100</span>
+                                                    <span class="text-slate-300 font-bold text-[10px] italic">MAX {{ s.max }} (MN: {{ s.pass }})</span>
                                                 </div>
                                             </td>
                                         </tr>

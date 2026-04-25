@@ -75,8 +75,10 @@
                         <th class="px-6 py-4 text-center">Merit Rank</th>
                         <th class="px-6 py-4 text-left">Candidate Information</th>
                         <th class="px-6 py-4 text-left">Assigned Program</th>
-                        <th class="px-6 py-4 text-center">Qualifier Score</th>
-                        <th class="px-6 py-4 text-center">Merit Status</th>
+                        <th class="px-6 py-4 text-center">Score</th>
+                        <th class="px-6 py-4 text-center">Max Marks</th>
+                        <th class="px-6 py-4 text-center">Qualified</th>
+                        <th class="px-6 py-4 text-center">Percentage</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -95,7 +97,15 @@
                              <span class="text-slate-600 font-medium">{{ item.course }}</span>
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <span class="text-slate-900 font-bold text-base">{{ item.total }}</span>
+                            <span class="text-slate-900 font-black text-base">{{ item.total }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="text-slate-500 font-bold">{{ item.max_total }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="{% if item.total >= item.qualified_total %}text-emerald-600{% else %}text-red-500{% endif %} font-black">
+                                {{ item.qualified_total }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-center">
                             <div class="flex items-center justify-center gap-2">

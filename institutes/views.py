@@ -47,7 +47,7 @@ def send_admission_email(admission):
     try:
         student = admission.application.student
         subject = f"Admission Selected - {admission.application.course.name}"
-        message = f"Congratulations!\n\nYou are selected with a registered number {admission.register_number} and please login to your student portal to see the more details http://127.0.0.1:8000/accounts/login/"
+        message = f"Congratulations!\n\nYou are selected with a registered number {admission.register_number} and please login to your student portal to see the more details http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
         
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [student.email]
@@ -55,6 +55,44 @@ def send_admission_email(admission):
         send_mail(subject, message, from_email, recipient_list, fail_silently=True)
     except Exception as e:
         print(f"Email failed: {e}")
+
+def send_status_email(application, new_status):
+    """Sends a status update email to the student for application stage."""
+    try:
+        student = application.student
+        if not student.email: return
+        
+        status_map = {'pending': 'Pending', 'selected': 'Selected', 'rejected': 'Rejected', 'hold': 'On Hold'}
+        status_display = status_map.get(new_status, new_status)
+        
+        subject = f"Application Status Updated: {status_display}"
+        message = f"Hello {student.first_name or student.username},\n\nYour application status for {application.course.name} has been updated to: {status_display}.\n"
+        if application.remarks:
+            message += f"Remarks: {application.remarks}\n"
+        message += f"\nLogin here: http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
+        
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email], fail_silently=True)
+    except Exception as e:
+        print(f"Status email failed: {e}")
+
+def send_admission_status_email(admission, new_status):
+    """Sends a status update email for already admitted students."""
+    try:
+        student = admission.application.student
+        if not student.email: return
+        
+        status_map = dict(Admission.ADMISSION_STATUS)
+        status_display = status_map.get(new_status, new_status)
+        
+        subject = f"Student Status Alert: {status_display}"
+        message = f"Hello {student.first_name or student.username},\n\nYour current student status has been updated to: {status_display}.\n"
+        if admission.status_reason:
+            message += f"Reason: {admission.status_reason}\n"
+        message += f"\nPlease contact the office if you have any questions."
+        
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email], fail_silently=True)
+    except Exception as e:
+        print(f"Admission status email failed: {e}")
 
 
 # =========================
@@ -245,6 +283,15 @@ def register_student(request, app_id):
     # GET Request
     student_name = get_student_name(app)
     
+    # Auto-fill Mobile logic
+    student_mobile = app.student.mobile_number
+    if not student_mobile:
+        for v in app.field_values.all():
+            lbl = (v.field.label if v.field else v.field_label or "").lower()
+            if "phone" in lbl or "mobile" in lbl or "contact" in lbl:
+                student_mobile = v.value
+                break
+    
     # Auto-generate Registration ID
     course_code = course.course_code or "GEN"
     last_adm = Admission.objects.filter(registration_id__startswith=course_code).order_by('-id').first()
@@ -306,6 +353,7 @@ def register_student(request, app_id):
         'sections': sections,
         'subjects': subjects,
         'subcategories': subcategories,
+        'student_mobile': student_mobile,
         'academic_years': AcademicYear.objects.filter(institute=app.institute),
         'courses': Course.objects.filter(institute=app.institute)
     })
@@ -686,29 +734,38 @@ def view_application(request, app_id):
                     normal_fields.append(fv)
         else:
             if not is_media:
-                # Robust ID-to-Name resolution for Qualifying Examination
                 val = str(fv.value).strip()
-                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
-                
-                # NEW: Resolve Display Text for Select/Dropdown fields
                 fv.display_value = val
-                if fv.field and fv.field.field_type in ['select', 'radio', 'checkbox']:
+                
+                # Resolve Display Text for Select/Dropdown fields
+                if fv.field and fv.field.field_type in ['select', 'radio']:
                     from academics.models import FieldOption
                     opt = FieldOption.objects.filter(field=fv.field, value=val).first()
                     if opt:
                         fv.display_value = opt.display_text
 
+                # Robust ID-to-Name resolution for Qualifying Examination or Full Name
+                label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
+                
                 if label_orig == "Full Name" and (not val or ":" in val):
                     fv.value = application.student.first_name
                     fv.display_value = application.student.first_name
                 elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
-                    if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
-                        clean_id = val[3:].strip() if val.lower().startswith('id:') else val
-                        from academics.models import QualifyingExam
+                    from academics.models import QualifyingExam
+                    # Try resolving by ID if it's numeric
+                    clean_id = None
+                    if val.isdigit(): clean_id = val
+                    elif val.lower().startswith('id:') and val[3:].strip().isdigit(): clean_id = val[3:].strip()
+                    
+                    if clean_id:
                         exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
                         if exam_obj:
-                            fv.value = exam_obj.name
                             fv.display_value = exam_obj.name
+                    elif label_orig.lower() == "qualifying examination":
+                        # Direct lookup as requested
+                        exam = QualifyingExam.objects.filter(id=val).first()
+                        if exam: fv.display_value = exam.name
+
                 normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
@@ -782,6 +839,7 @@ def view_application(request, app_id):
 def calculate_total_and_percentage(application):
     total = 0
     max_total = 0
+    qualified_total = 0
     main_subject_marks = 0
     sub_subject_marks = 0
 
@@ -789,12 +847,10 @@ def calculate_total_and_percentage(application):
     exam_id = None
     for v in application.field_values.all():
         if v.field and "exam" in v.field.label.lower():
-            # v.value could be an ID (integer) or a string name
             val = str(v.value).strip()
             if val.isdigit():
                 exam_id = int(val)
             else:
-                # Try finding by name if it's a string
                 ex_obj = QualifyingExam.objects.filter(name__iexact=val).first()
                 if ex_obj:
                     exam_id = ex_obj.id
@@ -809,7 +865,8 @@ def calculate_total_and_percentage(application):
                 "include": s.include_in_rank,
                 "main": s.is_main_subject,
                 "sub": s.is_sub_subject,
-                "max": s.max_marks
+                "max": s.max_marks,
+                "pass": s.pass_mark
             }
 
     # calculate
@@ -817,7 +874,6 @@ def calculate_total_and_percentage(application):
         val_str = str(fv.value or "").strip()
         if ":" in val_str:
             try:
-                # Minimal fix to handle Name:Marks:Max format
                 parts = val_str.split(":")
                 subject = parts[0].lower().strip()
                 mark_val = float(parts[1].strip())
@@ -826,12 +882,10 @@ def calculate_total_and_percentage(application):
                 if config and config["include"]:
                     total += mark_val
                     max_total += config["max"]
+                    qualified_total += config["pass"]
 
-                    # main subject for tie
                     if config["main"]:
                         main_subject_marks = max(main_subject_marks, mark_val)
-                    
-                    # sub subject for secondary tie
                     if config["sub"]:
                         sub_subject_marks = max(sub_subject_marks, mark_val)
 
@@ -839,7 +893,7 @@ def calculate_total_and_percentage(application):
                 continue
 
     percentage = (total / max_total * 100) if max_total > 0 else 0
-    return total, round(percentage, 2), main_subject_marks, sub_subject_marks
+    return total, round(percentage, 2), main_subject_marks, sub_subject_marks, max_total, qualified_total
 
 def rank_list_view(request):
 
@@ -859,13 +913,15 @@ def rank_list_view(request):
     ranked_list = []
 
     for app in applications:
-        total, percentage, main_mark, sub_mark = calculate_total_and_percentage(app)
+        total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
 
         ranked_list.append({
             "app": app,
             "name": get_student_name(app),
             "course": app.course.name if app.course else "No Course",
             "total": total,
+            "max_total": max_total,
+            "qualified_total": qualified_total,
             "percentage": percentage,
             "main_mark": main_mark,
             "sub_mark": sub_mark
@@ -933,11 +989,13 @@ def export_rank_excel(request):
     ranked_list = []
 
     for app in applications:
-        total, percentage, main_mark = calculate_total_and_percentage(app)
+        total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
 
         ranked_list.append({
             "name": get_student_name(app),
             "total": total,
+            "max_total": max_total,
+            "qualified_total": qualified_total,
             "course": app.course.name if app.course else "No Course",
             "percentage": percentage,
             "main_mark": main_mark
@@ -1119,7 +1177,7 @@ def institute_dashboard(request):
         gender = "-"
         caste = ""
         quota = ""
-        remarks = ""
+        remarks = app.remarks or ""
 
         # Optimized field extraction
         for v in app.field_values.all():
@@ -1141,7 +1199,8 @@ def institute_dashboard(request):
             elif "quota" in lbl:
                 quota = val
             elif "remarks" in lbl or "comment" in lbl:
-                remarks = val
+                if not remarks:
+                    remarks = val
 
         processed_admissions.append({
             'form_id': app.id,
@@ -1290,21 +1349,46 @@ def edit_application(request, app_id):
                     ApplicationFieldValue.objects.create(
                         application=app,
                         field=qe_field,  
-                        value=f"{subject_name}:{marks}:100"
+                        value=f"{subject_name}:{marks}"
                     )
 
         # =========================
         # STATUS + REMARKS
         # =========================
+        old_status = app.status
         app.status = request.POST.get('status')
         app.remarks = request.POST.get('remarks')
         app.save()
 
+        # Trigger Email if status changed
+        if old_status != app.status:
+            send_status_email(app, app.status)
+
         return redirect('/institute/dashboard/')
 
-    # =========================
-    #  LOAD SUBJECTS (FIXED)
-    # =========================
+    # 1. Identify Qualifying Exam and Subjects Configuration
+    exam_id = None
+    for fv in app.field_values.all():
+        lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if "exam" in lbl or "qualifying" in lbl:
+            val = str(fv.value).strip()
+            if val.isdigit():
+                exam_id = int(val)
+            else:
+                from academics.models import QualifyingExam
+                ex = QualifyingExam.objects.filter(name__iexact=val).first()
+                if ex: exam_id = ex.id
+            if exam_id: break
+
+    subjects_config = {}
+    if exam_id:
+        from academics.models import ExamSubject
+        for s in ExamSubject.objects.filter(exam_id=exam_id):
+            subjects_config[s.name.lower().strip()] = {
+                "max": s.max_marks,
+                "pass": s.pass_mark
+            }
+
     subjects = []
     latest_subjects = {}
 
@@ -1318,9 +1402,12 @@ def edit_application(request, app_id):
                     latest_subjects[name] = marks
             
     for name, marks in latest_subjects.items():
+        conf = subjects_config.get(name.lower().strip(), {"max": 100, "pass": 35})
         subjects.append({
             "name": name,
-            "marks": marks
+            "marks": marks,
+            "max": conf["max"],
+            "pass": conf["pass"]
         })
         
         
@@ -1343,9 +1430,15 @@ def update_student_status(request, admission_id):
         reason = request.POST.get('reason') # Dashboard JS sends 'reason'
 
         if status:
+            old_status = admission.status
             admission.status = status
             admission.status_reason = reason
             admission.save()
+            
+            # Trigger Email if status changed
+            if old_status != status:
+                send_admission_status_email(admission, status)
+                
             return JsonResponse({'status': 'success', 'message': 'Status updated successfully'})
         
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)

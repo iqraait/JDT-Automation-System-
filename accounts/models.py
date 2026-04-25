@@ -9,6 +9,7 @@ class User(AbstractUser):
     )
 
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
 
     # 🔥 LINK USER → INSTITUTE (IMPORTANT)
     institute = models.ForeignKey(

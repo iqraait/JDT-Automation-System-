@@ -311,6 +311,17 @@
         </table>
         {% endif %}
 
+        <!-- REMARKS -->
+        {% if app.remarks %}
+        <div class="section-title">
+            <span class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px]">R</span>
+            Administrative Remarks
+        </div>
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-sm font-medium text-slate-700 italic">
+            {{ app.remarks }}
+        </div>
+        {% endif %}
+
         <!-- DECLARATION -->
         <div class="mt-12 bg-slate-50 p-6 rounded-2xl border border-slate-100">
             <h4 class="text-[11px] font-black uppercase mb-3 flex items-center gap-2">

@@ -437,6 +437,26 @@ def view_application(request, app_id):
     total_obtained = 0
     total_max = 0
 
+    # 1. Identify Qualifying Exam and Subjects Configuration
+    exam_id = None
+    for fv in field_values:
+        lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if "exam" in lbl or "qualifying" in lbl:
+            val = str(fv.value).strip()
+            if val.isdigit():
+                exam_id = int(val)
+            else:
+                from academics.models import QualifyingExam
+                ex = QualifyingExam.objects.filter(name__iexact=val).first()
+                if ex: exam_id = ex.id
+            if exam_id: break
+
+    subjects_config = {}
+    if exam_id:
+        from academics.models import ExamSubject
+        for s in ExamSubject.objects.filter(exam_id=exam_id):
+            subjects_config[s.name.lower().strip()] = s.max_marks
+
     for fv in field_values:
         label_lower = fv.field.label.lower() if fv.field else (fv.field_label.lower() if fv.field_label else "")
         
@@ -454,12 +474,13 @@ def view_application(request, app_id):
         if fv.value and ":" in str(fv.value) and not is_media:
             try:
                 parts = str(fv.value).split(":")
-                name = parts[0]
-                marks = parts[1]
+                name = parts[0].strip()
+                marks = parts[1].strip()
                 
-                # Check for 3 parts (Name:Marks:Max)
-                max_val = 100
-                if len(parts) >= 3:
+                # Dynamic Max Marks Lookup
+                max_val = subjects_config.get(name.lower(), 100)
+                # If the string actually has a 3rd part, use it ONLY if no config found
+                if len(parts) >= 3 and name.lower() not in subjects_config:
                      max_val = float(parts[2])
                 
                 marks_val = float(marks)
@@ -472,35 +493,37 @@ def view_application(request, app_id):
                     normal_fields.append(fv)
         else:
             if not is_media:
-                # NEW: Resolve Display Text for Select/Dropdown fields or any field with options
                 val = str(fv.value).strip()
                 fv.display_value = val
-                if fv.field:
+                
+                # Resolve Display Text for Select/Dropdown fields
+                if fv.field and fv.field.field_type in ['select', 'radio']:
                     from academics.models import FieldOption
                     opt = FieldOption.objects.filter(field=fv.field, value=val).first()
                     if opt:
                         fv.display_value = opt.display_text
-                
-                # Robust ID-to-Name resolution for Qualifying Examination
+
+                # Robust ID-to-Name resolution for Qualifying Examination or Full Name
                 label_orig = fv.field.label if fv.field else (fv.field_label if fv.field_label else "")
+                
                 if label_orig == "Full Name" and (not val or ":" in val):
                     fv.value = application.student.first_name
                     fv.display_value = application.student.first_name
-                elif "exam" in label_lower or "qualifying" in label_lower:
-                    if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
-                        clean_id = val[3:].strip() if val.lower().startswith('id:') else val
-                        from academics.models import QualifyingExam
+                elif fv.field and ("exam" in label_lower or "qualifying" in label_lower):
+                    from academics.models import QualifyingExam
+                    # Try resolving by ID if it's numeric
+                    clean_id = None
+                    if val.isdigit(): clean_id = val
+                    elif val.lower().startswith('id:') and val[3:].strip().isdigit(): clean_id = val[3:].strip()
+                    
+                    if clean_id:
                         exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
                         if exam_obj:
-                            fv.value = str(exam_obj)
-                            fv.display_value = str(exam_obj)
-                    else:
-                        # Fallback: try to resolve by name if it's already a string
-                        from academics.models import QualifyingExam
-                        exam_obj = QualifyingExam.objects.filter(name__iexact=val).first()
-                        if exam_obj:
-                            fv.value = str(exam_obj)
-                            fv.display_value = str(exam_obj)
+                            fv.display_value = exam_obj.name
+                    elif label_orig.lower() == "qualifying examination":
+                        # Direct lookup as requested
+                        exam = QualifyingExam.objects.filter(id=val).first()
+                        if exam: fv.display_value = exam.name
                 
                 normal_fields.append(fv)
 
