@@ -1,9 +1,10 @@
+import logging
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.conf import settings
-from django.http import HttpResponse
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.csrf import csrf_exempt
 from .models import Application, Payment, ApplicationFieldValue, Admission
@@ -12,6 +13,8 @@ import datetime
 from io import BytesIO
 from institutes.models import Institute, AcademicYear
 from academics.models import Course, ApplicationForm, ExamSubject, FormField
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -190,10 +193,10 @@ def payment_page(request, app_id):
                 messages.error(request, f"Payment initiation failed: {data['error']}")
                 return redirect(f'/payment/{app_id}/')
             
-            # Save raw request/txn_id for tracking (merchantTxnNo)
-            payment.gateway_transaction_id = data.get('txn_id')
+            payment.merchant_txn_no = data.get('merchant_txn_no')
+            payment.tran_ctx = data.get('tran_ctx')
             payment.save()
-            
+
             return redirect(data['action_url'])
 
     return render(request, 'student/payment.html', {
@@ -247,40 +250,48 @@ def ccavenue_callback(request):
 def phicommerce_callback(request):
     from .payment_handlers import PhiCommerceHandler
     from .models import PaymentConfig
-    
-    # PayPhi redirects back with params in POST or GET
+
     data = request.POST if request.method == 'POST' else request.GET
-    
+
     config = PaymentConfig.objects.filter(gateway_type='phicommerce', is_active=True).first()
     if not config:
+        logger.error("PhiCommerce callback: no active PaymentConfig found")
         messages.error(request, "Payment configuration not found.")
         return redirect('/my-applications/')
-         
+
     handler = PhiCommerceHandler(config)
     result = handler.verify_payment(data)
-    
+
+    merchant_txn_no = result.get('merchant_txn_no', '')
+
     if result['status'] == 'success':
-        merchant_txn_no = result.get('merchant_txn_no', '')
         try:
-            payment = Payment.objects.get(gateway_transaction_id=merchant_txn_no)
-            
-            # Update only if not already processed by webhook
+            payment = Payment.objects.get(merchant_txn_no=merchant_txn_no)
+
             if payment.status == 'pending':
                 payment.gateway_response = result.get('raw')
-                payment.gateway_transaction_id = result.get('txn_id') # Update with bank ref
+                payment.gateway_transaction_id = result.get('txn_id', '')
                 payment.status = 'success'
                 payment.save()
-                
+
                 application = payment.application
                 application.status = 'submitted'
                 application.save()
-                messages.success(request, "Payment successful! Your application has been submitted.")
-            else:
-                messages.success(request, "Payment successful! Your application has been submitted.")
-                
+
+                logger.info(
+                    "PhiCommerce callback: payment SUCCESS — merchantTxnNo=%s appId=%s",
+                    merchant_txn_no, application.id
+                )
+            messages.success(request, "Payment successful! Your application has been submitted.")
+
         except Payment.DoesNotExist:
-            messages.error(request, "Transaction record not found.")
+            logger.error("PhiCommerce callback: Payment not found for merchantTxnNo=%s", merchant_txn_no)
+            messages.error(request, "Transaction record not found. Please contact support.")
     else:
+        logger.warning(
+            "PhiCommerce callback: payment FAILED — merchantTxnNo=%s error=%s",
+            merchant_txn_no, result.get('error')
+        )
         messages.error(request, f"Payment failed: {result.get('error', 'Unknown error')}")
 
     return redirect('/my-applications/')
@@ -288,47 +299,55 @@ def phicommerce_callback(request):
 
 @csrf_exempt
 def phicommerce_webhook(request):
-    """
-    S2S Webhook for PayPhi (Advice URL).
-    PayPhi posts the transaction status here directly.
-    """
+    """S2S server-to-server notification from PhiCommerce (Advice URL)."""
     from .payment_handlers import PhiCommerceHandler
     from .models import PaymentConfig
-    
+
     if request.method != 'POST':
         return HttpResponse("Method not allowed", status=405)
-        
-    data = request.POST
+
     config = PaymentConfig.objects.filter(gateway_type='phicommerce', is_active=True).first()
-    
     if not config:
         return HttpResponse("Config not found", status=404)
-        
+
     handler = PhiCommerceHandler(config)
-    result = handler.verify_payment(data)
-    
+    result = handler.verify_payment(request.POST)
+
+    merchant_txn_no = result.get('merchant_txn_no', '')
+
     if result['status'] == 'success':
-        merchant_txn_no = result.get('merchant_txn_no', '')
         try:
-            payment = Payment.objects.get(gateway_transaction_id=merchant_txn_no)
-            
-            # Background update
+            payment = Payment.objects.get(merchant_txn_no=merchant_txn_no)
+
             if payment.status == 'pending':
                 payment.gateway_response = result.get('raw')
+                payment.gateway_transaction_id = result.get('txn_id', '')
                 payment.status = 'success'
                 payment.save()
-                
+
                 application = payment.application
                 application.status = 'submitted'
                 application.save()
-                
-            return HttpResponse("OK") # Standard acknowledgment
+
+                logger.info(
+                    "PhiCommerce webhook: payment SUCCESS — merchantTxnNo=%s appId=%s",
+                    merchant_txn_no, application.id
+                )
+
+            return HttpResponse("OK")
+
         except Payment.DoesNotExist:
+            logger.error("PhiCommerce webhook: Payment not found for merchantTxnNo=%s", merchant_txn_no)
             return HttpResponse("Transaction not found", status=404)
         except Exception:
+            logger.exception("PhiCommerce webhook: unexpected error for merchantTxnNo=%s", merchant_txn_no)
             return HttpResponse("Error", status=500)
-            
-    return HttpResponse("Invalid Request", status=400)
+
+    logger.warning(
+        "PhiCommerce webhook: payment FAILED — merchantTxnNo=%s error=%s",
+        merchant_txn_no, result.get('error')
+    )
+    return HttpResponse("Payment failed", status=400)
 
 
 @login_required

@@ -12,11 +12,12 @@ class Application(models.Model):
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, null=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
-    #  ADD THIS HERE
     status = models.CharField(
         max_length=20,
         choices=[
             ('pending', 'Pending'),
+            ('pending_payment', 'Pending Payment'),
+            ('submitted', 'Submitted'),
             ('selected', 'Selected'),
             ('rejected', 'Rejected'),
             ('hold', 'On Hold'),
@@ -82,11 +83,11 @@ class ApplicationFieldValue(models.Model):
         return f"{self.application.id} - {label}"
     
 
-from django.db import models
-from .models import Application  # adjust if needed
+# =============================================================================
+# PAYMENT MODELS
+# =============================================================================
 
-
-# 🔥 GLOBAL CHOICES (BEST PRACTICE)
+# 🔥 GLOBAL CHOICES
 GATEWAY_CHOICES = [
     ('ccavenue', 'CCAvenue'),
     ('phicommerce', 'PhiCommerce'),
@@ -177,55 +178,6 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.application.id} - {self.status}"
-
-# #  PAYMENT CONFIGURATION
-# class PaymentConfig(models.Model):
-#     GATEWAY_CHOICES = [
-#         ('ccavenue', 'CCAvenue'),
-#         ('phicommerce', 'PhiCommerce'),
-#     ]
-    
-#     name = models.CharField(max_length=100, help_text="e.g. CCAvenue Production, PhiCommerce UAT")
-#     gateway_type = models.CharField(max_length=20, choices=GATEWAY_CHOICES)
-    
-#     # CCAvenue specific
-#     merchant_id = models.CharField(max_length=255, blank=True, null=True)
-#     access_code = models.CharField(max_length=255, blank=True, null=True)
-#     working_key = models.CharField(max_length=255, blank=True, null=True)
-#     # PhiCommerce specific
-#     secret_key = models.CharField(max_length=255, blank=True, null=True)
-#     terminal_id = models.CharField(max_length=255, blank=True, null=True)
-    
-#     is_active = models.BooleanField(default=True)
-
-#     def __str__(self):
-#         return f"{self.name} ({self.gateway_type})"
-
-
-# #  PAYMENT MODEL
-# class Payment(models.Model):
-#     application = models.OneToOneField(Application, on_delete=models.CASCADE)
-#     amount = models.DecimalField(max_digits=8, decimal_places=2)
-    
-#     gateway_config = models.ForeignKey(PaymentConfig, on_delete=models.SET_NULL, null=True, blank=True)
-#     gateway_transaction_id = models.CharField(max_length=255, null=True, blank=True)
-#     gateway_response = models.JSONField(null=True, blank=True)
-
-#     status = models.CharField(
-#         max_length=20,
-#         choices=[
-#             ('pending', 'Pending'),
-#             ('success', 'Success'),
-#             ('failed', 'Failed'),
-#         ],
-#         default='pending'
-#     )
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"Payment {self.application.id} - {self.status}"
-
 
 #  FEE CATEGORY MODEL
 class FeeCategory(models.Model):
