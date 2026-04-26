@@ -256,3 +256,67 @@ class Subject(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.course.name})"
+
+
+# ✅ RELATIONSHIP PORTAL: NOTICE BOARD
+class NoticeBoard(models.Model):
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='notices')
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    
+    # Targeting
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='notices')
+    assigned_class = models.ForeignKey(Class, on_delete=models.CASCADE, null=True, blank=True, related_name='notices')
+    
+    file_attachment = models.FileField(upload_to='notices/', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+# ✅ RELATIONSHIP PORTAL: TIMETABLE
+class Timetable(models.Model):
+    assigned_class = models.OneToOneField(Class, on_delete=models.CASCADE, related_name='timetable')
+    image_file = models.ImageField(upload_to='timetables/', help_text="Upload a clean image of the class timetable")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Timetable - {self.assigned_class.name}"
+
+
+# ✅ RELATIONSHIP PORTAL: ACADEMIC RESULTS
+class AcademicResult(models.Model):
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='results')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='student_results')
+    
+    # Semester/Period link
+    period = models.ForeignKey(CourseSubCategory, on_delete=models.CASCADE, related_name='period_results')
+    
+    marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
+    max_marks = models.IntegerField(default=100)
+    remarks = models.CharField(max_length=255, blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('admission', 'subject', 'period')
+        ordering = ['period', 'subject']
+
+    def __str__(self):
+        return f"{self.admission.application.student.username} - {self.subject.name}"
+
+
+# ✅ RELATIONSHIP PORTAL: STUDENT DOCUMENTS
+class StudentDocument(models.Model):
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='uploaded_documents')
+    title = models.CharField(max_length=255) # e.g. "Identity Card Copy"
+    file = models.FileField(upload_to='student_docs/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.admission.application.student.username}"

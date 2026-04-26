@@ -1,0 +1,183 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Enter Academic Results | Institute Portal{% endblock %}
+
+{% block sidebar_title %}Institute Panel{% endblock %}
+
+{% block header_title %}Academic Result Entry{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <span class="font-medium">Dashboard</span>
+</a>
+
+<a href="/institute/admission/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+    <span class="font-medium">Admission Module</span>
+</a>
+
+<div class="pt-4 mt-4 border-t border-white/10">
+    <p class="px-4 text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Academic Hub</p>
+    
+    <a href="{% url 'manage_notices' %}" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        <span class="font-medium">Manage Notices</span>
+    </a>
+
+    <a href="{% url 'manage_timetables' %}" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="font-medium">Timetables</span>
+    </a>
+
+    <a href="{% url 'enter_academic_results' %}" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <span class="font-medium">Enter Results</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-10 pb-20">
+
+    <!-- 🔍 SELECTION HEADER -->
+    <div class="bg-slate-900 rounded-[3rem] p-10 md:p-12 text-white shadow-2xl relative overflow-hidden border border-white/5">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+        
+        <div class="relative flex flex-col md:flex-row items-center gap-10">
+            <div class="w-20 h-20 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            
+            <div class="flex-1 text-center md:text-left">
+                <h2 class="text-3xl font-black mb-2 tracking-tight">Bulk Result Entry</h2>
+                <p class="text-slate-400 font-bold italic">Select a class, period, and subject to begin entering student marks.</p>
+            </div>
+
+            <form method="GET" class="flex flex-wrap items-center justify-center md:justify-end gap-4">
+                <select name="class_id" required onchange="this.form.submit()" class="bg-white/10 border border-white/10 text-white px-6 py-4 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-sm min-w-[200px] appearance-none cursor-pointer">
+                    <option value="" class="text-slate-900">Select Class</option>
+                    {% for cls in classes %}
+                    <option value="{{ cls.id }}" {% if selected_class.id == cls.id %}selected{% endif %} class="text-slate-900">{{ cls.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="period_id" required onchange="this.form.submit()" class="bg-white/10 border border-white/10 text-white px-6 py-4 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-sm min-w-[200px] appearance-none cursor-pointer">
+                    <option value="" class="text-slate-900">Select Semester/Period</option>
+                    {% for p in periods %}
+                    <option value="{{ p.id }}" {% if selected_period.id == p.id %}selected{% endif %} class="text-slate-900">{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+
+                {% if subjects %}
+                <select name="subject_id" required onchange="this.form.submit()" class="bg-white/10 border border-white/10 text-white px-6 py-4 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-sm min-w-[200px] appearance-none cursor-pointer">
+                    <option value="" class="text-slate-900">Select Subject</option>
+                    {% for s in subjects %}
+                    <option value="{{ s.id }}" {% if selected_subject.id == s.id %}selected{% endif %} class="text-slate-900">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 📊 MARKS ENTRY TABLE -->
+    {% if selected_class and selected_period and selected_subject %}
+    <form method="POST" class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        {% csrf_token %}
+        <input type="hidden" name="period_id" value="{{ selected_period.id }}">
+        <input type="hidden" name="subject_id" value="{{ selected_subject.id }}">
+
+        <div class="px-10 py-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div>
+                    <h3 class="text-xl font-black text-slate-800">Result Sheet: {{ selected_subject.name }}</h3>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Class: {{ selected_class.name }} | {{ selected_period.name }}</p>
+                </div>
+            </div>
+            <button type="submit" class="px-10 py-4 bg-emerald-600 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200">
+                Save All Results
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left bg-slate-50/50">
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Info</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Register No</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-48">Marks Obtained</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Internal Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for student in students %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-10 py-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs">
+                                    {{ forloop.counter }}
+                                </div>
+                                <div>
+                                    <p class="font-black text-slate-800">{{ student.application.student.first_name|default:student.application.student.username }}</p>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{{ student.application.student.email }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-10 py-6">
+                            <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200">
+                                {{ student.register_number }}
+                            </span>
+                        </td>
+                        <td class="px-10 py-6">
+                            <div class="flex items-center gap-3">
+                                <input type="number" name="marks_{{ student.id }}" step="0.01" max="100" min="0" placeholder="0.00"
+                                       class="w-24 bg-slate-50 border-2 border-slate-200 text-slate-800 px-4 py-3 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-black text-center">
+                                <span class="text-slate-300 font-bold">/ 100</span>
+                            </div>
+                        </td>
+                        <td class="px-10 py-6">
+                            <input type="text" name="remarks_{{ student.id }}" placeholder="e.g., Excellent, Good, Poor"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-6 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none text-sm">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-10 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <p class="text-xs font-bold text-slate-400 flex items-center gap-2 italic">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Results entered here will be visible on the student's Academic Hub profile instantly.
+            </p>
+            <button type="submit" class="px-12 py-5 bg-emerald-600 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200">
+                Confirm & Submit All Marks
+            </button>
+        </div>
+    </form>
+    {% elif not selected_class %}
+    <div class="bg-white rounded-[3rem] p-20 border-2 border-dashed border-slate-200 text-center">
+        <div class="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
+            <svg class="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        </div>
+        <h3 class="text-2xl font-black text-slate-400 uppercase tracking-widest">Awaiting Selection</h3>
+        <p class="text-slate-400 font-bold mt-4">Please select a class and semester from the header above to load the student list.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+</style>
+{% endblock %}

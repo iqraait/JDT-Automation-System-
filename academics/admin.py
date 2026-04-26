@@ -10,8 +10,37 @@ from .models import (
     QualifyingExam,
     ExamSubject,
     Class,
-    Subject
+    Subject,
+    NoticeBoard,
+    Timetable,
+    AcademicResult,
+    StudentDocument
 )
+
+
+@admin.register(NoticeBoard)
+class NoticeBoardAdmin(admin.ModelAdmin):
+    list_display = ['title', 'institute', 'course', 'assigned_class', 'is_active', 'created_at']
+    list_filter = ['institute', 'course', 'is_active']
+    search_fields = ['title', 'content']
+
+
+@admin.register(Timetable)
+class TimetableAdmin(admin.ModelAdmin):
+    list_display = ['assigned_class', 'updated_at']
+
+
+@admin.register(AcademicResult)
+class AcademicResultAdmin(admin.ModelAdmin):
+    list_display = ['admission', 'subject', 'period', 'marks_obtained', 'max_marks']
+    list_filter = ['period', 'subject']
+    search_fields = ['admission__application__student__username']
+
+
+@admin.register(StudentDocument)
+class StudentDocumentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'admission', 'uploaded_at']
+    search_fields = ['title', 'admission__application__student__username']
 
 
 class ApplicationFormListFilter(admin.SimpleListFilter):

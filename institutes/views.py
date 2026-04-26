@@ -9,7 +9,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
-from academics.models import Course, FormField, FormSection, CourseCategory, CourseSubCategory, ExamSubject, Class
+from academics.models import (
+    Course, FormField, FormSection, CourseCategory, CourseSubCategory, 
+    ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument
+)
 from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission
 from .models import Institute, AcademicYear
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
@@ -321,11 +324,19 @@ def register_student(request, app_id):
                 if key.startswith("subject_"):
                     subject_name = key.replace("subject_", "").strip()
                     marks = request.POST.get(key)
+                    max_marks = request.POST.get(f"max_{subject_name}", "100")
                     if marks:
+                        # Clean up marks to avoid ".0" if they are integers, otherwise keep decimals
+                        try:
+                            m_val = float(marks)
+                            marks_str = f"{int(m_val)}" if m_val == int(m_val) else f"{m_val}"
+                        except:
+                            marks_str = marks
+                            
                         ApplicationFieldValue.objects.create(
                             application=app,
                             field=qe_field,
-                            value=f"{subject_name}:{marks}:100"
+                            value=f"{subject_name}:{marks_str}:{max_marks}"
                         )
         
         
@@ -1823,3 +1834,127 @@ def export_students_excel(request):
     response['Content-Disposition'] = f'attachment; filename="Students_{institute.name.replace(" ", "_")}.xlsx"'
     wb.save(response)
     return response
+
+
+# =========================
+# ✅ ACADEMIC RELATIONSHIP PORTAL
+# =========================
+
+@login_required
+def manage_notices(request):
+    if request.user.role != 'institute':
+        return redirect('/')
+    
+    institute = request.user.institute
+    notices = NoticeBoard.objects.filter(institute=institute)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            NoticeBoard.objects.create(
+                institute=institute,
+                title=request.POST.get('title'),
+                content=request.POST.get('content'),
+                course_id=request.POST.get('course') or None,
+                assigned_class_id=request.POST.get('assigned_class') or None,
+                file_attachment=request.FILES.get('file')
+            )
+            messages.success(request, "Notice posted successfully.")
+        elif action == 'delete':
+            NoticeBoard.objects.filter(id=request.POST.get('notice_id'), institute=institute).delete()
+            messages.success(request, "Notice deleted.")
+        return redirect('manage_notices')
+
+    courses = Course.objects.filter(institute=institute)
+    classes = Class.objects.filter(institute=institute)
+    
+    return render(request, 'institute/manage_notices.html', {
+        'notices': notices,
+        'courses': courses,
+        'classes': classes
+    })
+
+
+@login_required
+def manage_timetables(request):
+    if request.user.role != 'institute':
+        return redirect('/')
+        
+    institute = request.user.institute
+    classes = Class.objects.filter(institute=institute).select_related('course', 'timetable')
+    
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        image = request.FILES.get('timetable_image')
+        
+        if class_id and image:
+            assigned_class = get_object_or_404(Class, id=class_id, institute=institute)
+            timetable, created = Timetable.objects.get_or_create(assigned_class=assigned_class)
+            timetable.image_file = image
+            timetable.save()
+            messages.success(request, f"Timetable updated for {assigned_class.name}")
+        return redirect('manage_timetables')
+        
+    return render(request, 'institute/manage_timetables.html', {'classes': classes})
+
+
+@login_required
+def enter_academic_results(request):
+    if request.user.role != 'institute':
+        return redirect('/')
+        
+    institute = request.user.institute
+    classes = Class.objects.filter(institute=institute)
+    periods = CourseSubCategory.objects.all()
+    
+    selected_class = None
+    selected_period = None
+    selected_subject = None
+    students = []
+    subjects = []
+
+    if request.GET.get('class_id'):
+        selected_class = get_object_or_404(Class, id=request.GET.get('class_id'), institute=institute)
+        subjects = selected_class.subjects.all()
+        students = Admission.objects.filter(assigned_class=selected_class, status='active').select_related('application__student')
+
+    if request.GET.get('period_id'):
+        selected_period = get_object_or_404(CourseSubCategory, id=request.GET.get('period_id'))
+
+    if request.GET.get('subject_id'):
+        selected_subject = get_object_or_404(Subject, id=request.GET.get('subject_id'), institute=institute)
+
+    if request.method == 'POST':
+        # Bulk save results
+        subject_id = request.POST.get('subject_id')
+        period_id = request.POST.get('period_id')
+        
+        for key, value in request.POST.items():
+            if key.startswith('marks_'):
+                admission_id = key.replace('marks_', '')
+                marks = value
+                remarks = request.POST.get(f'remarks_{admission_id}')
+                
+                if marks:
+                    admission = Admission.objects.get(id=admission_id)
+                    AcademicResult.objects.update_or_create(
+                        admission=admission,
+                        subject_id=subject_id,
+                        period_id=period_id,
+                        defaults={
+                            'marks_obtained': marks,
+                            'remarks': remarks
+                        }
+                    )
+        messages.success(request, "Academic results saved successfully.")
+        return redirect(f"{request.path}?class_id={selected_class.id}&period_id={period_id}&subject_id={subject_id}")
+
+    return render(request, 'institute/enter_results.html', {
+        'classes': classes,
+        'periods': periods,
+        'subjects': subjects,
+        'students': students,
+        'selected_class': selected_class,
+        'selected_period': selected_period,
+        'selected_subject': selected_subject
+    })

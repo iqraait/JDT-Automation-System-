@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
@@ -11,7 +12,7 @@ from core.utils import generate_application_pdf
 import datetime
 from io import BytesIO
 from institutes.models import Institute, AcademicYear
-from academics.models import Course, ApplicationForm, ExamSubject, FormField
+from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument
 
 
 @login_required
@@ -33,11 +34,71 @@ def dashboard(request):
             'message': form.notification_message
         })
         
+    # Fetch Relationship Notices (Announcements)
+    notices = []
+    if admission:
+        from django.db.models import Q
+        notices = NoticeBoard.objects.filter(
+            is_active=True,
+            institute=admission.application.institute
+        ).filter(
+            Q(course=admission.application.course) | 
+            Q(assigned_class=admission.assigned_class) |
+            Q(course__isnull=True, assigned_class__isnull=True)
+        ).order_by('-created_at')[:5]
+
     return render(request, 'student/dashboard.html', {
         'admission': admission,
         'subjects': subjects,
         'is_admitted': admission is not None,
-        'notifications': notifications
+        'notifications': notifications,
+        'notices': notices
+    })
+
+
+@login_required
+def student_profile(request):
+    # Ensure student is admitted
+    admission = Admission.objects.filter(
+        application__student=request.user, 
+        status='active'
+    ).select_related('assigned_class', 'application__course', 'application__institute').first()
+
+    if not admission:
+        messages.error(request, "Academic Profile is only available after Admission.")
+        return redirect('dashboard')
+
+    # Fetch Relationship Data
+    notices = NoticeBoard.objects.filter(
+        is_active=True
+    ).filter(
+        models.Q(course=admission.application.course) | 
+        models.Q(assigned_class=admission.assigned_class) |
+        models.Q(course__isnull=True, assigned_class__isnull=True) # General notices
+    ).filter(institute=admission.application.institute)[:10]
+
+    timetable = None
+    if admission.assigned_class:
+        timetable = getattr(admission.assigned_class, 'timetable', None)
+
+    results = AcademicResult.objects.filter(admission=admission).select_related('subject', 'period')
+    
+    # Group results by period (semester)
+    results_by_period = {}
+    for res in results:
+        period_name = res.period.name
+        if period_name not in results_by_period:
+            results_by_period[period_name] = []
+        results_by_period[period_name].append(res)
+
+    uploaded_docs = StudentDocument.objects.filter(admission=admission)
+
+    return render(request, 'student/profile.html', {
+        'admission': admission,
+        'notices': notices,
+        'timetable': timetable,
+        'results_by_period': results_by_period,
+        'uploaded_docs': uploaded_docs
     })
 
 
@@ -48,7 +109,9 @@ def my_applications(request):
 
 @login_required
 def apply_course(request):
-    institutes = Institute.objects.all()
+    # Filter institutes that have courses with active application forms
+    institutes = Institute.objects.filter(courses__form__is_active=True).distinct()
+    
     academic_years = AcademicYear.objects.all()
     active_year = AcademicYear.objects.filter(is_active=True).first()
 
@@ -409,6 +472,27 @@ def load_form_fields(request):
         })
 
     return JsonResponse(data, safe=False)
+
+
+@login_required
+def upload_document(request):
+    if request.method == 'POST':
+        admission = Admission.objects.filter(application__student=request.user, status='active').first()
+        if admission:
+            title = request.POST.get('title')
+            file = request.FILES.get('file')
+            if title and file:
+                StudentDocument.objects.create(
+                    admission=admission,
+                    title=title,
+                    file=file
+                )
+                messages.success(request, "Document uploaded to vault.")
+            else:
+                messages.error(request, "Please provide a title and file.")
+        else:
+            messages.error(request, "Admission record not found.")
+    return redirect('student_profile')
 
 
 @login_required

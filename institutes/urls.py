@@ -35,4 +35,9 @@ urlpatterns = [
     path('excel/template/', download_excel_template, name='excel_template'),
     path('excel/export/', excel_export_students, name='excel_export_students'),
     path('excel/import/', excel_import_students, name='excel_import_students'),
+
+    # ✅ ACADEMIC RELATIONSHIP PORTAL
+    path('notices/', manage_notices, name='manage_notices'),
+    path('timetables/', manage_timetables, name='manage_timetables'),
+    path('academic-results/', enter_academic_results, name='enter_academic_results'),
 ]

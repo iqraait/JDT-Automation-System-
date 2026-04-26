@@ -3,6 +3,8 @@ from .views import *
 
 urlpatterns = [
     path('dashboard/', dashboard, name='student_dashboard'),
+    path('student-profile/', student_profile, name='student_profile'),
+    path('upload-document/', upload_document, name='upload_document'),
     path('apply/', apply_course, name='apply_course'),
     path('my-applications/', my_applications, name='my_applications'),
 

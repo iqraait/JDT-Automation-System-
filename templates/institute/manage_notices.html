@@ -1,0 +1,181 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Manage Notices | Institute Portal{% endblock %}
+
+{% block sidebar_title %}Institute Panel{% endblock %}
+
+{% block header_title %}Institutional Notices{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <span class="font-medium">Dashboard</span>
+</a>
+
+<a href="/institute/admission/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+    <span class="font-medium">Admission Module</span>
+</a>
+
+<div class="pt-4 mt-4 border-t border-white/10">
+    <p class="px-4 text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Academic Hub</p>
+    
+    <a href="{% url 'manage_notices' %}" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        <span class="font-medium">Manage Notices</span>
+    </a>
+
+    <a href="{% url 'manage_timetables' %}" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="font-medium">Timetables</span>
+    </a>
+
+    <a href="{% url 'enter_academic_results' %}" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <span class="font-medium">Enter Results</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-10">
+    
+    <!-- ➕ POST NEW NOTICE -->
+    <section class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12">
+        <h3 class="text-2xl font-black text-slate-800 mb-8 flex items-center gap-4">
+            <span class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </span>
+            Post Institutional Notice
+        </h3>
+
+        <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            
+            <div class="space-y-6 md:col-span-1">
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Notice Title</label>
+                    <input type="text" name="title" required placeholder="e.g., Semester Exam Registration" 
+                           class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Target Course</label>
+                        <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold appearance-none cursor-pointer">
+                            <option value="">All Courses</option>
+                            {% for c in courses %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Target Class</label>
+                        <select name="assigned_class" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold appearance-none cursor-pointer">
+                            <option value="">All Classes</option>
+                            {% for cls in classes %}
+                            <option value="{{ cls.id }}">{{ cls.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6 md:col-span-1">
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Notice Content</label>
+                    <textarea name="content" required placeholder="Type the notice details here..." rows="4"
+                              class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold"></textarea>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <div class="flex-1 space-y-2">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">File Attachment (Optional)</label>
+                        <input type="file" name="file" class="w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all">
+                    </div>
+                    <button type="submit" class="mt-8 px-10 py-4 bg-blue-600 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
+                        Post Notice
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- 📜 ACTIVE NOTICES LIST -->
+    <section class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div class="px-10 py-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-xl font-black text-slate-800">Active Notices</h3>
+            <span class="px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest">
+                {{ notices|length }} TOTAL
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left bg-slate-50/50">
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Title & Content</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Attachment</th>
+                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for notice in notices %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-10 py-6">
+                            <p class="font-black text-slate-700">{{ notice.created_at|date:"d M Y" }}</p>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{{ notice.created_at|time:"H:i" }}</p>
+                        </td>
+                        <td class="px-10 py-6">
+                            {% if notice.assigned_class %}
+                                <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">Class: {{ notice.assigned_class.name }}</span>
+                            {% elif notice.course %}
+                                <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">Course: {{ notice.course.name }}</span>
+                            {% else %}
+                                <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200">General</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-10 py-6 max-w-md">
+                            <p class="font-black text-slate-800 mb-1">{{ notice.title }}</p>
+                            <p class="text-xs text-slate-500 truncate">{{ notice.content }}</p>
+                        </td>
+                        <td class="px-10 py-6">
+                            {% if notice.file_attachment %}
+                                <a href="{{ notice.file_attachment.url }}" target="_blank" class="text-blue-600 hover:underline font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    View File
+                                </a>
+                            {% else %}
+                                <span class="text-slate-300 font-bold text-[10px] uppercase tracking-widest italic">None</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-10 py-6 text-right">
+                            <form method="POST" onsubmit="return confirm('Delete this notice?');" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="notice_id" value="{{ notice.id }}">
+                                <button type="submit" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-10 py-20 text-center bg-slate-50">
+                            <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                            </div>
+                            <h4 class="text-xl font-black text-slate-400 uppercase tracking-widest">No active notices</h4>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

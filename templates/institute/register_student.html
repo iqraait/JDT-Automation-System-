@@ -219,32 +219,48 @@
                     
                         <!-- MARKS MATRIX -->
                         {% if "exam" in field.label|lower and subjects %}
-                        <div class="mt-6 p-6 bg-blue-50/50 rounded-3xl border-2 border-blue-100 col-span-1 md:col-span-2">
-                            <h4 class="text-[10px] font-black text-blue-600 mb-4 uppercase tracking-[0.2em] flex items-center gap-3">
-                                <span class="w-6 h-6 bg-blue-600 text-white rounded-md flex items-center justify-center font-mono">Σ</span>
+                        <div class="mt-8 p-8 bg-blue-50/50 rounded-[2.5rem] border-2 border-blue-100 col-span-1 md:col-span-2">
+                            <h4 class="text-[10px] font-black text-blue-600 mb-6 uppercase tracking-[0.2em] flex items-center gap-3">
+                                <span class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-mono text-sm">Σ</span>
                                 Metric Performance Data
                             </h4>
-                            <div class="bg-white rounded-2xl border border-blue-100 overflow-hidden">
-                                <table class="w-full text-xs">
+                            <div class="bg-white rounded-[2rem] border border-blue-100 overflow-hidden shadow-sm">
+                                <table class="w-full text-xs" id="marksTable">
                                     <thead>
                                         <tr class="bg-slate-50 text-slate-400">
-                                            <th class="px-4 py-3 text-left uppercase font-black">Subject</th>
-                                            <th class="px-4 py-3 text-center uppercase font-black">Marks</th>
+                                            <th class="px-6 py-4 text-left uppercase tracking-widest font-black">Subject Cluster</th>
+                                            <th class="px-6 py-4 text-center uppercase tracking-widest font-black">Marks Obtained</th>
+                                            <th class="px-6 py-4 text-center uppercase tracking-widest font-black">Max Marks</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         {% for s in subjects %}
-                                        <tr>
-                                            <td class="px-4 py-3 font-bold text-slate-700">{{ s.name }}</td>
-                                            <td class="px-4 py-3">
-                                                <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}"
-                                                       class="w-20 bg-slate-50 border border-slate-200 p-2 rounded-lg text-center font-black text-blue-600 focus:border-blue-500 outline-none">
+                                        <tr class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="px-6 py-5 font-black text-slate-700 text-sm">{{ s.name }}</td>
+                                            <td class="px-6 py-5">
+                                                <input type="number" step="0.01" name="subject_{{ s.name }}" value="{{ s.marks }}" oninput="calculateTotalMarks()"
+                                                       class="w-24 bg-slate-50 border-2 border-slate-100 p-3 rounded-xl font-black text-blue-600 text-center focus:border-blue-500 outline-none transition-all mark-input">
+                                            </td>
+                                            <td class="px-6 py-5 text-center">
+                                                <input type="number" name="max_{{ s.name }}" value="100" oninput="calculateTotalMarks()"
+                                                       class="w-20 bg-slate-50 border-2 border-slate-100 p-3 rounded-xl font-bold text-slate-400 text-center outline-none max-input">
                                             </td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
+                                    <tfoot>
+                                        <tr class="bg-slate-900 text-white">
+                                            <td class="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Grand Total</td>
+                                            <td class="px-6 py-5 text-center font-black text-lg" id="totalObtained">0</td>
+                                            <td class="px-6 py-5 text-center font-black text-lg text-white/50" id="totalMax">0</td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
+                            <p class="mt-4 text-[10px] text-slate-400 font-bold italic flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Marks are automatically saved in the "Subject:Marks:Max" format for eligibility ranking.
+                            </p>
                         </div>
                         {% endif %}
 
@@ -486,6 +502,32 @@
         const final = Math.max(0, calculated - discount);
         document.getElementById('final_fee').value = final.toFixed(2);
     }
+
+    function calculateTotalMarks() {
+        const markInputs = document.querySelectorAll('.mark-input');
+        const maxInputs = document.querySelectorAll('.max-input');
+        let totalObtained = 0;
+        let totalMax = 0;
+
+        markInputs.forEach(input => {
+            totalObtained += parseFloat(input.value) || 0;
+        });
+
+        maxInputs.forEach(input => {
+            totalMax += parseFloat(input.value) || 0;
+        });
+
+        const totalObtainedEl = document.getElementById('totalObtained');
+        const totalMaxEl = document.getElementById('totalMax');
+        
+        if (totalObtainedEl) totalObtainedEl.innerText = totalObtained.toFixed(2);
+        if (totalMaxEl) totalMaxEl.innerText = totalMax.toFixed(2);
+    }
+
+    // Initial calculation on load
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotalMarks();
+    });
 </script>
 
 <style>
