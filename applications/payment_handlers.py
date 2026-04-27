@@ -142,8 +142,8 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-        # Dynamic return URL
-        RETURN_URL = request.build_absolute_uri('/payment/callback/phicommerce/')
+        # Hardcoded return URL for EC2 to ensure hash consistency
+        RETURN_URL = "http://13.233.237.173:8000/payment/callback/phicommerce/"
 
         payload = {
             "merchantId": self.config.merchant_id,
