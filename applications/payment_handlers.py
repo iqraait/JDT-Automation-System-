@@ -87,7 +87,7 @@ class CCAvenueHandler(BasePaymentHandler):
             return {"status": "failed", "raw": resp_dict}
 
 # =============================================================================
-# PHICOMMERCE HANDLER (FINAL STABLE VERSION)
+# PHICOMMERCE HANDLER (FINAL WITH PAYMENT UI SUPPORT)
 # =============================================================================
 
 class PhiCommerceHandler(BasePaymentHandler):
@@ -96,15 +96,27 @@ class PhiCommerceHandler(BasePaymentHandler):
         import hmac
         import hashlib
 
-        # Remove secureHash if present
-        data = {k: v for k, v in data.items() if k != "secureHash"}
+        secret_key = self.config.secret_key or ""
 
-        # ✅ Alphabetical order
-        sorted_keys = sorted(data.keys())
+        # EXACT ORDER (ALPHABETICAL)
+        ordered_keys = [
+            "amount",
+            "currencyCode",
+            "customerEmailID",
+            "customerID",
+            "customerMobileNo",
+            "customerName",
+            "merchantId",
+            "merchantTxnNo",
+            "payType",
+            "returnURL",
+            "transactionType",
+            "txnDate"
+        ]
 
-        # ✅ Concatenate values (NO delimiter)
         hash_string = ""
-        for key in sorted_keys:
+
+        for key in ordered_keys:
             value = data.get(key)
             if value is not None and str(value) != "":
                 hash_string += str(value)
@@ -112,9 +124,6 @@ class PhiCommerceHandler(BasePaymentHandler):
         print("====== FINAL HASH STRING ======")
         print(hash_string)
 
-        secret_key = self.config.secret_key or ""
-
-        # ✅ ASCII encoding (IMPORTANT)
         digest = hmac.new(
             secret_key.encode("utf-8"),
             hash_string.encode("ascii"),
@@ -133,8 +142,8 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-        # ⚠️ UPDATE NGROK URL WHENEVER IT CHANGES
-        RETURN_URL = "https://gloomy-lingo-galore.ngrok-free.dev/payment/callback/phicommerce/"
+        # Dynamic return URL
+        RETURN_URL = request.build_absolute_uri('/payment/callback/phicommerce/')
 
         payload = {
             "merchantId": self.config.merchant_id,
@@ -143,8 +152,8 @@ class PhiCommerceHandler(BasePaymentHandler):
             "currencyCode": "356",
             "payType": "0",
 
-            "customerEmailID": payment.application.student.email or "guest@phicommerce.com",
-            "customerName": payment.application.display_name,
+            "customerEmailID": payment.application.student.email or "test@example.com",
+            "customerName": payment.application.display_name or "Guest",
             "customerID": str(payment.application.student.id),
             "customerMobileNo": "9999999999",
 
@@ -153,11 +162,7 @@ class PhiCommerceHandler(BasePaymentHandler):
             "txnDate": txn_date,
         }
 
-        # ✅ Only include terminalId if actually configured
-        if self.config.terminal_id:
-            payload["terminalId"] = self.config.terminal_id
-
-        # Generate secure hash
+        # ✅ Generate secure hash
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
         api_url = "https://uat.stage.phicommerce.com/pg/api/v2/initiateSale"
@@ -174,42 +179,29 @@ class PhiCommerceHandler(BasePaymentHandler):
             print("====== RAW RESPONSE ======")
             print(response.text)
 
-            try:
-                res_data = response.json()
-            except ValueError:
-                return {"error": f"Invalid JSON response (HTTP {response.status_code})"}
+            res_data = response.json()
 
             print("====== PARSED RESPONSE ======")
             print(res_data)
 
-            # SUCCESS
+            # ✅ SUCCESS
             if res_data.get("responseCode") in ["R1000", "0000"]:
                 redirect_uri = res_data.get("redirectURI")
                 tranCtx = res_data.get("tranCtx")
 
-                if redirect_uri and tranCtx:
-                    return {
-                        "action_url": f"{redirect_uri}?tranCtx={tranCtx}",
-                        "method": "REDIRECT",
-                        "txn_id": payload["merchantTxnNo"]
-                    }
+                return {
+                    "action_url": f"{redirect_uri}?tranCtx={tranCtx}",
+                    "method": "REDIRECT",
+                    "txn_id": payload["merchantTxnNo"]
+                }
 
-                return {"error": "Missing redirectURI or tranCtx"}
-
-            # FAILURE
+            # ❌ FAILURE
             return {
                 "error": res_data.get("responseDescription")
-                or "Payment initiation failed"
             }
 
-        except requests.exceptions.Timeout:
-            return {"error": "Payment gateway timeout"}
-
-        except requests.exceptions.ConnectionError:
-            return {"error": "Unable to connect to payment gateway"}
-
         except Exception as e:
-            return {"error": f"Unexpected error: {str(e)}"}
+            return {"error": str(e)}
 
 
     def verify_payment(self, response_data):
@@ -219,8 +211,8 @@ class PhiCommerceHandler(BasePaymentHandler):
         if status == "SUC" or resp_code == "0000":
             return {
                 "status": "success",
-                "txn_id": response_data.get("txnID")
-                or response_data.get("responseParams", {}).get("txnID"),
+                "txn_id": response_data.get("txnID"),
+                "merchant_txn_no": response_data.get("merchantTxnNo"),
                 "raw": response_data
             }
 

@@ -971,16 +971,24 @@ def calculate_total_and_percentage(application):
                 parts = val_str.split(":")
                 subject = parts[0].lower().strip()
                 mark_val = float(parts[1].strip())
-
-                config = subjects_config.get(subject)
-                if config and config["include"]:
+                
+                # NEW: Prioritize Max from stored value if available
+                config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": True, "main": False, "sub": False})
+                
+                max_val = config["max"]
+                if len(parts) >= 3:
+                    try:
+                        max_val = float(parts[2])
+                    except: pass
+                
+                if config.get("include", True):
                     total += mark_val
-                    max_total += config["max"]
-                    qualified_total += config["pass"]
+                    max_total += max_val
+                    qualified_total += config.get("pass", 35)
 
-                    if config["main"]:
+                    if config.get("main"):
                         main_subject_marks = max(main_subject_marks, mark_val)
-                    if config["sub"]:
+                    if config.get("sub"):
                         sub_subject_marks = max(sub_subject_marks, mark_val)
 
             except (ValueError, TypeError, IndexError):
@@ -1222,7 +1230,13 @@ def institute_register(request):
 def institute_dashboard(request):
     institute = getattr(request.user, 'institute', None)
     if not institute:
-        return redirect('/institute/register/')
+        if request.user.is_staff or request.user.is_superuser:
+            institute = Institute.objects.first()
+        else:
+            return redirect('/institute/register/')
+    
+    if not institute:
+         return redirect('/')
 
     # Support filtering and search
     query = request.GET.get('q', '')
@@ -1439,11 +1453,12 @@ def edit_application(request, app_id):
             if key.startswith("subject_"):
                 subject_name = key.replace("subject_", "").strip()
                 marks = request.POST.get(key)
+                max_val = request.POST.get(f"max_{subject_name}", "100")
                 if marks:
                     ApplicationFieldValue.objects.create(
                         application=app,
                         field=qe_field,  
-                        value=f"{subject_name}:{marks}"
+                        value=f"{subject_name}:{marks}:{max_val}"
                     )
 
         # =========================
@@ -1842,10 +1857,17 @@ def export_students_excel(request):
 
 @login_required
 def manage_notices(request):
-    if request.user.role != 'institute':
+    if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
     
-    institute = request.user.institute
+    institute = getattr(request.user, 'institute', None)
+    if not institute and request.user.is_staff:
+        institute = Institute.objects.first()
+
+    if not institute:
+        messages.error(request, "No Institute context found.")
+        return redirect('/')
+
     notices = NoticeBoard.objects.filter(institute=institute)
     
     if request.method == 'POST':
@@ -1877,10 +1899,15 @@ def manage_notices(request):
 
 @login_required
 def manage_timetables(request):
-    if request.user.role != 'institute':
+    if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
         
-    institute = request.user.institute
+    institute = getattr(request.user, 'institute', None)
+    if not institute and request.user.is_staff:
+        institute = Institute.objects.first()
+
+    if not institute:
+        return redirect('/')
     classes = Class.objects.filter(institute=institute).select_related('course', 'timetable')
     
     if request.method == 'POST':
@@ -1900,10 +1927,16 @@ def manage_timetables(request):
 
 @login_required
 def enter_academic_results(request):
-    if request.user.role != 'institute':
+    if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
         
-    institute = request.user.institute
+    institute = getattr(request.user, 'institute', None)
+    if not institute and request.user.is_staff:
+        institute = Institute.objects.first()
+
+    if not institute:
+        return redirect('/')
+    
     classes = Class.objects.filter(institute=institute)
     periods = CourseSubCategory.objects.all()
     

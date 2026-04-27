@@ -36,16 +36,35 @@ def dashboard(request):
         
     # Fetch Relationship Notices (Announcements)
     notices = []
+    
+    # Identify relevant institutes for the student
+    target_institutes = set()
     if admission:
+        target_institutes.add(admission.application.institute)
+    else:
+        # Check all applications the student has made
+        user_apps = Application.objects.filter(student=request.user)
+        for app in user_apps:
+            target_institutes.add(app.institute)
+
+    if target_institutes:
         from django.db.models import Q
-        notices = NoticeBoard.objects.filter(
-            is_active=True,
-            institute=admission.application.institute
-        ).filter(
-            Q(course=admission.application.course) | 
-            Q(assigned_class=admission.assigned_class) |
-            Q(course__isnull=True, assigned_class__isnull=True)
-        ).order_by('-created_at')[:5]
+        # Base filter: Active notices from any relevant institute
+        notices_qs = NoticeBoard.objects.filter(is_active=True, institute__in=list(target_institutes))
+        
+        if admission:
+            # Full logic for admitted students: General + Course + Class specific
+            notices = notices_qs.filter(
+                Q(course=admission.application.course) | 
+                Q(assigned_class=admission.assigned_class) |
+                Q(course__isnull=True, assigned_class__isnull=True)
+            ).order_by('-created_at')[:10]
+        else:
+            # Logic for applicants: Only show General notices (no specific course/class targeting)
+            notices = notices_qs.filter(
+                course__isnull=True,
+                assigned_class__isnull=True
+            ).order_by('-created_at')[:10]
 
     return render(request, 'student/dashboard.html', {
         'admission': admission,
@@ -69,13 +88,30 @@ def student_profile(request):
         return redirect('dashboard')
 
     # Fetch Relationship Data
-    notices = NoticeBoard.objects.filter(
-        is_active=True
-    ).filter(
-        models.Q(course=admission.application.course) | 
-        models.Q(assigned_class=admission.assigned_class) |
-        models.Q(course__isnull=True, assigned_class__isnull=True) # General notices
-    ).filter(institute=admission.application.institute)[:10]
+    notices = []
+    target_institutes = set()
+    if admission:
+        target_institutes.add(admission.application.institute)
+    else:
+        user_apps = Application.objects.filter(student=request.user)
+        for app in user_apps:
+            target_institutes.add(app.institute)
+
+    if target_institutes:
+        from django.db.models import Q
+        notices_qs = NoticeBoard.objects.filter(is_active=True, institute__in=list(target_institutes))
+        
+        if admission:
+            notices = notices_qs.filter(
+                Q(course=admission.application.course) | 
+                Q(assigned_class=admission.assigned_class) |
+                Q(course__isnull=True, assigned_class__isnull=True)
+            ).order_by('-created_at')[:10]
+        else:
+            notices = notices_qs.filter(
+                course__isnull=True,
+                assigned_class__isnull=True
+            ).order_by('-created_at')[:10]
 
     timetable = None
     if admission.assigned_class:
@@ -578,13 +614,15 @@ def view_application(request, app_id):
                 marks = parts[1].strip()
                 
                 # Dynamic Max Marks Lookup
-                max_val = subjects_config.get(name.lower().strip(), 100)
-                
-                # Fallback to 3rd part if present
-                if len(parts) >= 3 and name.lower().strip() not in subjects_config:
-                     try:
-                         max_val = float(parts[2])
-                     except: pass
+                # NEW: Prioritize Max from stored value if available (3rd part of colon string)
+                max_val = 100
+                if len(parts) >= 3:
+                    try:
+                        max_val = float(parts[2])
+                    except: 
+                        max_val = subjects_config.get(name.lower().strip(), 100)
+                else:
+                    max_val = subjects_config.get(name.lower().strip(), 100)
                 
                 marks_val = float(marks)
                 total_obtained += marks_val

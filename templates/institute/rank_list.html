@@ -77,7 +77,6 @@
                         <th class="px-6 py-4 text-left">Assigned Program</th>
                         <th class="px-6 py-4 text-center">Score</th>
                         <th class="px-6 py-4 text-center">Max Marks</th>
-                        <th class="px-6 py-4 text-center">Qualified</th>
                         <th class="px-6 py-4 text-center">Percentage</th>
                     </tr>
                 </thead>
@@ -103,11 +102,6 @@
                             <span class="text-slate-500 font-bold">{{ item.max_total }}</span>
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <span class="{% if item.total >= item.qualified_total %}text-emerald-600{% else %}text-red-500{% endif %} font-black">
-                                {{ item.qualified_total }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-center">
                             <div class="flex items-center justify-center gap-2">
                                 <span class="text-slate-900 font-bold text-base">{% if item.percentage > 0 %}{{ item.percentage }}{% else %}0.00{% endif %}%</span>
                                 <div class="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden md:block">
@@ -118,7 +112,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-6 py-20 text-center">
+                        <td colspan="6" class="px-6 py-20 text-center">
                             <div class="text-slate-400">
                                 <p class="text-lg font-bold">No Ranked Data Found</p>
                                 <p class="text-sm">Please refine your filters or ensure marks have been recorded.</p>

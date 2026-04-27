@@ -7,18 +7,26 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from academics.models import FormSection
 
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# Register Roboto Fonts
+FONT_DIR = os.path.join(settings.BASE_DIR, 'fonts')
+pdfmetrics.registerFont(TTFont('Roboto', os.path.join(FONT_DIR, 'Roboto-Regular.ttf')))
+pdfmetrics.registerFont(TTFont('Roboto-Bold', os.path.join(FONT_DIR, 'Roboto-Bold.ttf')))
+
 def generate_application_pdf(application, buffer):
     institute = application.course.institute if application.course else None
     styles = getSampleStyleSheet()
     
-    # Custom Styles
-    title_style = ParagraphStyle('TitleStyle', parent=styles['Normal'], fontSize=16, leading=20, alignment=1, fontName='Helvetica-Bold')
-    sub_title_style = ParagraphStyle('SubTitle', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
-    header_bar_style = ParagraphStyle('HeaderBar', parent=styles['Normal'], fontSize=10, color=colors.white, alignment=1, fontName='Helvetica-Bold')
-    section_style = ParagraphStyle('SectionStyle', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=5)
-    field_label_style = ParagraphStyle('FieldLabel', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold', color=colors.grey)
-    field_value_style = ParagraphStyle('FieldValue', parent=styles['Normal'], fontSize=9)
-    declaration_style = ParagraphStyle('DeclStyle', parent=styles['Normal'], fontSize=8, leading=10, alignment=4, leftIndent=0)
+    # Custom Styles (Standardized to Roboto, No Italics)
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Normal'], fontSize=16, leading=20, alignment=1, fontName='Roboto-Bold')
+    sub_title_style = ParagraphStyle('SubTitle', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, fontName='Roboto')
+    header_bar_style = ParagraphStyle('HeaderBar', parent=styles['Normal'], fontSize=10, color=colors.white, alignment=1, fontName='Roboto-Bold')
+    section_style = ParagraphStyle('SectionStyle', parent=styles['Normal'], fontSize=10, fontName='Roboto-Bold', spaceBefore=10, spaceAfter=5)
+    field_label_style = ParagraphStyle('FieldLabel', parent=styles['Normal'], fontSize=9, fontName='Roboto-Bold', color=colors.grey)
+    field_value_style = ParagraphStyle('FieldValue', parent=styles['Normal'], fontSize=9, fontName='Roboto')
+    declaration_style = ParagraphStyle('DeclStyle', parent=styles['Normal'], fontSize=8, leading=10, alignment=4, leftIndent=0, fontName='Roboto')
 
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     elements = []
@@ -179,7 +187,7 @@ def generate_application_pdf(application, buffer):
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,0), (-1,0), 'Roboto-Bold'),
             ('PADDING', (0,0), (-1,-1), 8),
             ('BACKGROUND', (0, -2), (-1, -1), colors.whitesmoke), 
             ('SPAN', (0, -1), (1, -1)), # Span first two columns for percentage
@@ -190,7 +198,7 @@ def generate_application_pdf(application, buffer):
     elements.append(Spacer(1, 15))
     elements.append(Paragraph("DECLARATION", section_style))
     decl_text = f"I, {application.student.first_name.upper() if application.student.first_name else application.student.username.upper()}, declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect or ineligibility being detected before or after the admission, action can be taken against me."
-    elements.append(Paragraph(f"<i>{decl_text}</i>", declaration_style))
+    elements.append(Paragraph(f"{decl_text}", declaration_style))
     
     elements.append(Spacer(1, 15))
     
@@ -231,7 +239,7 @@ def generate_application_pdf(application, buffer):
     # --- 7. OFFICE USE BOX ---
     elements.append(Spacer(1, 20))
     office_content = [
-        [Paragraph("FOR OFFICE USE ONLY", ParagraphStyle('Off', parent=styles['Normal'], fontSize=10, alignment=1, fontName='Helvetica-Bold'))],
+        [Paragraph("FOR OFFICE USE ONLY", ParagraphStyle('Off', parent=styles['Normal'], fontSize=10, alignment=1, fontName='Roboto-Bold'))],
         [Spacer(1, 5)],
         [Table([
             ["Verification Status: ............................", "Admission Number: ............................"],
