@@ -2,36 +2,32 @@
 
 <div class="flex items-center justify-center h-screen bg-gradient-to-r from-green-200 to-blue-200">
 
-<div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+    <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
 
-<h2 class="text-2xl font-bold text-center mb-6">Student Registration</h2>
+        <h2 class="text-2xl font-bold text-center mb-6">Student Registration</h2>
 
-<form method="POST">
-{% csrf_token %}
+        <form method="POST">
+            {% csrf_token %}
 
-<input name="username" placeholder="Username"
-class="w-full border p-2 mb-3 rounded">
+            <input name="username" placeholder="Username" class="w-full border p-2 mb-3 rounded">
 
-<input name="email" placeholder="Email"
-class="w-full border p-2 mb-3 rounded">
+            <input name="email" placeholder="Email" class="w-full border p-2 mb-3 rounded">
 
-<input type="password" name="password" placeholder="Password"
-class="w-full border p-2 mb-3 rounded">
+            <input type="password" name="password" placeholder="Password" class="w-full border p-2 mb-3 rounded">
 
-<button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
-Register
-</button>
+            <button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
+                Register
+            </button>
 
-</form>
+        </form>
 
-<div class="text-center mt-4">
-<p class="text-sm">Already have account?</p>
+        <div class="text-center mt-4">
+            <p class="text-sm">Already have account?</p>
 
-<a href="/login/"
-class="block mt-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-Login Here
-</a>
-</div>
+            <a href="/login/" class="block mt-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                Login Here
+            </a>
+        </div>
 
-</div>
+    </div>
 </div>

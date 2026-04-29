@@ -13,30 +13,39 @@
             font-family: Arial, sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
+            line-height: 1.2; /* Reduced line spacing */
         }
 
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 15mm;
-            margin: 20mm auto;
+            padding: 10mm 15mm; /* Standard margins */
+            margin: 10mm auto;
             background: white;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
             position: relative;
             border: 1px solid #e2e8f0;
+            overflow: hidden;
         }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
             body {
                 background: white;
+                -webkit-print-color-adjust: exact;
             }
 
             .a4-page {
                 margin: 0;
                 box-shadow: none;
-                width: 100%;
+                width: 210mm;
+                height: 297mm;
                 border: none;
-                padding: 10mm;
+                padding: 10mm 15mm;
+                page-break-after: always;
             }
 
             .no-print {
@@ -57,28 +66,28 @@
         .header-bar {
             background: #0f172a;
             color: white;
-            padding: 12px;
+            padding: 8px; /* Compact */
             text-align: center;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            font-size: 14px;
-            margin: 25px 0;
+            letter-spacing: 2px;
+            font-size: 13px;
+            margin: 15px 0; /* Compact */
             border-radius: 4px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 12px; /* Compact */
         }
 
         th,
         td {
             border: 1px solid #e2e8f0;
-            padding: 12px 18px;
+            padding: 8px 12px; /* Compact */
             text-align: left;
-            font-size: 12px;
+            font-size: 11px; /* Slightly smaller */
         }
 
         th {
@@ -90,14 +99,14 @@
         }
 
         .section-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
             color: #0f172a;
             text-transform: uppercase;
-            margin: 30px 0 15px 0;
+            margin: 20px 0 10px 0; /* Compact */
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             letter-spacing: 1px;
         }
 
@@ -110,13 +119,13 @@
 
         .signature-line {
             border-top: 2px solid #0f172a;
-            width: 200px;
-            margin-top: 60px;
+            width: 180px;
+            margin-top: 40px; /* Compact */
             text-align: center;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             text-transform: uppercase;
-            padding-top: 8px;
+            padding-top: 6px;
         }
 
         .watermark {
@@ -154,15 +163,6 @@
             </svg>
             Print Form
         </button>
-        <a href="{% url 'download_application_pdf' app.id %}"
-            class="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl hover:bg-emerald-700 transition-all flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                </path>
-            </svg>
-            Download PDF
-        </a>
     </div>
 
     <div class="a4-page">

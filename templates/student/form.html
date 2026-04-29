@@ -85,11 +85,9 @@
             <!-- SUBJECTS CONTAINER (Backup support) -->
             <div id="subject-container"></div>
 
-            <!-- SUBMIT ACTION -->
             <div class="pt-10 flex flex-col items-center gap-4">
                 <button id="submitBtn"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-95 disabled:bg-slate-300 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed group flex items-center gap-3"
-                    disabled>
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-95 disabled:bg-slate-300 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed group flex items-center gap-3">
                     <span>Submit Application</span>
                     <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                 </button>
@@ -156,10 +154,16 @@ function calculateTotal() {
     });
 
     if (submitBtn) {
-        if (allValid && allFilled) {
-            submitBtn.disabled = false;
+        // If there are subject inputs, validation matters
+        const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+        if (hasSubjects) {
+            if (allValid && allFilled) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
         } else {
-            submitBtn.disabled = true;
+            submitBtn.disabled = false;
         }
     }
 
@@ -176,6 +180,12 @@ function calculateTotal() {
     if (percentEl) percentEl.innerText = percent.toFixed(2) + "%";
 
     if (msgEl && submitBtn) {
+        const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+        if (!hasSubjects) {
+            msgEl.innerText = "";
+            return;
+        }
+
         if (!allValid) {
             msgEl.innerHTML = `<div class="text-red-500 font-bold">${validationErrors.join('<br>')}</div>`;
             submitBtn.disabled = true;
@@ -472,19 +482,22 @@ function startFileUploadAnimation(id, input) {
 
 // Final submission check
 document.getElementById('applicationForm').addEventListener('submit', function(e) {
-    calculateTotal(); // Run one last time
-    let allValid = true;
-    document.querySelectorAll('[name^="subject_"]').forEach(input => {
-        let val = input.value;
-        let num = parseFloat(val) || 0;
-        let max = parseFloat(input.dataset.max) || 0;
-        let pass = parseFloat(input.dataset.pass) || 0;
-        if (num > max || num < pass || val === '') allValid = false;
-    });
+    const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+    if (hasSubjects) {
+        calculateTotal(); // Run one last time
+        let allValid = true;
+        document.querySelectorAll('[name^="subject_"]').forEach(input => {
+            let val = input.value;
+            let num = parseFloat(val) || 0;
+            let max = parseFloat(input.dataset.max) || 0;
+            let pass = parseFloat(input.dataset.pass) || 0;
+            if (num > max || num < pass || val === '') allValid = false;
+        });
 
-    if (!allValid) {
-        e.preventDefault();
-        alert("Please correct the errors in your marks before submitting.");
+        if (!allValid) {
+            e.preventDefault();
+            alert("Please correct the errors in your marks before submitting.");
+        }
     }
 });
 </script>

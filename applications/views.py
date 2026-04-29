@@ -172,6 +172,18 @@ def apply_course(request):
         # =========================
         # 🧪 PRE-VALIDATE SUBJECTS
         # =========================
+        # 1. Try to find the selected exam ID from the form submission
+        selected_exam_id = None
+        for key, val in request.POST.items():
+            if key.startswith("field_"):
+                # Check if this field is the one that triggers handleExamChange
+                f_id = key.replace("field_", "")
+                from academics.models import FormField
+                f_obj = FormField.objects.filter(id=f_id).first()
+                if f_obj and ("exam" in f_obj.label.lower() or "qualifying" in f_obj.label.lower()) and val:
+                    selected_exam_id = val
+                    break
+
         subjects_to_save = []
         for key in request.POST:
             if key.startswith("subject_"):
@@ -182,14 +194,17 @@ def apply_course(request):
                     try:
                         marks_val = float(marks_str)
                         from academics.models import ExamSubject
-                        subj_obj = ExamSubject.objects.filter(name=subject_name).first()
+                        
+                        # Use selected_exam_id if found to get the correct max_marks
+                        if selected_exam_id:
+                            subj_obj = ExamSubject.objects.filter(name=subject_name, exam_id=selected_exam_id).first()
+                        else:
+                            subj_obj = ExamSubject.objects.filter(name=subject_name).first()
                         
                         max_val = subj_obj.max_marks if subj_obj else 100
                         pass_val = subj_obj.pass_mark if subj_obj else 0
                         
                         if marks_val > max_val or marks_val < pass_val:
-                            from django.contrib import messages
-                            # messages.error(request, f"Invalid marks for {subject_name.replace('_', ' ')}. Must be between {pass_val} and {max_val}.")
                             return redirect('/apply/')
                             
                         subjects_to_save.append({
@@ -457,6 +472,9 @@ def payment_success(request, app_id):
 # =========================
 def load_academic_years(request):
     institute_id = request.GET.get('institute_id')
+    if not institute_id:
+        return JsonResponse([], safe=False)
+
     # Fetch years that have active application forms in this institute
     year_ids = ApplicationForm.objects.filter(
         course__institute_id=institute_id, 
@@ -471,6 +489,9 @@ def load_courses(request):
     institute_id = request.GET.get('institute_id')
     year_id = request.GET.get('academic_year_id')
     
+    if not institute_id:
+        return JsonResponse([], safe=False)
+
     filters = {
         'institute_id': institute_id,
         'form__is_active': True
@@ -485,6 +506,8 @@ def load_courses(request):
 
 def load_form_fields(request):
     course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse([], safe=False)
 
     form = ApplicationForm.objects.filter(course_id=course_id,is_active=True).first()
 
@@ -694,6 +717,8 @@ def download_application_pdf(request, app_id):
 
 def load_exam_subjects(request):
     exam_id = request.GET.get('exam_id')
+    if not exam_id:
+        return JsonResponse([], safe=False)
 
     subjects = ExamSubject.objects.filter(exam_id=exam_id)
 

@@ -55,7 +55,7 @@ def student_login(request):
             login(request, user)
             return redirect('/dashboard/')
         else:
-            error = "Invalid credentials. Please check your username/email and password."
+            error = "Invalid Credentials"
 
     return render(request, 'student/login.html', {'error': error})
 

@@ -58,7 +58,7 @@ TEMPLATES = [
 ]
 
 JAZZMIN_SETTINGS = {
-    # 💎 Branding
+    #  Branding
     "site_title": "JDT College Admin",
     "site_header": "JDT Automation",
     "site_brand": "JDT Admin Node",
@@ -71,7 +71,7 @@ JAZZMIN_SETTINGS = {
     "search_model": ["accounts.User", "applications.Application"],
     "user_avatar": None,
 
-    # 💎 Navigation
+    #  Navigation
     "topmenu_links": [
         {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
         {"name": "View Web Portal", "url": "/", "new_window": True},

@@ -431,6 +431,8 @@ from django.http import JsonResponse
 # ✅ AJAX: LOAD SUBCATEGORIES
 def load_subcategories(request):
     course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse([], safe=False)
     subcategories = CourseSubCategory.objects.filter(category__courses__id=course_id)
     data = [{'id': s.id, 'name': s.name} for s in subcategories]
     return JsonResponse(data, safe=False)
@@ -465,6 +467,8 @@ def load_classes(request):
 # ✅ AJAX: LOAD FORM FIELDS
 def load_form_fields(request):
     course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse([], safe=False)
     course = get_object_or_404(Course, id=course_id)
     fields = FormField.objects.filter(form=course.form).order_by('section__order', 'order')
     
@@ -483,6 +487,8 @@ def load_form_fields(request):
 
 def load_exam_subjects(request):
     course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse([], safe=False)
     course = get_object_or_404(Course, id=course_id)
     
     # 1. Find the qualifying exam field in the course's form
@@ -684,7 +690,7 @@ def institute_login(request):
             return redirect('/institute/dashboard/')
 
         else:
-            messages.error(request, "Invalid username or password")
+            messages.error(request, "Invalid Credentials")
 
     return render(request, 'institute/login.html')
 
@@ -938,13 +944,23 @@ def calculate_total_and_percentage(application):
     sub_subject_marks = 0
 
     # Robust Exam Identification
+    from academics.models import QualifyingExam
     exam_id = None
     for v in application.field_values.all():
-        if v.field and "exam" in v.field.label.lower():
+        label = (v.field.label if v.field else v.field_label or "").lower()
+        if ("exam" in label or "qualifying" in label) and "marks" not in label:
             val = str(v.value).strip()
             if val.isdigit():
                 exam_id = int(val)
+            elif val.lower().startswith('id:') and val[3:].strip().isdigit():
+                exam_id = int(val[3:].strip())
             else:
+                if v.field and v.field.field_type in ['select', 'radio']:
+                    from academics.models import FieldOption
+                    opt = FieldOption.objects.filter(field=v.field, value=val).first()
+                    if opt:
+                        val = opt.display_text
+                
                 ex_obj = QualifyingExam.objects.filter(name__iexact=val).first()
                 if ex_obj:
                     exam_id = ex_obj.id
@@ -973,7 +989,7 @@ def calculate_total_and_percentage(application):
                 mark_val = float(parts[1].strip())
                 
                 # NEW: Prioritize Max from stored value if available
-                config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": True, "main": False, "sub": False})
+                config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": False, "main": False, "sub": False})
                 
                 max_val = config["max"]
                 if len(parts) >= 3:
@@ -981,7 +997,7 @@ def calculate_total_and_percentage(application):
                         max_val = float(parts[2])
                     except: pass
                 
-                if config.get("include", True):
+                if config.get("include", False):
                     total += mark_val
                     max_total += max_val
                     qualified_total += config.get("pass", 35)
@@ -1004,7 +1020,12 @@ def rank_list_view(request):
     year_id = request.GET.get('year')
     
 
-    applications = Application.objects.filter(institute=institute)
+    # Show only Verified students (status='selected')
+    applications = Application.objects.filter(institute=institute, status='selected')
+    
+    # NEW: Only show Paid students in Rank List too?
+    # Usually rank list is for verified students who have paid.
+    applications = applications.filter(payment__status='success')
 
     if course_id:
         applications = applications.filter(course_id=course_id)
@@ -1080,7 +1101,8 @@ def export_rank_excel(request):
     course_id = request.GET.get('course')
     year_id = request.GET.get('year')
 
-    applications = Application.objects.filter(institute=institute)
+    # Show only Verified students (status='selected')
+    applications = Application.objects.filter(institute=institute, status='selected', payment__status='success')
 
     if course_id:
         applications = applications.filter(course_id=course_id)
@@ -1100,12 +1122,13 @@ def export_rank_excel(request):
             "qualified_total": qualified_total,
             "course": app.course.name if app.course else "No Course",
             "percentage": percentage,
-            "main_mark": main_mark
+            "main_mark": main_mark,
+            "sub_mark": sub_mark
         })
 
     # SORT DESCENDING
     ranked_list.sort(
-        key=lambda x: (x['total'], x['main_mark']),
+        key=lambda x: (x['percentage'], x['main_mark'], x['sub_mark']),
         reverse=True
     )
 
@@ -1245,7 +1268,11 @@ def institute_dashboard(request):
     status_filter = request.GET.get('status', '')
 
     # Query applications for this institute (both pending-registration and admitted)
-    apps = Application.objects.filter(institute=institute).select_related(
+    # REQUIREMENT: Only students with Payment Status = Paid should appear
+    apps = Application.objects.filter(
+        institute=institute, 
+        payment__status='success'
+    ).select_related(
         'course', 'academic_year', 'admission'
     ).prefetch_related(
         'field_values', 'field_values__field'
@@ -1267,8 +1294,11 @@ def institute_dashboard(request):
     if status_filter:
         if status_filter in ['active', 'warned', 'suspended', 'trashed']:
             apps = apps.filter(admission__status=status_filter)
-        else:
+        elif status_filter in ['pending', 'selected', 'rejected', 'hold']:
             apps = apps.filter(status=status_filter)
+        else:
+            # Try both if unknown
+            apps = apps.filter(Q(status=status_filter) | Q(admission__status=status_filter))
 
     # Performance: Pagination
     paginator = Paginator(apps, 20)
@@ -1725,7 +1755,10 @@ def student_list_view(request):
         admissions = admissions.filter(application__course_id=course_id)
         
     if status_filter:
-        admissions = admissions.filter(status=status_filter)
+        if status_filter in ['pending', 'selected', 'rejected', 'hold']:
+            admissions = admissions.filter(application__status=status_filter)
+        else:
+            admissions = admissions.filter(status=status_filter)
 
     # Context data for filters
     batches = AcademicYear.objects.all()

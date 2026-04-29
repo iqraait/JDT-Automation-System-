@@ -62,9 +62,18 @@
                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
                 <select name="status" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
                     <option value="">All Statuses</option>
-                    {% for val, label in admission_statuses %}
-                        <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
+                    <optgroup label="Application Status">
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending Audit</option>
+                        <option value="selected" {% if request.GET.status == 'selected' %}selected{% endif %}>Verified</option>
+                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="hold" {% if request.GET.status == 'hold' %}selected{% endif %}>On Hold</option>
+                    </optgroup>
+                    <optgroup label="Admission Status">
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active Student</option>
+                        <option value="warned" {% if request.GET.status == 'warned' %}selected{% endif %}>Warned</option>
+                        <option value="suspended" {% if request.GET.status == 'suspended' %}selected{% endif %}>Suspended</option>
+                        <option value="trashed" {% if request.GET.status == 'trashed' %}selected{% endif %}>Trashed</option>
+                    </optgroup>
                 </select>
             </div>
 
