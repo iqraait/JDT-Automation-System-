@@ -1,0 +1,148 @@
+/* Pro-Level Permissions Management Styles */
+
+/* 1. Expand the container to show full permission names */
+.selector {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 20px !important;
+    margin: 20px 0 40px 0 !important;
+    background: #fff;
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.selector-available, .selector-chosen {
+    flex: 1 !important;
+    width: auto !important;
+    float: none !important;
+}
+
+/* 2. Style the headers */
+.selector h2 {
+    background: #1a73e8 !important; /* Modern Google Blue */
+    color: white !important;
+    padding: 12px 20px !important;
+    border-radius: 12px 12px 0 0 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    margin: 0 !important;
+}
+
+/* 3. Improve the search filter */
+.selector .selector-filter {
+    background: #f8f9fa !important;
+    border: 1px solid #e0e0e0 !important;
+    border-top: none !important;
+    padding: 12px !important;
+}
+
+.selector .selector-filter input {
+    border-radius: 8px !important;
+    border: 1px solid #ced4da !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+    font-size: 13px !important;
+}
+
+/* 4. The main permission boxes */
+.selector select {
+    width: 100% !important;
+    height: 450px !important; /* Taller box */
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 0 0 12px 12px !important;
+    padding: 10px !important;
+    font-size: 13px !important;
+    line-height: 1.8 !important;
+    color: #495057 !important;
+}
+
+.selector select option {
+    padding: 10px 15px !important;
+    border-radius: 6px !important;
+    margin-bottom: 2px !important;
+}
+
+.selector select option:hover {
+    background-color: #f1f3f4 !important;
+}
+
+/* 5. Center and style the action buttons */
+.selector-chooser {
+    float: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 15px !important;
+    padding: 0 10px !important;
+    margin: 0 !important;
+    list-style: none !important;
+}
+
+.selector-chooser li {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.selector-chooser a {
+    display: block !important;
+    width: 40px !important;
+    height: 40px !important;
+    background-color: #ffffff !important;
+    border: 2px solid #1a73e8 !important;
+    border-radius: 50% !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+}
+
+.selector-chooser a:hover {
+    background-color: #1a73e8 !important;
+    transform: scale(1.1);
+}
+
+/* Custom Arrows for the buttons */
+.selector-add::after {
+    content: "→";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-indent: 0;
+    color: #1a73e8;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.selector-remove::after {
+    content: "←";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-indent: 0;
+    color: #1a73e8;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.selector-chooser a:hover::after {
+    color: white !important;
+}
+
+/* footer links */
+.selector .selector-available a, .selector .selector-chosen a {
+    display: inline-block !important;
+    margin-top: 15px !important;
+    font-weight: bold !important;
+    color: #1a73e8 !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+}
+
+.selector .selector-available a:hover {
+    text-decoration: underline !important;
+}

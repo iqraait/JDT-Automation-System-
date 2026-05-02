@@ -1111,16 +1111,87 @@ def export_rank_excel(request):
         applications = applications.filter(academic_year_id=year_id)
 
     ranked_list = []
+    unique_subjects = []
 
     for app in applications:
         total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
+        
+        # Extract student details and subjects
+        mobile = "-"
+        gender = "-"
+        exam_name = "-"
+        subjects_data = {} # {name: {marks, max, pass}}
+        
+        # We need subjects_config for pass marks
+        # First find exam_id
+        exam_id = None
+        for v in app.field_values.all():
+            label = (v.field.label if v.field else v.field_label or "").lower()
+            if ("exam" in label or "qualifying" in label) and "marks" not in label:
+                val = str(v.value).strip()
+                if val.isdigit(): exam_id = int(val)
+                elif val.lower().startswith('id:') and val[3:].strip().isdigit(): exam_id = int(val[3:].strip())
+                else:
+                    from academics.models import QualifyingExam
+                    ex_obj = QualifyingExam.objects.filter(name__iexact=val).first()
+                    if ex_obj: exam_id = ex_obj.id
+                if exam_id: break
+
+        subjects_config = {}
+        if exam_id:
+            from academics.models import ExamSubject
+            for s in ExamSubject.objects.filter(exam_id=exam_id):
+                subjects_config[s.name.lower().strip()] = {
+                    "max": s.max_marks,
+                    "pass": s.pass_mark,
+                    "full_name": s.name
+                }
+
+        for v in app.field_values.all():
+            lbl = (v.field.label if v.field else v.field_label or "").lower()
+            val = str(v.value or "").strip()
+            
+            if "mobile" in lbl or "phone" in lbl or "contact" in lbl:
+                mobile = val
+            elif "gender" in lbl:
+                gender = val
+            elif ("exam" in lbl or "qualifying" in lbl) and "marks" not in lbl:
+                if exam_id:
+                    from academics.models import QualifyingExam
+                    ex = QualifyingExam.objects.filter(id=exam_id).first()
+                    exam_name = ex.name if ex else val
+                else:
+                    exam_name = val
+            
+            if ":" in val:
+                try:
+                    parts = val.split(":")
+                    if len(parts) >= 2:
+                        s_name_raw = parts[0].strip()
+                        s_marks = parts[1].strip()
+                        
+                        config = subjects_config.get(s_name_raw.lower(), {"max": 100, "pass": 35, "full_name": s_name_raw})
+                        s_max = parts[2].strip() if len(parts) > 2 else str(config["max"])
+                        s_pass = str(config["pass"])
+                        
+                        s_display_name = config["full_name"]
+                        subjects_data[s_display_name] = {
+                            "marks": s_marks,
+                            "max": s_max,
+                            "pass": s_pass
+                        }
+                        if s_display_name not in unique_subjects:
+                            unique_subjects.append(s_display_name)
+                except: pass
 
         ranked_list.append({
             "name": get_student_name(app),
+            "mobile": mobile,
+            "gender": gender,
+            "exam_name": exam_name,
+            "subjects": subjects_data,
             "total": total,
             "max_total": max_total,
-            "qualified_total": qualified_total,
-            "course": app.course.name if app.course else "No Course",
             "percentage": percentage,
             "main_mark": main_mark,
             "sub_mark": sub_mark
@@ -1137,17 +1208,33 @@ def export_rank_excel(request):
     ws.title = "Rank List"
 
     # HEADER
-    ws.append(["Rank", "Name", "Course", "Total Score", "Percentage"])
+    header = ["Rank", "Name", "Mobile", "Gender", "Qualifying Examination"]
+    # Subject Headers
+    for sub in unique_subjects:
+        header.extend([f"{sub} (Obtained)", f"{sub} (Out Of)", f"{sub} (Min Mark)"])
+    header.extend(["Total Marks Obtained", "Maximum Marks Total", "Percentage"])
+    
+    ws.append(header)
 
     # DATA
     for i, item in enumerate(ranked_list, start=1):
-        ws.append([
+        row = [
             i,
-            item['name'],       
-            item['course'],     
+            item['name'],
+            item['mobile'],
+            item['gender'],
+            item['exam_name']
+        ]
+        for sub in unique_subjects:
+            s_info = item['subjects'].get(sub, {"marks": "-", "max": "-", "pass": "-"})
+            row.extend([s_info['marks'], s_info['max'], s_info['pass']])
+            
+        row.extend([
             item['total'],
+            item['max_total'],
             f"{item['percentage']}%"
         ])
+        ws.append(row)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

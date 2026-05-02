@@ -12,7 +12,7 @@ from core.utils import generate_application_pdf
 import datetime
 from io import BytesIO
 from institutes.models import Institute, AcademicYear
-from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument
+from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument, ApplicationFeeType
 
 
 @login_required
@@ -47,15 +47,15 @@ def dashboard(request):
         for app in user_apps:
             target_institutes.add(app.institute)
 
+    from django.db.models import Q
     if target_institutes:
-        from django.db.models import Q
         # Base filter: Active notices from any relevant institute
         notices_qs = NoticeBoard.objects.filter(is_active=True, institute__in=list(target_institutes))
         
         if admission:
             # Full logic for admitted students: General + Course + Class specific
             notices = notices_qs.filter(
-                Q(course=admission.application.course) | 
+                Q(course=admission.assigned_class.course if admission.assigned_class else admission.application.course) | 
                 Q(assigned_class=admission.assigned_class) |
                 Q(course__isnull=True, assigned_class__isnull=True)
             ).order_by('-created_at')[:10]
@@ -65,6 +65,14 @@ def dashboard(request):
                 course__isnull=True,
                 assigned_class__isnull=True
             ).order_by('-created_at')[:10]
+    else:
+        # REQUIREMENT: Notices visible to all registered students even if no application
+        # Show all active general notices
+        notices = NoticeBoard.objects.filter(
+            is_active=True,
+            course__isnull=True,
+            assigned_class__isnull=True
+        ).order_by('-created_at')[:10]
 
     return render(request, 'student/dashboard.html', {
         'admission': admission,
@@ -97,13 +105,13 @@ def student_profile(request):
         for app in user_apps:
             target_institutes.add(app.institute)
 
+    from django.db.models import Q
     if target_institutes:
-        from django.db.models import Q
         notices_qs = NoticeBoard.objects.filter(is_active=True, institute__in=list(target_institutes))
         
         if admission:
             notices = notices_qs.filter(
-                Q(course=admission.application.course) | 
+                Q(course=admission.assigned_class.course if admission.assigned_class else admission.application.course) | 
                 Q(assigned_class=admission.assigned_class) |
                 Q(course__isnull=True, assigned_class__isnull=True)
             ).order_by('-created_at')[:10]
@@ -112,6 +120,13 @@ def student_profile(request):
                 course__isnull=True,
                 assigned_class__isnull=True
             ).order_by('-created_at')[:10]
+    else:
+        # REQUIREMENT: Notices visible to all students
+        notices = NoticeBoard.objects.filter(
+            is_active=True,
+            course__isnull=True,
+            assigned_class__isnull=True
+        ).order_by('-created_at')[:10]
 
     timetable = None
     if admission.assigned_class:
@@ -178,7 +193,6 @@ def apply_course(request):
             if key.startswith("field_"):
                 # Check if this field is the one that triggers handleExamChange
                 f_id = key.replace("field_", "")
-                from academics.models import FormField
                 f_obj = FormField.objects.filter(id=f_id).first()
                 if f_obj and ("exam" in f_obj.label.lower() or "qualifying" in f_obj.label.lower()) and val:
                     selected_exam_id = val
@@ -193,7 +207,6 @@ def apply_course(request):
                 if marks_str:
                     try:
                         marks_val = float(marks_str)
-                        from academics.models import ExamSubject
                         
                         # Use selected_exam_id if found to get the correct max_marks
                         if selected_exam_id:
@@ -219,15 +232,34 @@ def apply_course(request):
         # SAVE CUSTOM FIELDS
         # =========================
         course_id = request.POST.get('course')
-        from academics.models import ApplicationForm, FormField
         form_obj = ApplicationForm.objects.get(course_id=course_id)
         fields = form_obj.fields.all()
 
         for field in fields:
             key = f'field_{field.id}'
+            
+            # REQUIREMENT: Required field validation
+            if field.required:
+                if field.field_type == 'file':
+                    if key not in request.FILES:
+                        messages.error(request, f"The field '{field.label}' is required.")
+                        application.delete() # Rollback application creation
+                        return redirect('/apply/')
+                else:
+                    if not request.POST.get(key):
+                        messages.error(request, f"The field '{field.label}' is required.")
+                        application.delete() # Rollback
+                        return redirect('/apply/')
+
             if field.field_type == 'file':
                 file_obj = request.FILES.get(key)
                 if file_obj:
+                    # REQUIREMENT: 1 MB file size limit
+                    if file_obj.size > 1 * 1024 * 1024:
+                        messages.error(request, f"File '{file_obj.name}' exceeds the 1 MB limit.")
+                        application.delete()
+                        return redirect('/apply/')
+
                     fs = FileSystemStorage()
                     filename = fs.save(file_obj.name, file_obj)
                     ApplicationFieldValue.objects.create(
@@ -261,13 +293,37 @@ def apply_course(request):
             )
 
         # =========================
-        # PAYMENT INITIATION
+        # HANDLE FEE CATEGORY (NEW)
+        # =========================
+        fee_type_id = request.POST.get('selected_fee_type')
+        fee_amount = form_obj.registration_fee # Default
+        
+        if fee_type_id:
+            try:
+                selected_type = ApplicationFeeType.objects.get(id=fee_type_id, form=form_obj)
+                application.selected_fee_type = selected_type
+                application.save()
+                fee_amount = selected_type.amount
+            except ApplicationFeeType.DoesNotExist:
+                pass
+
+        # =========================
+        # PAYMENT INITIATION OR DIRECT SUBMISSION
         # =========================
         payment = Payment.objects.create(
             application=application,
-            amount=form_obj.registration_fee,
+            amount=fee_amount,
             gateway_config=form_obj.payment_config
         )
+
+        if fee_amount <= 0:
+            # DIRECT SUBMISSION (NO FEE)
+            payment.status = 'success'
+            payment.save()
+            application.status = 'submitted'
+            application.save()
+            messages.success(request, "Application submitted successfully!")
+            return redirect('/my-applications/')
 
         return redirect(f'/payment/{application.id}/')
 
@@ -522,6 +578,8 @@ def load_form_fields(request):
             'label': field.label,
             'type': field.field_type,
             'section': field.section.name,
+            'placeholder': field.placeholder,
+            'required': field.required,
             'is_photo': field.is_photo,
             'is_signature': field.is_signature,
             'options': [
@@ -530,7 +588,12 @@ def load_form_fields(request):
             ],
         })
 
-    return JsonResponse(data, safe=False)
+    fee_types = [
+        {'id': ft.id, 'name': ft.name, 'amount': str(ft.amount)}
+        for ft in form.fee_types.filter(is_active=True)
+    ]
+
+    return JsonResponse({'fields': data, 'fee_types': fee_types}, safe=False)
 
 
 @login_required

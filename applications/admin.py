@@ -52,8 +52,8 @@ class ApplicationAdminForm(forms.ModelForm):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     form = ApplicationAdminForm
-    list_display = ['id', 'display_student_name', 'course', 'academic_year', 'status', 'created_at']
-    list_filter = ['status', 'course', 'academic_year']
+    list_display = ['id', 'display_student_name', 'course', 'selected_fee_type', 'academic_year', 'status', 'created_at']
+    list_filter = ['status', 'course', 'academic_year', 'selected_fee_type']
     search_fields = ['student__username', 'student__first_name']
     inlines = [ApplicationFieldValueInline]
     
@@ -90,10 +90,14 @@ class PaymentConfigAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['application', 'amount', 'status', 'gateway_config', 'gateway_transaction_id', 'created_at']
-    list_filter = ['status', 'gateway_config', 'created_at']
-    search_fields = ['application__student__username', 'gateway_transaction_id']
+    list_display = ['id', 'display_student_name', 'status', 'amount', 'payment_mode', 'gateway_transaction_id', 'created_at']
+    list_filter = ['status', 'gateway_config', 'created_at', 'payment_mode']
+    search_fields = ['application__student__username', 'gateway_transaction_id', 'application__field_values__value']
     readonly_fields = ['formatted_response']
+
+    def display_student_name(self, obj):
+        return obj.application.display_name
+    display_student_name.short_description = 'Name'
 
     def formatted_response(self, obj):
         import json

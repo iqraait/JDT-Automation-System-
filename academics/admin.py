@@ -14,7 +14,8 @@ from .models import (
     NoticeBoard,
     Timetable,
     AcademicResult,
-    StudentDocument
+    StudentDocument,
+    ApplicationFeeType
 )
 
 
@@ -76,6 +77,10 @@ class CourseAdmin(admin.ModelAdmin):
     list_filter = ['category', 'institute']
 
 
+class ApplicationFeeTypeInline(admin.TabularInline):
+    model = ApplicationFeeType
+    extra = 1
+
 @admin.register(FormSection)
 class FormSectionAdmin(admin.ModelAdmin):
     list_display = ['name', 'order']
@@ -87,6 +92,7 @@ class ApplicationFormAdmin(admin.ModelAdmin):
     list_filter = ['academic_year', 'is_active', 'course']
     list_editable = ['is_active']
     search_fields = ['title', 'course__name']
+    inlines = [ApplicationFeeTypeInline]
 
 
 class FieldOptionInline(admin.TabularInline):

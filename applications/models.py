@@ -2,7 +2,7 @@ import datetime
 from django.db import models
 from accounts.models import User
 from institutes.models import Institute, AcademicYear
-from academics.models import Course, FormField, CourseSubCategory
+from academics.models import Course, FormField, CourseSubCategory, ApplicationFeeType
 
 
 # MAIN APPLICATION
@@ -11,6 +11,14 @@ class Application(models.Model):
     institute = models.ForeignKey(Institute, on_delete=models.CASCADE)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, null=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # NEW: Store selected fee category
+    selected_fee_type = models.ForeignKey(
+        ApplicationFeeType, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
 
     #  ADD THIS HERE
     status = models.CharField(

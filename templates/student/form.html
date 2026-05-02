@@ -262,8 +262,45 @@ document.getElementById('course').addEventListener('change', function () {
 
     fetch(`/load-form-fields/?course_id=${courseId}`)
     .then(res => res.json())
-    .then(data => {
+    .then(payload => {
+        const data = payload.fields || [];
+        const feeTypes = payload.fee_types || [];
+        
         container.innerHTML = '';
+        
+        // REQUIREMENT: Render Fee Category Dropdown if types exist
+        if (feeTypes.length > 0) {
+            let feeHTML = `
+                <div class="bg-blue-600 rounded-3xl border border-blue-500 shadow-xl overflow-hidden mb-10 transition-all transform hover:scale-[1.01]">
+                    <div class="bg-blue-700/50 px-8 py-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="font-bold text-white uppercase tracking-widest text-sm flex items-center gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Application Category & Fee
+                        </h3>
+                    </div>
+                    <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold text-blue-100 uppercase tracking-widest">Select Your Category</label>
+                            <select name="selected_fee_type" id="selected_fee_type" required 
+                                    onchange="updateFeeDisplay(this)"
+                                    class="w-full bg-white/10 border border-white/20 text-white px-6 py-4 rounded-2xl focus:ring-4 focus:ring-white/10 focus:bg-white/20 outline-none transition-all font-bold cursor-pointer backdrop-blur-sm">
+                                <option value="" class="text-slate-900">Choose Category</option>
+                                ${feeTypes.map(ft => `<option value="${ft.id}" data-amount="${ft.amount}" class="text-slate-900">${ft.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="bg-white/10 rounded-2xl p-6 flex flex-col items-center justify-center border border-white/10 backdrop-blur-sm">
+                            <span class="text-[10px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Applicable Fee</span>
+                            <div class="text-3xl font-black text-white flex items-baseline gap-1">
+                                <span class="text-sm">₹</span>
+                                <span id="display_fee_amount">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('afterbegin', feeHTML);
+        }
+
         let grouped = {};
         data.forEach(f => {
             if (!grouped[f.section]) grouped[f.section] = [];
@@ -280,25 +317,27 @@ document.getElementById('course').addEventListener('change', function () {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-8">
             `;
 
-            grouped[section].forEach(f => {
+                grouped[section].forEach(f => {
                 let input = '';
                 const baseClass = "w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all";
+                const reqAttr = f.required ? 'required' : '';
+                const placeholder = f.placeholder || (f.type === 'number' ? '0' : (f.type === 'textarea' ? 'Type here...' : `Enter ${f.label}`));
 
                 if (f.type === 'text') {
-                    input = `<input type="text" name="field_${f.id}" class="${baseClass}" placeholder="Enter ${f.label}">`;
+                    input = `<input type="text" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
                 }
                 else if (f.type === 'number') {
-                    input = `<input type="number" name="field_${f.id}" class="${baseClass}" placeholder="0">`;
+                    input = `<input type="number" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
                 }
                 else if (f.type === 'date') {
-                    input = `<input type="date" name="field_${f.id}" class="${baseClass}">`;
+                    input = `<input type="date" name="field_${f.id}" class="${baseClass}" ${reqAttr}>`;
                 }
                 else if (f.type === 'textarea') {
-                    input = `<textarea name="field_${f.id}" class="${baseClass} h-24" placeholder="Type here..."></textarea>`;
+                    input = `<textarea name="field_${f.id}" class="${baseClass} h-24" placeholder="${placeholder}" ${reqAttr}></textarea>`;
                 }
                 else if (f.type === 'select') {
                     let isExam = f.label.toLowerCase().includes('exam');
-                    input = `<select name="field_${f.id}" class="${baseClass} appearance-none cursor-pointer" ${isExam ? `onchange="handleExamChange(${f.id}, this)"` : ''}>
+                    input = `<select name="field_${f.id}" class="${baseClass} appearance-none cursor-pointer" ${reqAttr} ${isExam ? `onchange="handleExamChange(${f.id}, this)"` : ''}>
                         <option value="">Select</option>
                         ${f.options.map(o => `<option value="${o.value}">${o.text}</option>`).join('')}
                     </select>`;
@@ -306,7 +345,7 @@ document.getElementById('course').addEventListener('change', function () {
                 else if (f.type === 'radio') {
                     input = `<div class="flex flex-wrap gap-4 pt-2">` + f.options.map(o => `
                         <label class="flex items-center gap-2 cursor-pointer group">
-                            <input type="radio" name="field_${f.id}" value="${o.value}" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                            <input type="radio" name="field_${f.id}" value="${o.value}" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" ${reqAttr}>
                             <span class="text-sm text-slate-600 group-hover:text-slate-900 transition-colors">${o.text}</span>
                         </label>
                     `).join('') + `</div>`;
@@ -315,7 +354,7 @@ document.getElementById('course').addEventListener('change', function () {
                     input = `
                         <div class="space-y-4">
                             <div class="relative group mt-1">
-                                <input type="file" name="field_${f.id}" id="file_${f.id}" class="hidden" onchange="startFileUploadAnimation(${f.id}, this)">
+                                <input type="file" name="field_${f.id}" id="file_${f.id}" class="hidden" ${reqAttr} onchange="startFileUploadAnimation(${f.id}, this)">
                                 <label for="file_${f.id}" id="label_${f.id}" class="flex items-center gap-3 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
                                     <svg class="w-5 h-5 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                     <span id="label_text_${f.id}" class="text-sm text-slate-500 group-hover:text-blue-600 font-medium">Upload Document</span>
@@ -340,7 +379,7 @@ document.getElementById('course').addEventListener('change', function () {
 
                 sectionHTML += `
                     <div class="flex flex-col space-y-2">
-                        <label class="text-sm font-semibold text-slate-600">${f.label}</label>
+                        <label class="text-sm font-semibold text-slate-600">${f.label} ${f.required ? '<span class="text-red-500">*</span>' : ''}</label>
                         ${input}
                     </div>
                 `;
@@ -433,6 +472,25 @@ function handleExamChange(fieldId, selectEl) {
     });
 }
 
+function updateFeeDisplay(select) {
+    const amount = select.options[select.selectedIndex].dataset.amount || "0.00";
+    document.getElementById('display_fee_amount').innerText = amount;
+    
+    // Update button text if free
+    const btn = document.getElementById('submitBtn');
+    if (parseFloat(amount) === 0) {
+        btn.innerHTML = `
+            <span>Submit Application (Free)</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        `;
+    } else {
+        btn.innerHTML = `
+            <span>Submit Application</span>
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        `;
+    }
+}
+
 function startFileUploadAnimation(id, input) {
     if (!input.files.length) return;
     
@@ -444,6 +502,14 @@ function startFileUploadAnimation(id, input) {
     const labelText = document.getElementById(`label_text_${id}`);
     
     const file = input.files[0];
+    
+    // REQUIREMENT: 1 MB limit validation
+    if (file && file.size > 1 * 1024 * 1024) {
+        alert(`File "${file.name}" is too large. Maximum size allowed is 1 MB.`);
+        input.value = ""; // Clear input
+        return;
+    }
+
     fileNameText.innerText = file.name;
     labelText.innerText = "Change File";
     

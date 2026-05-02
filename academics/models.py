@@ -99,6 +99,21 @@ class ApplicationForm(models.Model):
         return self.title
 
 
+#  NEW: APPLICATION FEE TYPES (BY CATEGORY)
+class ApplicationFeeType(models.Model):
+    form = models.ForeignKey(
+        ApplicationForm, 
+        on_delete=models.CASCADE, 
+        related_name='fee_types'
+    )
+    name = models.CharField(max_length=100, help_text="e.g. General, Orphan, Ex-Service")
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.form.title} - {self.name} (₹{self.amount})"
+
+
 #  FIELD TYPES
 FIELD_TYPES = (
     ('text', 'Text'),
