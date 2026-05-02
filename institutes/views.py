@@ -54,10 +54,11 @@ def send_admission_email(admission):
         student = admission.application.student
         subject = f"Admission Selected - {admission.application.course.name}"
         
-        # REQUIREMENT: Domain Integration
-        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '127.0.0.1'
+        # REQUIREMENT: Domain Integration & IP Fallback
+        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '15.207.187.228'
         protocol = 'https' if 'jdtislam' in domain else 'http'
-        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        # If accessing via IP or localhost, include the :8000 port
+        port = ':8000' if not 'jdtislam' in domain or '127.0.0.1' in domain else ''
         login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
@@ -100,9 +101,9 @@ def send_status_email(application, new_status):
         except:
             domain = '127.0.0.1'
             
-        # REQUIREMENT: Domain Integration
+        # REQUIREMENT: Domain Integration & IP Fallback
         protocol = 'https' if 'jdtislam' in domain else 'http'
-        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        port = ':8000' if not 'jdtislam' in domain or '127.0.0.1' in domain else ''
         login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
@@ -137,10 +138,10 @@ def send_admission_status_email(admission, new_status):
         status_display = status_map.get(new_status, new_status)
         
         subject = f"Student Record Alert: {status_display}"
-        # REQUIREMENT: Domain Integration
-        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '127.0.0.1'
+        # REQUIREMENT: Domain Integration & IP Fallback
+        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '15.207.187.228'
         protocol = 'https' if 'jdtislam' in domain else 'http'
-        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        port = ':8000' if not 'jdtislam' in domain or '127.0.0.1' in domain else ''
         login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {

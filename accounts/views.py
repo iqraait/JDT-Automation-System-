@@ -86,8 +86,9 @@ def forgot_password(request):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             domain = request.get_host()
-            # Requirement: Domain Integration
+            # Requirement: Domain Integration & IP Fallback
             protocol = 'https' if 'jdtislam' in domain else 'http'
+            # request.get_host() already includes the port if present!
             reset_url = f"{protocol}://{domain}/accounts/reset/{uid}/{token}/"
 
             # Send Email

@@ -142,12 +142,11 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-        # REQUIREMENT: Domain Integration (academics.jdtislam.org)
-        # Preserve localhost for development, use domain for production
-        base_url = "https://academics.jdtislam.org"
+        # REQUIREMENT: Domain Integration & IP Fallback
+        # Use request.get_host() to automatically include port 8000 if used
         host = request.get_host()
-        if "localhost" in host or "127.0.0.1" in host:
-            base_url = f"http://{host}"
+        protocol = 'https' if 'jdtislam' in host else 'http'
+        base_url = f"{protocol}://{host}"
         
         RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
 
