@@ -142,8 +142,14 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-        # Hardcoded return URL for EC2 to ensure hash consistency
-        RETURN_URL = "http://13.233.237.173:8000/payment/callback/phicommerce/"
+        # REQUIREMENT: Domain Integration (academics.jdtislam.org)
+        # Preserve localhost for development, use domain for production
+        base_url = "https://academics.jdtislam.org"
+        host = request.get_host()
+        if "localhost" in host or "127.0.0.1" in host:
+            base_url = f"http://{host}"
+        
+        RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
 
         payload = {
             "merchantId": self.config.merchant_id,

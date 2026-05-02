@@ -54,7 +54,11 @@ def send_admission_email(admission):
         student = admission.application.student
         subject = f"Admission Selected - {admission.application.course.name}"
         
-        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
+        # REQUIREMENT: Domain Integration
+        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '127.0.0.1'
+        protocol = 'https' if 'jdtislam' in domain else 'http'
+        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
             'student_name': student.first_name or student.username,
@@ -96,7 +100,10 @@ def send_status_email(application, new_status):
         except:
             domain = '127.0.0.1'
             
-        login_url = f"http://{domain}:8000/accounts/login/"
+        # REQUIREMENT: Domain Integration
+        protocol = 'https' if 'jdtislam' in domain else 'http'
+        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
             'student_name': student.first_name or student.username,
@@ -130,7 +137,11 @@ def send_admission_status_email(admission, new_status):
         status_display = status_map.get(new_status, new_status)
         
         subject = f"Student Record Alert: {status_display}"
-        login_url = f"http://{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '127.0.0.1'}:8000/accounts/login/"
+        # REQUIREMENT: Domain Integration
+        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else '127.0.0.1'
+        protocol = 'https' if 'jdtislam' in domain else 'http'
+        port = ':8000' if '127.0.0.1' in domain or 'localhost' in domain else ''
+        login_url = f"{protocol}://{domain}{port}/accounts/login/"
         
         html_message = render_to_string('emails/status_update.html', {
             'student_name': student.first_name or student.username,

@@ -9,7 +9,8 @@ SECRET_KEY = 'secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['academics.jdtislam.org', '15.207.187.228', '127.0.0.1', 'localhost', '*']
+CSRF_TRUSTED_ORIGINS = ['http://academics.jdtislam.org', 'https://academics.jdtislam.org']
 
 INSTALLED_APPS = [
      'jazzmin',

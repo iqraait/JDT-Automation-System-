@@ -86,7 +86,9 @@ def forgot_password(request):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             domain = request.get_host()
-            reset_url = f"http://{domain}/accounts/reset/{uid}/{token}/"
+            # Requirement: Domain Integration
+            protocol = 'https' if 'jdtislam' in domain else 'http'
+            reset_url = f"{protocol}://{domain}/accounts/reset/{uid}/{token}/"
 
             # Send Email
             from django.utils.html import strip_tags
