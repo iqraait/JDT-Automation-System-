@@ -126,7 +126,7 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
-            hash_string.encode("ascii"),
+            hash_string.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
 
@@ -149,7 +149,8 @@ class PhiCommerceHandler(BasePaymentHandler):
         protocol = request.scheme 
         base_url = f"{protocol}://{host}"
         
-        RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
+        # REMOVE TRAILING SLASH: Some banks are sensitive to this in the hash
+        RETURN_URL = f"{base_url}/payment/callback/phicommerce"
 
         payload = {
             "merchantId": self.config.merchant_id,
