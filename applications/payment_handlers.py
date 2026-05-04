@@ -96,43 +96,26 @@ class PhiCommerceHandler(BasePaymentHandler):
         import hmac
         import hashlib
 
-        secret_key = self.config.secret_key or ""
-
-        # EXACT ORDER (ALPHABETICAL)
-        ordered_keys = [
-            "amount",
-            "currencyCode",
-            "customerEmailID",
-            "customerID",
-            "customerMobileNo",
-            "customerName",
-            "merchantId",
-            "merchantTxnNo",
-            "payType",
-            "returnURL",
-            "transactionType",
-            "txnDate"
-        ]
+        # EXACT ORIGINAL LOGIC: Sorted keys and HMAC-SHA256
+        data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
+        sorted_keys = sorted(data_to_hash.keys())
 
         hash_string = ""
-
-        for key in ordered_keys:
-            value = data.get(key)
+        for key in sorted_keys:
+            value = data_to_hash[key]
             if value is not None and str(value) != "":
-                if key == "amount":
-                    try:
-                        # Convert 500.00 to 500 for hashing
-                        value = str(int(float(value)))
-                    except:
-                        pass
                 hash_string += str(value)
 
-        print("====== FINAL HASH STRING ======")
-        print(hash_string)
+        print("====== FINAL HASH STRING ======", flush=True)
+        print(hash_string, flush=True)
 
-        # Simple SHA256 with key at the end
-        final_string = hash_string + secret_key
-        digest = hashlib.sha256(final_string.encode("utf-8")).hexdigest()
+        secret_key = self.config.secret_key or ""
+
+        digest = hmac.new(
+            secret_key.encode('utf-8'),
+            hash_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
 
         print("====== GENERATED HASH ======", flush=True)
         print(digest, flush=True)
