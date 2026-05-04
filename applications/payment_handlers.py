@@ -119,16 +119,20 @@ class PhiCommerceHandler(BasePaymentHandler):
         for key in ordered_keys:
             value = data.get(key)
             if value is not None and str(value) != "":
+                if key == "amount":
+                    try:
+                        # Convert 500.00 to 500 for hashing
+                        value = str(int(float(value)))
+                    except:
+                        pass
                 hash_string += str(value)
 
         print("====== FINAL HASH STRING ======")
         print(hash_string)
 
-        digest = hmac.new(
-            secret_key.encode("utf-8"),
-            hash_string.encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
+        # Simple SHA256 with key at the end
+        final_string = hash_string + secret_key
+        digest = hashlib.sha256(final_string.encode("utf-8")).hexdigest()
 
         print("====== GENERATED HASH ======", flush=True)
         print(digest, flush=True)
