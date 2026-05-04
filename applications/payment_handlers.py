@@ -130,8 +130,8 @@ class PhiCommerceHandler(BasePaymentHandler):
             hashlib.sha256
         ).hexdigest()
 
-        print("====== GENERATED HASH ======")
-        print(digest)
+        print("====== GENERATED HASH ======", flush=True)
+        print(digest, flush=True)
 
         return digest
 
@@ -145,7 +145,8 @@ class PhiCommerceHandler(BasePaymentHandler):
         # REQUIREMENT: Domain Integration & IP Fallback
         # Use request.get_host() to automatically include port 8000 if used
         host = request.get_host()
-        protocol = 'https' if 'jdtislam' in host else 'http'
+        # Use the actual scheme from the request (http or https) to avoid hash mismatch
+        protocol = request.scheme 
         base_url = f"{protocol}://{host}"
         
         RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
@@ -173,21 +174,21 @@ class PhiCommerceHandler(BasePaymentHandler):
         api_url = "https://uat.stage.phicommerce.com/pg/api/v2/initiateSale"
 
         try:
-            print("====== PAYMENT REQUEST ======")
-            print(payload)
+            print("====== PAYMENT REQUEST ======", flush=True)
+            print(payload, flush=True)
 
             response = requests.post(api_url, json=payload, timeout=30)
 
-            print("====== RESPONSE STATUS ======")
-            print(response.status_code)
+            print("====== RESPONSE STATUS ======", flush=True)
+            print(response.status_code, flush=True)
 
-            print("====== RAW RESPONSE ======")
-            print(response.text)
+            print("====== RAW RESPONSE ======", flush=True)
+            print(response.text, flush=True)
 
             res_data = response.json()
 
-            print("====== PARSED RESPONSE ======")
-            print(res_data)
+            print("====== PARSED RESPONSE ======", flush=True)
+            print(res_data, flush=True)
 
             # ✅ SUCCESS
             if res_data.get("responseCode") in ["R1000", "0000"]:
