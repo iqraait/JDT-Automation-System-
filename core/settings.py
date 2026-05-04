@@ -12,6 +12,11 @@ DEBUG = True
 ALLOWED_HOSTS = ['academics.jdtislam.org', '15.207.187.228', '127.0.0.1', 'localhost', '*']
 CSRF_TRUSTED_ORIGINS = ['http://academics.jdtislam.org', 'https://academics.jdtislam.org']
 
+# FORCE HTTP (Non-Secure)
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+
 INSTALLED_APPS = [
      'jazzmin',
     'django.contrib.admin',
