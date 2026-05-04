@@ -10,12 +10,17 @@ SECRET_KEY = 'secret-key'
 DEBUG = True
 
 ALLOWED_HOSTS = ['academics.jdtislam.org', '15.207.187.228', '127.0.0.1', 'localhost', '*']
-CSRF_TRUSTED_ORIGINS = ['http://academics.jdtislam.org', 'https://academics.jdtislam.org']
+CSRF_TRUSTED_ORIGINS = [
+    'http://academics.jdtislam.org', 
+    'https://academics.jdtislam.org',
+    'http://15.207.187.228'
+]
 
 # FORCE HTTP (Non-Secure)
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
+CSRF_COOKIE_HTTPONLY = False
 
 INSTALLED_APPS = [
      'jazzmin',
