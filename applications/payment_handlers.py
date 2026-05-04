@@ -149,8 +149,8 @@ class PhiCommerceHandler(BasePaymentHandler):
         protocol = request.scheme 
         base_url = f"{protocol}://{host}"
         
-        # REMOVE TRAILING SLASH: Some banks are sensitive to this in the hash
-        RETURN_URL = f"{base_url}/payment/callback/phicommerce"
+        # RESTORED TRAILING SLASH: Matches the previous working state
+        RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
 
         payload = {
             "merchantId": self.config.merchant_id,
