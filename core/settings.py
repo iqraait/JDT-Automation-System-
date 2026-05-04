@@ -12,12 +12,6 @@ DEBUG = True
 ALLOWED_HOSTS = ['academics.jdtislam.org', '15.207.187.228', '127.0.0.1', 'localhost', '*']
 CSRF_TRUSTED_ORIGINS = ['http://academics.jdtislam.org', 'https://academics.jdtislam.org']
 
-# HTTPS SECURITY SETTINGS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False # Nginx already handles redirection
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
 INSTALLED_APPS = [
      'jazzmin',
     'django.contrib.admin',
