@@ -1,6 +1,8 @@
 import hashlib
 import json
 import requests
+import hmac
+import datetime
 from binascii import hexlify, unhexlify
 from Crypto.Cipher import AES
 from django.conf import settings
@@ -49,7 +51,6 @@ class BasePaymentHandler:
 # =============================================================================
 class CCAvenueHandler(BasePaymentHandler):
     def initiate_payment(self, payment, request):
-        # Prepare params
         params = {
             "merchant_id": self.config.merchant_id,
             "order_id": str(payment.id),
@@ -59,7 +60,6 @@ class CCAvenueHandler(BasePaymentHandler):
             "cancel_url": request.build_absolute_uri('/payment/callback/ccavenue/'),
             "language": "EN",
             "billing_name": payment.application.student.get_full_name() or payment.application.student.username,
-            # Add more fields as needed
         }
         
         merchant_data = "&".join([f"{k}={v}" for k, v in params.items()])
@@ -77,7 +77,6 @@ class CCAvenueHandler(BasePaymentHandler):
             return {"status": "failed", "message": "No response data"}
             
         dec_resp = cc_decrypt(enc_resp, self.config.working_key)
-        # Parse dec_resp (query string format)
         resp_dict = dict(item.split("=") for item in dec_resp.split("&") if "=" in item)
         
         status = resp_dict.get('order_status')
@@ -93,9 +92,6 @@ class CCAvenueHandler(BasePaymentHandler):
 class PhiCommerceHandler(BasePaymentHandler):
 
     def calculate_secure_hash(self, data):
-        import hmac
-        import hashlib
-
         # Sorted keys and HMAC-SHA256
         data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
         sorted_keys = sorted(data_to_hash.keys())
@@ -124,31 +120,20 @@ class PhiCommerceHandler(BasePaymentHandler):
 
 
     def initiate_payment(self, payment, request):
-        import datetime
-        import requests
-
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-        # REQUIREMENT: Domain Integration & IP Fallback
-        # Use request.get_host() to automatically include port 8000 if used
         host = request.get_host()
-        # Use the actual scheme from the request (http or https) to avoid hash mismatch
         protocol = request.scheme 
         base_url = f"{protocol}://{host}"
-        
-        # RESTORED TRAILING SLASH: Matches the previous working state
         RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
 
         payload = {
             "merchantId": self.config.merchant_id,
-            "aggregatorID": self.config.aggregator_id or "",
-            "terminalID": self.config.terminal_id or "",
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
-            "payType": "0",
+            "payType": "1",  # FIXED
 
-            "customerEmailID": payment.application.student.email or "test@example.com",
+            "customerEmailID": payment.application.student.email or "midhlaj.midhlaj8@gmail.com",
             "customerName": payment.application.display_name or "Guest",
             "customerID": str(payment.application.student.id),
             "customerMobileNo": "9999999999",
@@ -156,9 +141,12 @@ class PhiCommerceHandler(BasePaymentHandler):
             "returnURL": RETURN_URL,
             "transactionType": "SALE",
             "txnDate": txn_date,
+
+            # REQUIRED FOR DIRECT MODE
+            "paymentMode": "UPI",  # or CARD / NB depending on use
         }
 
-        #  Generate secure hash
+        # Generate secure hash
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
         api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
@@ -180,7 +168,7 @@ class PhiCommerceHandler(BasePaymentHandler):
             print("====== PARSED RESPONSE ======", flush=True)
             print(res_data, flush=True)
 
-            # ✅ SUCCESS
+            # SUCCESS
             if res_data.get("responseCode") in ["R1000", "0000"]:
                 redirect_uri = res_data.get("redirectURI")
                 tranCtx = res_data.get("tranCtx")
@@ -191,7 +179,7 @@ class PhiCommerceHandler(BasePaymentHandler):
                     "txn_id": payload["merchantTxnNo"]
                 }
 
-            # ❌ FAILURE
+            # FAILURE
             return {
                 "error": res_data.get("responseDescription")
             }
