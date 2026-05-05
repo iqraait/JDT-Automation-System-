@@ -142,6 +142,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         payload = {
             "merchantId": self.config.merchant_id,
             "aggregatorID": self.config.aggregator_id or "",
+            "terminalID": self.config.terminal_id or "",
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
