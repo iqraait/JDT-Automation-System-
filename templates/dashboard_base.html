@@ -4,9 +4,9 @@
 <div class="flex h-screen bg-slate-50 overflow-hidden">
 
     <!-- SIDEBAR (Overlay Mode for All Screens) -->
-    <aside id="sidebar" class="w-72 bg-gradient-to-b from-[#1e3a8a] to-[#1e40af] text-white flex-shrink-0 transition-all duration-500 ease-in-out -translate-x-full fixed inset-y-0 left-0 z-50 shadow-2xl">
+    <aside id="sidebar" class="w-72 bg-gradient-to-b from-[#1e3a8a] to-[#1e40af] text-white flex-col transition-all duration-500 ease-in-out -translate-x-full fixed inset-y-0 left-0 z-50 shadow-2xl flex">
 
-        <div class="p-8 flex items-center justify-between border-b border-white/10">
+        <div class="p-8 flex items-center justify-between border-b border-white/10 flex-shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center border border-white/30">
                     <span class="text-xl font-bold text-white">J</span>
@@ -18,7 +18,7 @@
             </button>
         </div>
 
-        <nav class="mt-4 px-4 space-y-2 overflow-y-auto" style="height: calc(100vh - 120px);">
+        <nav class="mt-4 px-4 space-y-2 overflow-y-auto flex-1 scrollbar-hide">
             {% block sidebar_nav %}
             {% if request.user.role == 'institute' or request.user.is_staff or request.user.is_superuser %}
             <a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-3 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group {% if request.path == '/institute/dashboard/' %}bg-white/10 shadow-lg{% endif %}">
@@ -75,12 +75,11 @@
                 <span class="font-medium">My Applications</span>
             </a>
             {% endif %}
-
             {% endblock %}
         </nav>
 
-        <!-- PERSISTENT LOGOUT (Prominent Position) -->
-        <div class="p-4 border-t border-white/20 bg-black/10">
+        <!-- PERSISTENT SIGN OUT (Pinned to bottom) -->
+        <div class="p-4 border-t border-white/20 bg-black/10 flex-shrink-0">
             <a href="{% if request.user.role == 'institute' %}{% url 'institute_logout' %}{% else %}/logout/{% endif %}" 
                class="flex items-center gap-3 px-4 py-4 text-white hover:bg-red-500/20 rounded-xl transition-all duration-300 group border border-transparent hover:border-red-500/30">
                 <div class="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center group-hover:bg-red-500 transition-colors">
@@ -187,4 +186,15 @@
         }
     }
 </script>
+<style>
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .scrollbar-hide {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
 {% endblock %}
