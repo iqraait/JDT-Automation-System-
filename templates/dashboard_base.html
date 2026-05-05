@@ -95,11 +95,11 @@
         <!-- TOP NAVBAR -->
         <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-30">
 
-            <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-slate-100">
+            <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-slate-100 flex-shrink-0">
                     <svg class="h-6 w-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
-                <h1 class="text-xl font-semibold text-slate-800">{% block header_title %}Dashboard{% endblock %}</h1>
+                <h1 class="text-sm md:text-xl font-bold text-slate-800 truncate tracking-tight uppercase md:normal-case">{% block header_title %}Dashboard{% endblock %}</h1>
             </div>
 
             <div class="flex items-center gap-6">
@@ -118,14 +118,14 @@
                 {% endblock %}
 
                 <!-- USER PROFILE -->
-                <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
+                <div class="flex items-center gap-2 md:gap-3 pl-3 md:pl-6 border-l border-slate-200">
                     <div class="text-right hidden sm:block">
                         <p class="text-sm font-semibold text-slate-800">{{ request.user.username }}</p>
                         <p class="text-xs text-slate-500 font-medium capitalize">
                             {% if request.user.is_staff %}Administrator{% else %}Student Portal{% endif %}
                         </p>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm ring-1 ring-slate-100">
+                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm ring-1 ring-slate-100 flex-shrink-0">
                         {{ request.user.username|first|upper }}
                     </div>
                 </div>

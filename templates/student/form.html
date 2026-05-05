@@ -36,12 +36,12 @@
     <!-- MAIN FORM CARD -->
     <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
         
-        <div class="bg-slate-50 border-b border-slate-100 p-8 md:p-10">
-            <h2 class="text-2xl font-bold text-slate-800 mb-2 text-center">ONLINE APPLICATION FORM</h2>
-            <p class="text-slate-500 text-center">JDT Islam College of Arts & Science</p>
+        <div class="bg-slate-50 border-b border-slate-100 p-6 md:p-10">
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-2 text-center uppercase tracking-tight">Online Application Form</h2>
+            <p class="text-xs md:text-sm text-slate-500 text-center font-medium">JDT Islam College of Arts & Science</p>
         </div>
 
-        <form id="applicationForm" method="POST" enctype="multipart/form-data" class="p-8 md:p-10 space-y-10">
+        <form id="applicationForm" method="POST" enctype="multipart/form-data" class="p-4 md:p-10 space-y-8 md:space-y-10">
             {% csrf_token %}
 
             <!-- COURSE SELECTION -->
@@ -272,13 +272,13 @@ document.getElementById('course').addEventListener('change', function () {
         if (feeTypes.length > 0) {
             let feeHTML = `
                 <div class="bg-blue-600 rounded-3xl border border-blue-500 shadow-xl overflow-hidden mb-10 transition-all transform hover:scale-[1.01]">
-                    <div class="bg-blue-700/50 px-8 py-5 border-b border-white/10 flex items-center justify-between">
-                        <h3 class="font-bold text-white uppercase tracking-widest text-sm flex items-center gap-3">
+                    <div class="bg-blue-700/50 px-6 py-4 md:px-8 md:py-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="font-bold text-white uppercase tracking-widest text-[10px] md:text-sm flex items-center gap-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             Application Category & Fee
                         </h3>
                     </div>
-                    <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
                         <div class="space-y-3">
                             <label class="text-xs font-bold text-blue-100 uppercase tracking-widest">Select Your Category</label>
                             <select name="selected_fee_type" id="selected_fee_type" required 
@@ -407,8 +407,8 @@ function handleExamChange(fieldId, selectEl) {
                     Qualifying Subjects & Marks
                 </h4>
 
-                <div class="overflow-hidden rounded-2xl border border-slate-200">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 scrollbar-hide">
+                    <table class="w-full text-sm min-w-[500px] md:min-w-0">
                         <thead>
                             <tr class="bg-slate-50 text-slate-500">
                                 <th class="px-6 py-4 text-left font-semibold">Subject Name</th>
@@ -420,20 +420,24 @@ function handleExamChange(fieldId, selectEl) {
 
         data.forEach(sub => {
             html += `
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="px-6 py-4 text-slate-700 font-medium">${sub.name}</td>
-                    <td class="px-6 py-4">
+                <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                    <td class="px-4 md:px-6 py-4 text-slate-700 font-medium break-words min-w-[140px] max-w-[200px] md:max-w-md">
+                        ${sub.name}
+                    </td>
+                    <td class="px-4 md:px-6 py-4">
                             <div class="flex flex-col">
-                                <div class="flex items-center gap-3">
-                                    <input type="number"
-                                           name="subject_${sub.name}"
-                                           data-max="${sub.max_marks}"
-                                           data-pass="${sub.pass_mark}"
-                                           oninput="calculateTotal()"
-                                           class="w-24 bg-white border border-slate-200 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                           placeholder="0">
-                                    <span class="text-slate-400 font-medium">/ ${sub.max_marks}</span>
-                                    <span class="text-[10px] text-slate-400 uppercase tracking-tighter">(Min: ${sub.pass_mark})</span>
+                                <div class="flex flex-wrap items-center gap-2 md:gap-3">
+                                    <div class="flex items-center">
+                                        <input type="number"
+                                               name="subject_${sub.name}"
+                                               data-max="${sub.max_marks}"
+                                               data-pass="${sub.pass_mark}"
+                                               oninput="calculateTotal()"
+                                               class="w-20 md:w-24 bg-white border border-slate-200 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                               placeholder="0">
+                                        <span class="text-slate-400 font-medium ml-2">/ ${sub.max_marks}</span>
+                                    </div>
+                                    <span class="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-tighter whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded">(Min: ${sub.pass_mark})</span>
                                 </div>
                                 <span class="mark-error text-[10px] text-red-500 font-bold mt-1"></span>
                             </div>
