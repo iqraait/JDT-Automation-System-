@@ -133,7 +133,7 @@ class PhiCommerceHandler(BasePaymentHandler):
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
-            "payType": "1",  # FIXED
+            "payType": "1",  
 
             "customerEmailID": payment.application.student.email or "midhlaj.midhlaj8@gmail.com",
             "customerName": payment.application.display_name or "Guest",
@@ -145,7 +145,7 @@ class PhiCommerceHandler(BasePaymentHandler):
             "txnDate": txn_date,
 
             # REQUIRED FOR DIRECT MODE
-            "paymentMode": "UPI",  # or CARD / NB depending on use
+            "paymentMode": "UPI",  
         }
 
         # Generate secure hash
