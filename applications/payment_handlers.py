@@ -96,7 +96,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         import hmac
         import hashlib
 
-        # EXACT ORIGINAL LOGIC: Sorted keys and HMAC-SHA256
+        # Sorted keys and HMAC-SHA256
         data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
         sorted_keys = sorted(data_to_hash.keys())
 
@@ -159,7 +159,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         # ✅ Generate secure hash
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
-        api_url = "https://uat.stage.phicommerce.com/pg/api/v2/initiateSale"
+        api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
 
         try:
             print("====== PAYMENT REQUEST ======", flush=True)
