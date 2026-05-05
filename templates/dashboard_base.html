@@ -76,14 +76,19 @@
             </a>
             {% endif %}
 
-            <div class="pt-6 mt-6 border-t border-white/20">
-                <a href="{% if request.user.role == 'institute' %}{% url 'institute_logout' %}{% else %}/logout/{% endif %}" class="flex items-center gap-3 px-4 py-3 text-red-100 hover:bg-white/10 rounded-xl transition duration-200 group">
-                    <svg class="h-5 w-5 text-red-300 group-hover:text-red-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="font-medium">Logout</span>
-                </a>
-            </div>
             {% endblock %}
         </nav>
+
+        <!-- PERSISTENT LOGOUT (Outside the nav block) -->
+        <div class="p-4 border-t border-white/20">
+            <a href="{% if request.user.role == 'institute' %}{% url 'institute_logout' %}{% else %}/logout/{% endif %}" 
+               class="flex items-center gap-3 px-4 py-3 text-red-100 hover:bg-white/10 rounded-xl transition duration-200 group">
+                <svg class="h-5 w-5 text-red-300 group-hover:text-red-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                <span class="font-medium">Logout</span>
+            </a>
+        </div>
     </aside>
 
     <!-- GLOBAL OVERLAY (Fading Background) -->
