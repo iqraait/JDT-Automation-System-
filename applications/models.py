@@ -128,6 +128,7 @@ class PaymentConfig(models.Model):
     # PhiCommerce
     secret_key = models.CharField(max_length=255, blank=True, null=True)
     terminal_id = models.CharField(max_length=255, blank=True, null=True)
+    aggregator_id = models.CharField(max_length=255, blank=True, null=True)
 
     # Environment
     environment = models.CharField(max_length=10, choices=ENV_CHOICES, default='uat')
