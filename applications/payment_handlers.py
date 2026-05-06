@@ -106,30 +106,47 @@ class PhiCommerceHandler:
     # =========================================================================
     def calculate_secure_hash(self, data):
 
-        # Remove secureHash before hashing
-        data_to_hash = {
-            k: v for k, v in data.items()
-            if k != "secureHash"
-        }
+        secret_key = self.config.secret_key or ""
 
-        # Sort keys alphabetically
-        sorted_keys = sorted(data_to_hash.keys())
+        # =========================================================
+        # FIXED HASH ORDER
+        # =========================================================
+        ordered_keys = [
+
+            "amount",
+            "currencyCode",
+
+            "customerEmailID",
+            "customerID",
+            "customerMobileNo",
+            "customerName",
+
+            "merchantId",
+            "merchantTxnNo",
+
+            "payType",
+
+            # ADD THESE IN EXACT POSITION
+            "paymentMode",
+            "customerUPIID",
+
+            "returnURL",
+
+            "transactionType",
+            "txnDate",
+        ]
 
         hash_string = ""
 
-        # Concatenate values
-        for key in sorted_keys:
+        for key in ordered_keys:
 
-            value = data_to_hash[key]
+            value = data.get(key)
 
             if value is not None and str(value) != "":
                 hash_string += str(value)
 
         print("\n====== FINAL HASH STRING ======", flush=True)
         print(hash_string, flush=True)
-
-        # Production Secret Key
-        secret_key = self.config.secret_key or ""
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
