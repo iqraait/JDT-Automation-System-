@@ -161,18 +161,21 @@ class PhiCommerceHandler(BasePaymentHandler):
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
         # 4. Determine API URL
-        # Production: https://secure.phicommerce.com/pg/api/v2/initiateSale
-        # UAT: https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale
         is_prod = getattr(self.config, 'environment', 'uat') == 'prod'
         
         if is_prod:
-            api_url = "https://secure.phicommerce.com/pg/api/v2/initiateSale"
+            base_api_url = "https://secure.phicommerce.com"
         else:
-            api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
+            base_api_url = "https://secure-ptg.phicommerce.com"
             
-        # Use Base URL from config if explicitly provided and contains 'phicommerce'
-        if self.config.base_url and "phicommerce" in self.config.base_url:
-            api_url = self.config.base_url
+        # Overwrite base if provided in config, but ensure it's just the base
+        if self.config.base_url and "phicommerce.com" in self.config.base_url:
+            base_api_url = self.config.base_url.rstrip('/')
+            # If the user put the full URL in the box, extract just the base
+            if "/pg/" in base_api_url:
+                base_api_url = base_api_url.split("/pg/")[0]
+
+        api_url = f"{base_api_url}/pg/api/v2/initiateSale"
 
         try:
             print(f"\n[PhiCommerce] Request URL: {api_url}")
