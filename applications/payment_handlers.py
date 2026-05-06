@@ -86,170 +86,219 @@ class CCAvenueHandler(BasePaymentHandler):
             return {"status": "failed", "raw": resp_dict}
 
 
-# =============================================================================
-# PHICOMMERCE HANDLER (USER REQUESTED VERSION WITH AGGREGATOR FIX)
-# =============================================================================
+import hashlib
+import hmac
+import datetime
+import requests
 
-class PhiCommerceHandler(BasePaymentHandler):
 
+class PhiCommerceHandler:
+
+    def __init__(self, config):
+        self.config = config
+
+    # ============================================================
+    # SECURE HASH
+    # ============================================================
     def calculate_secure_hash(self, data):
-        # 1. Arrange Parameters: Collect all request parameter names and arrange them in strict alphabetical ascending order.
-        # Remove secureHash if already present
-        data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
+
+        # Remove secureHash if exists
+        data_to_hash = {
+            k: v for k, v in data.items()
+            if k != "secureHash"
+        }
+
+        # Sort keys alphabetically
         sorted_keys = sorted(data_to_hash.keys())
 
-        # 2. Concatenate Values: Concatenate the corresponding parameter values in the same alphabetical order to form the hashText.
-        hash_text = ""
+        hash_string = ""
+
+        # Concatenate values
         for key in sorted_keys:
             value = data_to_hash[key]
-            if value is not None:
-                hash_text += str(value)
 
-        # 3. Calculate Secure Hash: Calculate using hashText and the Secret Key via SHA256 (HMAC-SHA256).
-        # Production Secret Key provided by the team: eabc0ed600ea4ca1bf5e665173deeea2
-        # UAT Secret Key: abc
-        
-        is_prod = getattr(self.config, 'environment', 'uat') == 'prod'
-        secret_key = "eabc0ed600ea4ca1bf5e665173deeea2" if is_prod else "abc"
-        
-        # Fallback to config if explicitly provided and different from defaults
-        if self.config.secret_key and self.config.secret_key not in ["eabc0ed600ea4ca1bf5e665173deeea2", "abc"]:
-            secret_key = self.config.secret_key
+            if value is not None and str(value) != "":
+                hash_string += str(value)
+
+        print("\n====== HASH STRING ======")
+        print(hash_string)
+
+        # ✅ PRODUCTION SECRET KEY
+        secret_key = self.config.secret_key
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
-            hash_text.encode("utf-8"),
+            hash_string.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
 
-        print(f"\n[PhiCommerce] Environment: {'PROD' if is_prod else 'UAT'}")
-        print(f"[PhiCommerce] Sorted Keys: {sorted_keys}")
-        print(f"[PhiCommerce] Hash Text: {hash_text}")
-        print(f"[PhiCommerce] Generated Hash: {digest}")
+        print("====== GENERATED HASH ======")
+        print(digest)
 
         return digest
 
+    # ============================================================
+    # INITIATE PAYMENT
+    # ============================================================
     def initiate_payment(self, payment, request):
+
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
         base_url = f"{request.scheme}://{request.get_host()}"
-        return_url = f"{base_url}/payment/callback/phicommerce/"
+
+        return_url = (
+            f"{base_url}/payment/callback/phicommerce/"
+        )
 
         payload = {
+
             "merchantId": self.config.merchant_id,
-            "aggregatorID": "AM_00083",  # Confirmed production aggregator ID
-            "terminalID": self.config.terminal_id or "",
-            "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
-            "amount": "{:.2f}".format(payment.amount),
+
+            # ✅ correct case
+            "terminalId": self.config.terminal_id,
+
+            "merchantTxnNo":
+                f"PAY{payment.id}T{txn_date}",
+
+            "amount":
+                "{:.2f}".format(payment.amount),
+
             "currencyCode": "356",
-            "payType": "1",  # Direct mode
 
-            "customerEmailID": payment.application.student.email or "test@test.com",
-            "customerName": payment.application.display_name or "Guest",
-            "customerID": str(payment.application.student.id),
-            "customerMobileNo": "9999999999",
+            "payType": "1",
 
-            "returnURL": return_url,
-            "transactionType": "SALE",
-            "txnDate": txn_date,
+            "customerEmailID":
+                payment.application.student.email,
 
-            # Required for Direct mode
-            "paymentMode": "UPI"
+            "customerName":
+                payment.application.display_name,
+
+            "customerID":
+                str(payment.application.student.id),
+
+            "customerMobileNo":
+                "9999999999",
+
+            "returnURL":
+                return_url,
+
+            "transactionType":
+                "SALE",
+
+            "txnDate":
+                txn_date,
+
+            # UPI / CARD / NB
+            "paymentMode": "UPI",
         }
 
-        # Generate hash
-        payload["secureHash"] = self.calculate_secure_hash(payload)
+        # Generate secure hash
+        payload["secureHash"] = (
+            self.calculate_secure_hash(payload)
+        )
 
-        # 4. Determine API URL
-        is_prod = getattr(self.config, 'environment', 'uat') == 'prod'
-        
-        if is_prod:
-            base_api_url = "https://secure.phicommerce.com"
-        else:
-            base_api_url = "https://secure-ptg.phicommerce.com"
-            
-        # Overwrite base if provided in config, but ensure it's just the base
-        if self.config.base_url and "phicommerce.com" in self.config.base_url:
-            base_api_url = self.config.base_url.rstrip('/')
-            # If the user put the full URL in the box, extract just the base
-            if "/pg/" in base_api_url:
-                base_api_url = base_api_url.split("/pg/")[0]
-
-        api_url = f"{base_api_url}/pg/api/v2/initiateSale"
+        api_url = (
+            "https://secure-ptg.phicommerce.com/"
+            "pg/api/v2/initiateSale"
+        )
 
         try:
-            print(f"\n[PhiCommerce] Request URL: {api_url}")
-            print(f"[PhiCommerce] Payload: {payload}")
 
-            response = requests.post(api_url, json=payload, timeout=30)
+            print("\n====== PAYMENT REQUEST ======")
+            print(payload)
 
-            print("\n====== RESPONSE STATUS ======", flush=True)
-            print(response.status_code, flush=True)
+            response = requests.post(
+                api_url,
+                json=payload,
+                timeout=30
+            )
 
-            print("\n====== RAW RESPONSE ======", flush=True)
-            print(response.text, flush=True)
+            print("\n====== RESPONSE STATUS ======")
+            print(response.status_code)
+
+            print("\n====== RAW RESPONSE ======")
+            print(response.text)
 
             res_data = response.json()
 
-            print("\n====== PARSED RESPONSE ======", flush=True)
-            print(res_data, flush=True)
+            print("\n====== PARSED RESPONSE ======")
+            print(res_data)
 
             # SUCCESS
-            if res_data.get("responseCode") in ["R1000", "0000"]:
-                redirect_uri = res_data.get("redirectURI")
-                tran_ctx = res_data.get("tranCtx")
+            if res_data.get("responseCode") in [
+                "R1000",
+                "0000"
+            ]:
+
+                redirect_uri = (
+                    res_data.get("redirectURI")
+                )
+
+                tran_ctx = (
+                    res_data.get("tranCtx")
+                )
 
                 return {
-                    "action_url": f"{redirect_uri}?tranCtx={tran_ctx}",
+                    "action_url":
+                        f"{redirect_uri}?tranCtx={tran_ctx}",
+
                     "method": "REDIRECT",
-                    "txn_id": payload["merchantTxnNo"]
+
+                    "txn_id":
+                        payload["merchantTxnNo"]
                 }
 
             # FAILURE
             return {
-                "error": res_data.get("responseDescription")
+                "error":
+                    res_data.get(
+                        "responseDescription"
+                    )
             }
 
         except Exception as e:
-            print("====== EXCEPTION ======", flush=True)
-            print(str(e), flush=True)
-            return {"error": str(e)}
 
+            print("\n====== EXCEPTION ======")
+            print(str(e))
+
+            return {
+                "error": str(e)
+            }
+
+    # ============================================================
+    # VERIFY PAYMENT
+    # ============================================================
     def verify_payment(self, response_data):
-        # Convert QueryDict to regular dict if needed
-        if hasattr(response_data, 'dict'):
-            data = response_data.dict()
-        else:
-            data = dict(response_data)
 
-        print("\n[PhiCommerce] Callback Data received.")
-        
-        # 1. Verify Hash if present
-        received_hash = data.get("secureHash")
-        if received_hash:
-            calculated_hash = self.calculate_secure_hash(data)
-            if calculated_hash.lower() != received_hash.lower():
-                print(f"[PhiCommerce] HASH MISMATCH! Received: {received_hash}, Calculated: {calculated_hash}")
-                # For now, we log but allow if needed for debugging, 
-                # but in production we should strictly fail.
-                # return {"status": "failed", "error": "Hash verification failed", "raw": data}
-            else:
-                print("[PhiCommerce] Secure Hash Verified.")
+        print("\n====== CALLBACK RESPONSE ======")
+        print(response_data)
 
-        status = data.get("status")
-        response_code = data.get("responseCode")
+        status = response_data.get("status")
 
-        # Success conditions: Status 'SUC' or responseCode '0000'/'000'
-        if status == "SUC" or response_code in ["0000", "000"]:
+        response_code = response_data.get(
+            "responseCode"
+        )
+
+        if (
+            status == "SUC"
+            or response_code in ["0000", "000"]
+        ):
+
             return {
                 "status": "success",
-                "txn_id": data.get("txnID"),
-                "merchant_txn_no": data.get("merchantTxnNo"),
-                "raw": data
+
+                "txn_id":
+                    response_data.get("txnID"),
+
+                "merchant_txn_no":
+                    response_data.get(
+                        "merchantTxnNo"
+                    ),
+
+                "raw": response_data
             }
 
         return {
             "status": "failed",
-            "error": data.get("responseDescription") or "Payment failed",
-            "raw": data
+            "raw": response_data
         }
