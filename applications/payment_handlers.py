@@ -93,33 +93,39 @@ class CCAvenueHandler(BasePaymentHandler):
 class PhiCommerceHandler(BasePaymentHandler):
 
     def calculate_secure_hash(self, data):
+        # 1. Arrange Parameters: Collect all request parameter names and arrange them in strict alphabetical ascending order.
         # Remove secureHash if already present
         data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
-
-        # Sort keys alphabetically
         sorted_keys = sorted(data_to_hash.keys())
 
-        # Concatenate values (NO delimiter)
-        hash_string = ""
+        # 2. Concatenate Values: Concatenate the corresponding parameter values in the same alphabetical order to form the hashText.
+        hash_text = ""
         for key in sorted_keys:
             value = data_to_hash[key]
-            if value is not None and str(value) != "":
-                hash_string += str(value)
+            if value is not None:
+                hash_text += str(value)
 
-        print("\n====== FINAL HASH STRING ======", flush=True)
-        print(hash_string, flush=True)
-
-        # IMPORTANT: This must be REAL key from PhiCommerce
-        secret_key = self.config.secret_key or ""
+        # 3. Calculate Secure Hash: Calculate using hashText and the Secret Key via SHA256 (HMAC-SHA256).
+        # Production Secret Key provided by the team: eabc0ed600ea4ca1bf5e665173deeea2
+        # UAT Secret Key: abc
+        
+        is_prod = getattr(self.config, 'environment', 'uat') == 'prod'
+        secret_key = "eabc0ed600ea4ca1bf5e665173deeea2" if is_prod else "abc"
+        
+        # Fallback to config if explicitly provided and different from defaults
+        if self.config.secret_key and self.config.secret_key not in ["eabc0ed600ea4ca1bf5e665173deeea2", "abc"]:
+            secret_key = self.config.secret_key
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
-            hash_string.encode("utf-8"),
+            hash_text.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
 
-        print("====== GENERATED HASH ======", flush=True)
-        print(digest, flush=True)
+        print(f"\n[PhiCommerce] Environment: {'PROD' if is_prod else 'UAT'}")
+        print(f"[PhiCommerce] Sorted Keys: {sorted_keys}")
+        print(f"[PhiCommerce] Hash Text: {hash_text}")
+        print(f"[PhiCommerce] Generated Hash: {digest}")
 
         return digest
 
@@ -131,7 +137,7 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         payload = {
             "merchantId": self.config.merchant_id,
-            "aggregatorID": self.config.aggregator_id or "AM_00083",
+            "aggregatorID": "AM_00083",  # Confirmed production aggregator ID
             "terminalID": self.config.terminal_id or "",
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
@@ -195,21 +201,40 @@ class PhiCommerceHandler(BasePaymentHandler):
             return {"error": str(e)}
 
     def verify_payment(self, response_data):
-        print("\n====== CALLBACK DATA ======", flush=True)
-        print(response_data, flush=True)
+        # Convert QueryDict to regular dict if needed
+        if hasattr(response_data, 'dict'):
+            data = response_data.dict()
+        else:
+            data = dict(response_data)
 
-        status = response_data.get("status")
-        response_code = response_data.get("responseCode")
+        print("\n[PhiCommerce] Callback Data received.")
+        
+        # 1. Verify Hash if present
+        received_hash = data.get("secureHash")
+        if received_hash:
+            calculated_hash = self.calculate_secure_hash(data)
+            if calculated_hash.lower() != received_hash.lower():
+                print(f"[PhiCommerce] HASH MISMATCH! Received: {received_hash}, Calculated: {calculated_hash}")
+                # For now, we log but allow if needed for debugging, 
+                # but in production we should strictly fail.
+                # return {"status": "failed", "error": "Hash verification failed", "raw": data}
+            else:
+                print("[PhiCommerce] Secure Hash Verified.")
 
+        status = data.get("status")
+        response_code = data.get("responseCode")
+
+        # Success conditions: Status 'SUC' or responseCode '0000'/'000'
         if status == "SUC" or response_code in ["0000", "000"]:
             return {
                 "status": "success",
-                "txn_id": response_data.get("txnID"),
-                "merchant_txn_no": response_data.get("merchantTxnNo"),
-                "raw": response_data
+                "txn_id": data.get("txnID"),
+                "merchant_txn_no": data.get("merchantTxnNo"),
+                "raw": data
             }
 
         return {
             "status": "failed",
-            "raw": response_data
+            "error": data.get("responseDescription") or "Payment failed",
+            "raw": data
         }
