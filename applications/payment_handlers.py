@@ -98,11 +98,11 @@ class PhiCommerceHandler:
         self.config = config
 
     # ============================================================
-    # SECURE HASH
+    # SECURE HASH GENERATION
     # ============================================================
     def calculate_secure_hash(self, data):
 
-        # Remove secureHash if exists
+        # Remove secureHash before hashing
         data_to_hash = {
             k: v for k, v in data.items()
             if k != "secureHash"
@@ -120,10 +120,10 @@ class PhiCommerceHandler:
             if value is not None and str(value) != "":
                 hash_string += str(value)
 
-        print("\n====== HASH STRING ======")
+        print("\n====== FINAL HASH STRING ======")
         print(hash_string)
 
-        # ✅ PRODUCTION SECRET KEY
+        # Production Secret Key
         secret_key = self.config.secret_key
 
         digest = hmac.new(
@@ -132,7 +132,7 @@ class PhiCommerceHandler:
             hashlib.sha256
         ).hexdigest()
 
-        print("====== GENERATED HASH ======")
+        print("\n====== GENERATED HASH ======")
         print(digest)
 
         return digest
@@ -142,9 +142,13 @@ class PhiCommerceHandler:
     # ============================================================
     def initiate_payment(self, payment, request):
 
-        txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        txn_date = datetime.datetime.now().strftime(
+            "%Y%m%d%H%M%S"
+        )
 
-        base_url = f"{request.scheme}://{request.get_host()}"
+        base_url = (
+            f"{request.scheme}://{request.get_host()}"
+        )
 
         return_url = (
             f"{base_url}/payment/callback/phicommerce/"
@@ -152,10 +156,22 @@ class PhiCommerceHandler:
 
         payload = {
 
-            "merchantId": self.config.merchant_id,
+            # ====================================================
+            # MERCHANT DETAILS
+            # ====================================================
 
-            # ✅ correct case
-            "terminalId": self.config.terminal_id,
+            "merchantId":
+                self.config.merchant_id,
+
+            "aggregatorID":
+                self.config.aggregator_id,
+
+            "terminalId":
+                self.config.terminal_id,
+
+            # ====================================================
+            # TRANSACTION DETAILS
+            # ====================================================
 
             "merchantTxnNo":
                 f"PAY{payment.id}T{txn_date}",
@@ -163,9 +179,21 @@ class PhiCommerceHandler:
             "amount":
                 "{:.2f}".format(payment.amount),
 
-            "currencyCode": "356",
+            "currencyCode":
+                "356",
 
-            "payType": "1",
+            "payType":
+                "1",
+
+            "transactionType":
+                "SALE",
+
+            "txnDate":
+                txn_date,
+
+            # ====================================================
+            # CUSTOMER DETAILS
+            # ====================================================
 
             "customerEmailID":
                 payment.application.student.email,
@@ -179,23 +207,32 @@ class PhiCommerceHandler:
             "customerMobileNo":
                 "9999999999",
 
+            # ====================================================
+            # PAYMENT MODE
+            # ====================================================
+
+            "paymentMode":
+                "auto",
+
+            # ====================================================
+            # CALLBACK
+            # ====================================================
+
             "returnURL":
                 return_url,
-
-            "transactionType":
-                "SALE",
-
-            "txnDate":
-                txn_date,
-
-            # UPI / CARD / NB
-            "paymentMode": "UPI",
         }
 
-        # Generate secure hash
+        # ========================================================
+        # GENERATE SECURE HASH
+        # ========================================================
+
         payload["secureHash"] = (
             self.calculate_secure_hash(payload)
         )
+
+        # ========================================================
+        # API URL
+        # ========================================================
 
         api_url = (
             "https://secure-ptg.phicommerce.com/"
@@ -224,7 +261,10 @@ class PhiCommerceHandler:
             print("\n====== PARSED RESPONSE ======")
             print(res_data)
 
+            # ====================================================
             # SUCCESS
+            # ====================================================
+
             if res_data.get("responseCode") in [
                 "R1000",
                 "0000"
@@ -242,13 +282,17 @@ class PhiCommerceHandler:
                     "action_url":
                         f"{redirect_uri}?tranCtx={tran_ctx}",
 
-                    "method": "REDIRECT",
+                    "method":
+                        "REDIRECT",
 
                     "txn_id":
                         payload["merchantTxnNo"]
                 }
 
+            # ====================================================
             # FAILURE
+            # ====================================================
+
             return {
                 "error":
                     res_data.get(
@@ -295,7 +339,8 @@ class PhiCommerceHandler:
                         "merchantTxnNo"
                     ),
 
-                "raw": response_data
+                "raw":
+                    response_data
             }
 
         return {
