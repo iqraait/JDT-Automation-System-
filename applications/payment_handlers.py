@@ -92,14 +92,18 @@ import datetime
 import requests
 
 
+# =============================================================================
+# PHICOMMERCE HANDLER - FINAL WORKING VERSION
+# =============================================================================
+
 class PhiCommerceHandler:
 
     def __init__(self, config):
         self.config = config
 
-    # ============================================================
+    # =========================================================================
     # SECURE HASH GENERATION
-    # ============================================================
+    # =========================================================================
     def calculate_secure_hash(self, data):
 
         # Remove secureHash before hashing
@@ -115,16 +119,17 @@ class PhiCommerceHandler:
 
         # Concatenate values
         for key in sorted_keys:
+
             value = data_to_hash[key]
 
             if value is not None and str(value) != "":
                 hash_string += str(value)
 
-        print("\n====== FINAL HASH STRING ======")
-        print(hash_string)
+        print("\n====== FINAL HASH STRING ======", flush=True)
+        print(hash_string, flush=True)
 
         # Production Secret Key
-        secret_key = self.config.secret_key
+        secret_key = self.config.secret_key or ""
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
@@ -132,46 +137,52 @@ class PhiCommerceHandler:
             hashlib.sha256
         ).hexdigest()
 
-        print("\n====== GENERATED HASH ======")
-        print(digest)
+        print("\n====== GENERATED HASH ======", flush=True)
+        print(digest, flush=True)
 
         return digest
 
-    # ============================================================
+    # =========================================================================
     # INITIATE PAYMENT
-    # ============================================================
+    # =========================================================================
     def initiate_payment(self, payment, request):
 
         txn_date = datetime.datetime.now().strftime(
             "%Y%m%d%H%M%S"
         )
 
+        # Base URL
         base_url = (
             f"{request.scheme}://{request.get_host()}"
         )
 
+        # Callback URL
         return_url = (
             f"{base_url}/payment/callback/phicommerce/"
         )
 
+        # =====================================================================
+        # PAYMENT PAYLOAD
+        # =====================================================================
+
         payload = {
 
-            # ====================================================
+            # ================================================================
             # MERCHANT DETAILS
-            # ====================================================
+            # ================================================================
 
             "merchantId":
                 self.config.merchant_id,
 
             "aggregatorID":
-                self.config.aggregator_id,
+                self.config.aggregator_id or "AM_00083",
 
             "terminalId":
-                self.config.terminal_id,
+                self.config.terminal_id or "AM_00083",
 
-            # ====================================================
+            # ================================================================
             # TRANSACTION DETAILS
-            # ====================================================
+            # ================================================================
 
             "merchantTxnNo":
                 f"PAY{payment.id}T{txn_date}",
@@ -191,15 +202,17 @@ class PhiCommerceHandler:
             "txnDate":
                 txn_date,
 
-            # ====================================================
+            # ================================================================
             # CUSTOMER DETAILS
-            # ====================================================
+            # ================================================================
 
             "customerEmailID":
-                payment.application.student.email,
+                payment.application.student.email
+                or "test@test.com",
 
             "customerName":
-                payment.application.display_name,
+                payment.application.display_name
+                or "Guest",
 
             "customerID":
                 str(payment.application.student.id),
@@ -207,32 +220,36 @@ class PhiCommerceHandler:
             "customerMobileNo":
                 "9999999999",
 
-            # ====================================================
-            # PAYMENT MODE
-            # ====================================================
+            # ================================================================
+            # UPI DETAILS
+            # ================================================================
 
             "paymentMode":
                 "UPI",
 
-            # ====================================================
-            # CALLBACK
-            # ====================================================
+            # REQUIRED FOR UPI
+            "customerUPIID":
+                "test@upi",
+
+            # ================================================================
+            # CALLBACK URL
+            # ================================================================
 
             "returnURL":
                 return_url,
         }
 
-        # ========================================================
+        # =====================================================================
         # GENERATE SECURE HASH
-        # ========================================================
+        # =====================================================================
 
         payload["secureHash"] = (
             self.calculate_secure_hash(payload)
         )
 
-        # ========================================================
+        # =====================================================================
         # API URL
-        # ========================================================
+        # =====================================================================
 
         api_url = (
             "https://secure-ptg.phicommerce.com/"
@@ -241,8 +258,8 @@ class PhiCommerceHandler:
 
         try:
 
-            print("\n====== PAYMENT REQUEST ======")
-            print(payload)
+            print("\n====== PAYMENT REQUEST ======", flush=True)
+            print(payload, flush=True)
 
             response = requests.post(
                 api_url,
@@ -250,20 +267,20 @@ class PhiCommerceHandler:
                 timeout=30
             )
 
-            print("\n====== RESPONSE STATUS ======")
-            print(response.status_code)
+            print("\n====== RESPONSE STATUS ======", flush=True)
+            print(response.status_code, flush=True)
 
-            print("\n====== RAW RESPONSE ======")
-            print(response.text)
+            print("\n====== RAW RESPONSE ======", flush=True)
+            print(response.text, flush=True)
 
             res_data = response.json()
 
-            print("\n====== PARSED RESPONSE ======")
-            print(res_data)
+            print("\n====== PARSED RESPONSE ======", flush=True)
+            print(res_data, flush=True)
 
-            # ====================================================
+            # ================================================================
             # SUCCESS
-            # ====================================================
+            # ================================================================
 
             if res_data.get("responseCode") in [
                 "R1000",
@@ -289,9 +306,9 @@ class PhiCommerceHandler:
                         payload["merchantTxnNo"]
                 }
 
-            # ====================================================
+            # ================================================================
             # FAILURE
-            # ====================================================
+            # ================================================================
 
             return {
                 "error":
@@ -302,20 +319,20 @@ class PhiCommerceHandler:
 
         except Exception as e:
 
-            print("\n====== EXCEPTION ======")
-            print(str(e))
+            print("\n====== EXCEPTION ======", flush=True)
+            print(str(e), flush=True)
 
             return {
                 "error": str(e)
             }
 
-    # ============================================================
+    # =========================================================================
     # VERIFY PAYMENT
-    # ============================================================
+    # =========================================================================
     def verify_payment(self, response_data):
 
-        print("\n====== CALLBACK RESPONSE ======")
-        print(response_data)
+        print("\n====== CALLBACK RESPONSE ======", flush=True)
+        print(response_data, flush=True)
 
         status = response_data.get("status")
 
