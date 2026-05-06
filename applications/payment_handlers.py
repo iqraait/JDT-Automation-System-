@@ -87,7 +87,7 @@ class CCAvenueHandler(BasePaymentHandler):
 
 
 # =============================================================================
-# PHICOMMERCE HANDLER (USER REQUESTED VERSION)
+# PHICOMMERCE HANDLER (USER REQUESTED VERSION WITH AGGREGATOR FIX)
 # =============================================================================
 
 class PhiCommerceHandler(BasePaymentHandler):
@@ -136,14 +136,18 @@ class PhiCommerceHandler(BasePaymentHandler):
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
-            "payType": "1", 
+            "payType": "1",  # Direct mode
+
             "customerEmailID": payment.application.student.email or "test@test.com",
             "customerName": payment.application.display_name or "Guest",
             "customerID": str(payment.application.student.id),
             "customerMobileNo": "9999999999",
+
             "returnURL": return_url,
             "transactionType": "SALE",
             "txnDate": txn_date,
+
+            # Required for Direct mode
             "paymentMode": "UPI"
         }
 
