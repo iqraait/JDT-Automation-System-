@@ -128,7 +128,7 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         payload = {
             "merchantId": self.config.merchant_id,
-            "aggregatorID": self.config.aggregator_id or "PHICOM", # Trying PHICOM as default
+            "aggregatorID": self.config.aggregator_id or "AM_00083", # Using the provided Aggregator ID
             "terminalID": self.config.terminal_id or self.config.merchant_id,
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
