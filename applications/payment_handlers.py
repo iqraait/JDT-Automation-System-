@@ -85,31 +85,36 @@ class CCAvenueHandler(BasePaymentHandler):
         else:
             return {"status": "failed", "raw": resp_dict}
 
+
 # =============================================================================
-# PHICOMMERCE HANDLER (FINAL WITH PAYMENT UI SUPPORT)
+# PHICOMMERCE HANDLER (USER REQUESTED VERSION)
 # =============================================================================
 
 class PhiCommerceHandler(BasePaymentHandler):
 
     def calculate_secure_hash(self, data):
-        # Sorted keys and HMAC-SHA256
+        # Remove secureHash if already present
         data_to_hash = {k: v for k, v in data.items() if k != "secureHash"}
+
+        # Sort keys alphabetically
         sorted_keys = sorted(data_to_hash.keys())
 
+        # Concatenate values (NO delimiter)
         hash_string = ""
         for key in sorted_keys:
             value = data_to_hash[key]
             if value is not None and str(value) != "":
                 hash_string += str(value)
 
-        print("====== FINAL HASH STRING ======", flush=True)
+        print("\n====== FINAL HASH STRING ======", flush=True)
         print(hash_string, flush=True)
 
+        # IMPORTANT: This must be REAL key from PhiCommerce
         secret_key = self.config.secret_key or ""
 
         digest = hmac.new(
-            secret_key.encode('utf-8'),
-            hash_string.encode('utf-8'),
+            secret_key.encode("utf-8"),
+            hash_string.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
 
@@ -118,65 +123,65 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         return digest
 
-
     def initiate_payment(self, payment, request):
         txn_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        host = request.get_host()
-        protocol = request.scheme 
-        base_url = f"{protocol}://{host}"
-        RETURN_URL = f"{base_url}/payment/callback/phicommerce/"
+
+        base_url = f"{request.scheme}://{request.get_host()}"
+        return_url = f"{base_url}/payment/callback/phicommerce/"
 
         payload = {
             "merchantId": self.config.merchant_id,
-            "aggregatorID": self.config.aggregator_id or "AM_00083", # Using the provided Aggregator ID
-            "terminalID": self.config.terminal_id or self.config.merchant_id,
+
+            # Correct key name (case sensitive)
+            "terminalId": self.config.terminal_id,
+
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
-            "payType": "1",  
+            "payType": "1",  # Direct mode
 
-            "customerEmailID": payment.application.student.email or "midhlaj.midhlaj8@gmail.com",
+            "customerEmailID": payment.application.student.email or "test@test.com",
             "customerName": payment.application.display_name or "Guest",
             "customerID": str(payment.application.student.id),
             "customerMobileNo": "9999999999",
 
-            "returnURL": RETURN_URL,
+            "returnURL": return_url,
             "transactionType": "SALE",
             "txnDate": txn_date,
 
-            # REQUIRED FOR DIRECT MODE
-            "paymentMode": "UPI",  
+            # Required for Direct mode
+            "paymentMode": "UPI"
         }
 
-        # Generate secure hash
+        # Generate hash
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
         api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
 
         try:
-            print("====== PAYMENT REQUEST ======", flush=True)
+            print("\n====== PAYMENT REQUEST ======", flush=True)
             print(payload, flush=True)
 
             response = requests.post(api_url, json=payload, timeout=30)
 
-            print("====== RESPONSE STATUS ======", flush=True)
+            print("\n====== RESPONSE STATUS ======", flush=True)
             print(response.status_code, flush=True)
 
-            print("====== RAW RESPONSE ======", flush=True)
+            print("\n====== RAW RESPONSE ======", flush=True)
             print(response.text, flush=True)
 
             res_data = response.json()
 
-            print("====== PARSED RESPONSE ======", flush=True)
+            print("\n====== PARSED RESPONSE ======", flush=True)
             print(res_data, flush=True)
 
             # SUCCESS
             if res_data.get("responseCode") in ["R1000", "0000"]:
                 redirect_uri = res_data.get("redirectURI")
-                tranCtx = res_data.get("tranCtx")
+                tran_ctx = res_data.get("tranCtx")
 
                 return {
-                    "action_url": f"{redirect_uri}?tranCtx={tranCtx}",
+                    "action_url": f"{redirect_uri}?tranCtx={tran_ctx}",
                     "method": "REDIRECT",
                     "txn_id": payload["merchantTxnNo"]
                 }
@@ -187,14 +192,18 @@ class PhiCommerceHandler(BasePaymentHandler):
             }
 
         except Exception as e:
+            print("====== EXCEPTION ======", flush=True)
+            print(str(e), flush=True)
             return {"error": str(e)}
 
-
     def verify_payment(self, response_data):
-        status = response_data.get("status")
-        resp_code = response_data.get("responseCode")
+        print("\n====== CALLBACK DATA ======", flush=True)
+        print(response_data, flush=True)
 
-        if status == "SUC" or resp_code == "0000":
+        status = response_data.get("status")
+        response_code = response_data.get("responseCode")
+
+        if status == "SUC" or response_code in ["0000", "000"]:
             return {
                 "status": "success",
                 "txn_id": response_data.get("txnID"),
