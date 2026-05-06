@@ -131,24 +131,19 @@ class PhiCommerceHandler(BasePaymentHandler):
 
         payload = {
             "merchantId": self.config.merchant_id,
-
             # Correct key name (case sensitive)
             "terminalId": self.config.terminal_id,
-
             "merchantTxnNo": f"PAY{payment.id}T{txn_date}",
             "amount": "{:.2f}".format(payment.amount),
             "currencyCode": "356",
-            "payType": "1",  # Direct mode
-
+            "payType": "1", 
             "customerEmailID": payment.application.student.email or "test@test.com",
             "customerName": payment.application.display_name or "Guest",
             "customerID": str(payment.application.student.id),
             "customerMobileNo": "9999999999",
-
             "returnURL": return_url,
             "transactionType": "SALE",
             "txnDate": txn_date,
-
             # Required for Direct mode
             "paymentMode": "UPI"
         }
