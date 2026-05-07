@@ -112,26 +112,16 @@ class PhiCommerceHandler:
         # FIXED HASH ORDER
         # =========================================================
         ordered_keys = [
-
             "amount",
             "currencyCode",
-
             "customerEmailID",
             "customerID",
             "customerMobileNo",
             "customerName",
-
             "merchantId",
             "merchantTxnNo",
-
             "payType",
-
-            # ADD THESE IN EXACT POSITION
-            "paymentMode",
-            "customerUPIID",
-
             "returnURL",
-
             "transactionType",
             "txnDate",
         ]
@@ -194,9 +184,6 @@ class PhiCommerceHandler:
             "aggregatorID":
                 self.config.aggregator_id or "AM_00083",
 
-            "terminalId":
-                self.config.terminal_id or "AM_00083",
-
             # ================================================================
             # TRANSACTION DETAILS
             # ================================================================
@@ -211,7 +198,7 @@ class PhiCommerceHandler:
                 "356",
 
             "payType":
-                "1",
+                "0",
 
             "transactionType":
                 "SALE",
@@ -236,17 +223,6 @@ class PhiCommerceHandler:
 
             "customerMobileNo":
                 "9999999999",
-
-            # ================================================================
-            # UPI DETAILS
-            # ================================================================
-
-            "paymentMode":
-                "UPI",
-
-            # REQUIRED FOR UPI
-            "customerUPIID":
-                "test@upi",
 
             # ================================================================
             # CALLBACK URL
