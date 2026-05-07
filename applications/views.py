@@ -334,6 +334,7 @@ def apply_course(request):
     })
 @login_required
 def payment_page(request, app_id):
+    print(f"\n[DEBUG] Entering payment_page for app_id: {app_id}, method: {request.method}", flush=True)
     from .payment_handlers import CCAvenueHandler, PhiCommerceHandler
     
     application = get_object_or_404(Application, id=app_id, student=request.user)
