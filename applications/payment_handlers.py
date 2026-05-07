@@ -241,13 +241,21 @@ class PhiCommerceHandler:
         )
 
         # =====================================================================
-        # API URL
+        # API URL (DYNAMIC)
         # =====================================================================
 
-        api_url = (
-            "https://secure-ptg.phicommerce.com/"
-            "pg/api/v2/initiateSale"
-        )
+        if self.config.environment == 'prod':
+            api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
+        else:
+            # UAT URL
+            api_url = "https://secure-uat.phicommerce.com/pg/api/v2/initiateSale"
+            
+            # Use base_url if provided in config
+            if self.config.base_url:
+                api_url = self.config.base_url
+                if not api_url.endswith("initiateSale"):
+                    if not api_url.endswith("/"): api_url += "/"
+                    api_url += "pg/api/v2/initiateSale"
 
         try:
 
