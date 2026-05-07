@@ -138,8 +138,8 @@ class PhiCommerceHandler:
             if value is not None and str(value) != "":
                 hash_string += str(value)
 
-        print("\n====== FINAL HASH STRING ======")
-        print(hash_string)
+        print("\n====== FINAL HASH STRING ======", flush=True)
+        print(hash_string, flush=True)
 
         digest = hmac.new(
             secret_key.encode("utf-8"),
@@ -147,8 +147,8 @@ class PhiCommerceHandler:
             hashlib.sha256
         ).hexdigest()
 
-        print("\n====== GENERATED HASH ======")
-        print(digest)
+        print("\n====== GENERATED HASH ======", flush=True)
+        print(digest, flush=True)
 
         return digest
 
@@ -243,8 +243,8 @@ class PhiCommerceHandler:
 
         try:
 
-            print("\n====== PAYMENT REQUEST ======")
-            print(payload)
+            print("\n====== PAYMENT REQUEST ======", flush=True)
+            print(payload, flush=True)
 
             response = requests.post(
                 api_url,
@@ -252,16 +252,16 @@ class PhiCommerceHandler:
                 timeout=30
             )
 
-            print("\n====== RESPONSE STATUS ======")
-            print(response.status_code)
+            print("\n====== RESPONSE STATUS ======", flush=True)
+            print(response.status_code, flush=True)
 
-            print("\n====== RAW RESPONSE ======")
-            print(response.text)
+            print("\n====== RAW RESPONSE ======", flush=True)
+            print(response.text, flush=True)
 
             res_data = response.json()
 
-            print("\n====== PARSED RESPONSE ======")
-            print(res_data)
+            print("\n====== PARSED RESPONSE ======", flush=True)
+            print(res_data, flush=True)
 
             # SUCCESS
             if res_data.get("responseCode") in [
@@ -297,8 +297,8 @@ class PhiCommerceHandler:
 
         except Exception as e:
 
-            print("\n====== EXCEPTION ======")
-            print(str(e))
+            print("\n====== EXCEPTION ======", flush=True)
+            print(str(e), flush=True)
 
             return {
                 "error": str(e)
@@ -309,8 +309,8 @@ class PhiCommerceHandler:
     # ============================================================
     def verify_payment(self, response_data):
 
-        print("\n====== CALLBACK RESPONSE ======")
-        print(response_data)
+        print("\n====== CALLBACK RESPONSE ======", flush=True)
+        print(response_data, flush=True)
 
         status = response_data.get("status")
 
