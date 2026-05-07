@@ -346,6 +346,7 @@ def payment_page(request, app_id):
     config = payment.gateway_config
     
     if request.method == 'POST' and config:
+        print(f"\n[DEBUG] Pay Now Clicked. Gateway: {config.gateway_type}", flush=True)
         # User clicked "Pay Now"
         if config.gateway_type == 'ccavenue':
             handler = CCAvenueHandler(config)
