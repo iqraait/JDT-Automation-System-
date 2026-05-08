@@ -5,7 +5,10 @@ import hmac
 import datetime
 from binascii import hexlify, unhexlify
 from Crypto.Cipher import AES
+import logging
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # CCAVENUE UTILS
