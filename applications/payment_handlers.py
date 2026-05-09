@@ -176,7 +176,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         payload = {
             "merchantId":        self.config.merchant_id,
             "merchantTxnNo":     merchant_txn_no,
-            "aggregatorID": "AM_00083",
+            "aggregatorID":      self.config.aggregator_id,
             "amount":            "{:.2f}".format(payment.amount),
             "currencyCode":      "356",
             "payType":           "0",
@@ -188,14 +188,16 @@ class PhiCommerceHandler(BasePaymentHandler):
             "customerMobileNo":  "9999999999",
             "returnURL":         request.build_absolute_uri('/payment/callback/phicommerce/'),
         }
-
-        # terminalId is optional; only include when configured (empty value
-        # must NOT be included — it would corrupt the hash string)
         if self.config.terminal_id:
             payload["terminalId"] = self.config.terminal_id
-
         # ── Compute and attach secure hash ───────────────────────────────────
         payload["secureHash"] = self.calculate_secure_hash(payload)
+        
+        print("\n====== GENERATED HASH ======")
+        print(payload["secureHash"])
+        
+        print("\n====== PAYMENT REQUEST ======")
+        print(payload)
 
         api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
 
@@ -203,16 +205,20 @@ class PhiCommerceHandler(BasePaymentHandler):
             "PhiCommerce initiateSale → merchantTxnNo=%s  amount=%s",
             merchant_txn_no, payload["amount"]
         )
-        logger.debug("PhiCommerce full request payload: %s", {
-            k: v for k, v in payload.items() if k != "secureHash"
-        })
 
         try:
             response = requests.post(api_url, json=payload, timeout=30)
-            logger.info("PhiCommerce API HTTP %s", response.status_code)
+            
+            print("\n====== RESPONSE STATUS ======")
+            print(response.status_code)
+            
+            print("\n====== RAW RESPONSE ======")
+            print(response.text)
 
             try:
                 res_data = response.json()
+                print("\n====== PARSED RESPONSE ======")
+                print(res_data)
             except ValueError:
                 logger.error(
                     "PhiCommerce non-JSON response (HTTP %s): %s",

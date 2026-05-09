@@ -119,7 +119,7 @@ class PaymentConfig(models.Model):
     name = models.CharField(max_length=100)
     gateway_type = models.CharField(max_length=20, choices=GATEWAY_CHOICES)
 
-    merchant_id = models.CharField(max_length=255, blank=True, null=True)
+    merchant_id = models.CharField(max_length=255)
 
     # CCAvenue
     access_code = models.CharField(max_length=255, blank=True, null=True)
@@ -128,7 +128,7 @@ class PaymentConfig(models.Model):
     # PhiCommerce
     secret_key = models.CharField(max_length=255, blank=True, null=True)
     terminal_id = models.CharField(max_length=255, blank=True, null=True)
-    aggregator_id = models.CharField(max_length=255, blank=True, null=True)
+    aggregator_id = models.CharField(max_length=255)
 
     # Environment
     environment = models.CharField(max_length=10, choices=ENV_CHOICES, default='uat')
