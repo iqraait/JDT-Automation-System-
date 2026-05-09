@@ -176,6 +176,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         payload = {
             "merchantId":        self.config.merchant_id,
             "merchantTxnNo":     merchant_txn_no,
+            "aggregatorID": "AM_00083",
             "amount":            "{:.2f}".format(payment.amount),
             "currencyCode":      "356",
             "payType":           "0",
@@ -196,7 +197,7 @@ class PhiCommerceHandler(BasePaymentHandler):
         # ── Compute and attach secure hash ───────────────────────────────────
         payload["secureHash"] = self.calculate_secure_hash(payload)
 
-        api_url = " https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
+        api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
 
         logger.info(
             "PhiCommerce initiateSale → merchantTxnNo=%s  amount=%s",
