@@ -193,11 +193,11 @@ class PhiCommerceHandler(BasePaymentHandler):
         # ── Compute and attach secure hash ───────────────────────────────────
         payload["secureHash"] = self.calculate_secure_hash(payload)
         
-        print("\n====== GENERATED HASH ======")
-        print(payload["secureHash"])
+        print("\n====== GENERATED HASH ======", flush=True)
+        print(payload["secureHash"], flush=True)
         
-        print("\n====== PAYMENT REQUEST ======")
-        print(payload)
+        print("\n====== PAYMENT REQUEST ======", flush=True)
+        print(payload, flush=True)
 
         # ── API URL ──────────────────────────────────────────────────────────
         # Use base_url from config if available, otherwise default to production
@@ -214,16 +214,16 @@ class PhiCommerceHandler(BasePaymentHandler):
         try:
             response = requests.post(api_url, json=payload, timeout=30)
             
-            print("\n====== RESPONSE STATUS ======")
-            print(response.status_code)
+            print("\n====== RESPONSE STATUS ======", flush=True)
+            print(response.status_code, flush=True)
             
-            print("\n====== RAW RESPONSE ======")
-            print(response.text)
+            print("\n====== RAW RESPONSE ======", flush=True)
+            print(response.text, flush=True)
 
             try:
                 res_data = response.json()
-                print("\n====== PARSED RESPONSE ======")
-                print(res_data)
+                print("\n====== PARSED RESPONSE ======", flush=True)
+                print(res_data, flush=True)
             except ValueError:
                 logger.error(
                     "PhiCommerce non-JSON response (HTTP %s): %s",

@@ -362,10 +362,11 @@ def payment_page(request, app_id):
                 messages.error(request, f"Payment initiation failed: {data['error']}")
                 return redirect(f'/payment/{app_id}/')
             
-            # Save raw request/txn_id for tracking (merchantTxnNo)
-            payment.gateway_transaction_id = data.get('txn_id')
+            # Save merchantTxnNo for tracking
+            payment.merchant_txn_no = data.get('merchant_txn_no')
             payment.save()
             
+            print(f"\n[DEBUG] PhiCommerce Redirecting to: {data['action_url']}", flush=True)
             return redirect(data['action_url'])
 
     return render(request, 'student/payment.html', {
@@ -431,10 +432,14 @@ def phicommerce_callback(request):
     handler = PhiCommerceHandler(config)
     result = handler.verify_payment(data)
     
+    print("\n====== PHICOMMERCE CALLBACK RECEIVED ======", flush=True)
+    print(data, flush=True)
+    
     if result['status'] == 'success':
         merchant_txn_no = result.get('merchant_txn_no', '')
+        print(f"Searching for payment with merchant_txn_no: {merchant_txn_no}", flush=True)
         try:
-            payment = Payment.objects.get(gateway_transaction_id=merchant_txn_no)
+            payment = Payment.objects.get(merchant_txn_no=merchant_txn_no)
             
             # Update only if not already processed by webhook
             if payment.status == 'pending':
@@ -479,10 +484,13 @@ def phicommerce_webhook(request):
     handler = PhiCommerceHandler(config)
     result = handler.verify_payment(data)
     
+    print("\n====== PHICOMMERCE WEBHOOK RECEIVED ======", flush=True)
+    print(data, flush=True)
+    
     if result['status'] == 'success':
         merchant_txn_no = result.get('merchant_txn_no', '')
         try:
-            payment = Payment.objects.get(gateway_transaction_id=merchant_txn_no)
+            payment = Payment.objects.get(merchant_txn_no=merchant_txn_no)
             
             # Background update
             if payment.status == 'pending':
