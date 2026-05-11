@@ -445,6 +445,7 @@ def phicommerce_callback(request):
             if payment.status == 'pending':
                 payment.gateway_response = result.get('raw')
                 payment.gateway_transaction_id = result.get('txn_id') # Update with bank ref
+                payment.payment_mode = result.get('payment_mode')
                 payment.status = 'success'
                 payment.save()
                 
@@ -495,6 +496,7 @@ def phicommerce_webhook(request):
             # Background update
             if payment.status == 'pending':
                 payment.gateway_response = result.get('raw')
+                payment.payment_mode = result.get('payment_mode')
                 payment.status = 'success'
                 payment.save()
                 

@@ -324,6 +324,7 @@ class PhiCommerceHandler(BasePaymentHandler):
                 "status":          "success",
                 "merchant_txn_no": merchant_txn_no,
                 "txn_id":          txn_id,
+                "payment_mode":    response_data.get("paymentMode") or resp_params.get("paymentMode"),
                 "raw":             response_data,
             }
 
