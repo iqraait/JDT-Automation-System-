@@ -199,7 +199,12 @@ class PhiCommerceHandler(BasePaymentHandler):
         print("\n====== PAYMENT REQUEST ======")
         print(payload)
 
-        api_url = "https://secure-ptg.phicommerce.com/pg/api/v2/initiateSale"
+        # ── API URL ──────────────────────────────────────────────────────────
+        # Use base_url from config if available, otherwise default to production
+        base_url = self.config.base_url or "https://secure-ptg.phicommerce.com"
+        # Ensure no trailing slash on base_url for consistent joining
+        base_url = base_url.rstrip("/")
+        api_url = f"{base_url}/pg/api/v2/initiateSale"
 
         logger.info(
             "PhiCommerce initiateSale → merchantTxnNo=%s  amount=%s",
