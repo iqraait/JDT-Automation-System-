@@ -7,25 +7,22 @@
     <title>Application #{{ app.id }} | {{ app.student.first_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
-
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             background-color: #f8fafc;
-            color: #1e293b;
-            line-height: 1.2; /* Reduced line spacing */
+            color: #000000 !important;
+            line-height: 1.4;
         }
 
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 10mm 15mm; /* Standard margins */
+            padding: 15mm 20mm;
             margin: 10mm auto;
             background: white;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
+            border: 1px solid #000;
         }
 
         @media print {
@@ -35,110 +32,79 @@
             }
             body {
                 background: white;
-                -webkit-print-color-adjust: exact;
+                color: #000000 !important;
             }
-
             .a4-page {
                 margin: 0;
                 box-shadow: none;
-                width: 210mm;
-                height: 297mm;
                 border: none;
-                padding: 10mm 15mm;
+                padding: 15mm 20mm;
                 page-break-after: always;
             }
-
             .no-print {
                 display: none !important;
             }
         }
 
-        .print-only {
-            display: none;
-        }
-
-        @media print {
-            .print-only {
-                display: block;
-            }
-        }
-
         .header-bar {
-            background: #0f172a;
-            color: white;
-            padding: 8px; /* Compact */
+            border: 2px solid #000;
+            color: #000 !important;
+            padding: 10px;
             text-align: center;
-            font-weight: 800;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 13px;
-            margin: 15px 0; /* Compact */
-            border-radius: 4px;
+            font-size: 16px;
+            margin: 20px 0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px; /* Compact */
+            margin-bottom: 15px;
         }
 
-        th,
-        td {
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px; /* Compact */
+        th, td {
+            border: 1px solid #000;
+            padding: 8px 12px;
             text-align: left;
-            font-size: 11px; /* Slightly smaller */
+            font-size: 12px;
+            color: #000000 !important;
+            font-weight: normal !important;
+            font-style: normal !important;
         }
 
         th {
-            background-color: #f8fafc;
-            color: #64748b;
-            font-weight: 700;
-            text-transform: uppercase;
+            background-color: #fff;
+            font-weight: bold !important;
             width: 35%;
         }
 
         .section-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: #0f172a;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000 !important;
             text-transform: uppercase;
-            margin: 20px 0 10px 0; /* Compact */
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            letter-spacing: 1px;
-        }
-
-        .section-title::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #cbd5e1;
+            margin: 25px 0 10px 0;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
         }
 
         .signature-line {
-            border-top: 2px solid #0f172a;
+            border-top: 1px solid #000;
             width: 180px;
-            margin-top: 40px; /* Compact */
+            margin-top: 50px;
             text-align: center;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            padding-top: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            padding-top: 5px;
         }
 
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 100px;
-            color: rgba(0, 0, 0, 0.03);
-            pointer-events: none;
-            z-index: 0;
-            font-weight: 900;
+        h1, h2, h3, h4, p, span, div {
+            color: #000000 !important;
+            font-family: 'Arial', sans-serif !important;
+            font-style: normal !important;
         }
+    </style>
     </style>
 </head>
 
@@ -169,42 +135,10 @@
         <div class="watermark uppercase">{{ app.status }}</div>
 
         <!-- HEADER -->
-        <div class="flex justify-between items-center relative z-10 border-b-2 border-slate-900 pb-6">
-            <div class="w-24">
-                {% if app.institute.logo %}
-                <img src="{{ app.institute.logo.url }}" alt="Logo" class="max-w-full h-auto">
-                {% else %}
-                <div
-                    class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-300 text-[10px] uppercase">
-                    No Logo</div>
-                {% endif %}
-            </div>
-
-            <div class="text-center px-6 flex-1">
-                <h1 class="text-2xl font-black text-slate-900 leading-tight tracking-tight">{{ app.institute.name|upper }}</h1>
-                <div
-                    class="inline-block mt-2 px-4 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                    Academic Year {{ app.academic_year|default:"2025-2026" }}
-                </div>
-                <p class="text-[10px] text-slate-500 mt-2 font-medium leading-relaxed">
-                    {{ app.institute.address }}<br>
-                    <span class="font-bold">Contact:</span> {{ app.institute.user.email }}
-                </p>
-            </div>
-
-            <!-- Student Photo -->
-            <div class="w-32">
-                {% if photo %}
-                <img src="{{ MEDIA_URL }}{{ photo }}" alt="Student Photo"
-                    class="w-32 h-40 object-cover border-2 border-gray-900 shadow-lg rounded">
-                {% else %}
-                <div
-                    class="w-32 h-40 bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center text-center p-4">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Affix Passport
-                        Photograph</span>
-                </div>
-                {% endif %}
-            </div>
+        <div class="text-center border-b-2 border-black pb-4 mb-6">
+            <h1 class="text-3xl font-bold uppercase">{{ app.institute.name }}</h1>
+            <p class="text-sm mt-1">{{ app.institute.address }}</p>
+            <p class="text-sm font-bold mt-1">Academic Year {{ app.academic_year|default:"2025-2026" }}</p>
         </div>
 
         <div class="header-bar">
@@ -225,91 +159,93 @@
 
         <!-- DYNAMIC SECTIONS -->
         {% regroup field_values by field.section.name as section_list %}
+        
+        {# First show all sections except Qualification and Documents #}
         {% for section in section_list %}
-        <div class="section-title">
-            <span class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px]">{{ forloop.counter }}</span>
-            {{ section.grouper|default:"Personal Details" }}
-        </div>
-        <table class="relative z-10 shadow-sm rounded-lg overflow-hidden border-separate border-spacing-0">
-            <tbody>
-                {% for item in section.list %}
-                <tr>
-                    <th class="w-1/3 bg-slate-50/50 font-bold text-slate-600">{% if item.field %}{{ item.field.label }}{% else %}{{ item.field_label }}{% endif %}</th>
-                    <td class="w-2/3 text-slate-900 font-medium">
-                        {% if item.field.field_type == 'file' %}
-                        {% with label=item.field.label|lower %}
-                        {% if item.field.is_photo or "photo" in label or "passport" in label %}
-                        <div class="py-1">
-                            <div class="bg-gray-50 border rounded-lg p-1 w-fit shadow-sm">
-                                <img src="{{ MEDIA_URL }}{{ item.value }}" class="h-24 w-auto rounded" alt="Photo"
-                                    onerror="this.parentElement.innerHTML='<span class=\" text-[10px] text-red-400
-                                    p-2\">File Not Found</span>'">
-                            </div>
-                        </div>
-                        {% elif item.field.is_signature or "signature" in label %}
-                        <div class="py-1">
-                            <div class="bg-gray-50 border rounded-lg p-1 w-fit shadow-sm">
-                                <img src="{{ MEDIA_URL }}{{ item.value }}" class="h-12 w-auto rounded" alt="Signature"
-                                    onerror="this.parentElement.innerHTML='<span class=\" text-[10px] text-red-400
-                                    p-2\">File Not Found</span>'">
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="flex items-center gap-2">
-                            <a href="{{ MEDIA_URL }}{{ item.value }}" target="_blank"
-                                class="text-blue-600 underline font-bold text-[11px] no-print">View Document</a>
-                            <span class="text-[10px] text-slate-400 italic">({{ item.value|truncatechars:20 }})</span>
-                        </div>
-                        {% endif %}
-                        {% endwith %}
-                        {% else %}
-                        {{ item.display_value|default:item.value|default:"-" }}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% if section.grouper != "Qualification Details" and section.grouper != "Documents Upload" %}
+            <div class="section-title">{{ section.grouper|default:"Personal Details" }}</div>
+            <table>
+                <tbody>
+                    {% for item in section.list %}
+                    <tr>
+                        <th>{% if item.field %}{{ item.field.label }}{% else %}{{ item.field_label }}{% endif %}</th>
+                        <td>{{ item.display_value|default:item.value|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
         {% endfor %}
 
-        <!-- MARKS TABLE -->
+        {# 1. Qualification Details #}
+        {% for section in section_list %}
+            {% if section.grouper == "Qualification Details" %}
+            <div class="section-title">{{ section.grouper }}</div>
+            <table>
+                <tbody>
+                    {% for item in section.list %}
+                    <tr>
+                        <th>{% if item.field %}{{ item.field.label }}{% else %}{{ item.field_label }}{% endif %}</th>
+                        <td>{{ item.display_value|default:item.value|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        {% endfor %}
+
+        {# 2. Qualifying Examination Marks #}
         {% if subject_marks %}
-        <div class="section-title">
-            <span
-                class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px] leading-none">M</span>
-            Qualifying Examination Marks
-        </div>
-        <table class="relative z-10 shadow-sm rounded-lg overflow-hidden border-separate border-spacing-0">
+        <div class="section-title">Qualifying Examination Marks</div>
+        <table>
             <thead>
-                <tr class="bg-slate-50">
-                    <th class="text-left py-4 px-6 border-b border-slate-200">Subject</th>
-                    <th class="text-center py-4 px-6 border-b border-slate-200">Marks Obtained</th>
-                    <th class="text-center py-4 px-6 border-b border-slate-200">Maximum Mark</th>
+                <tr>
+                    <th class="text-left">Subject</th>
+                    <th class="text-center">Marks Obtained</th>
+                    <th class="text-center">Maximum Mark</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody>
                 {% for m in subject_marks %}
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="py-4 px-6 font-bold text-slate-800">{{ m.name }}</td>
-                    <td class="py-4 px-6 text-center font-mono font-bold text-blue-700">{{ m.marks|floatformat:0 }}</td>
-                    <td class="py-4 px-6 text-center font-mono font-bold text-slate-600">{{ m.max|floatformat:0 }}</td>
+                <tr>
+                    <td class="font-bold">{{ m.name }}</td>
+                    <td class="text-center font-bold">{{ m.marks|floatformat:0 }}</td>
+                    <td class="text-center font-bold">{{ m.max|floatformat:0 }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr class="bg-blue-50/30">
-                    <td class="py-4 px-6 text-right font-black text-slate-900 uppercase text-[10px] tracking-widest">
-                        Aggregate Total</td>
-                    <td class="py-4 px-6 text-center font-black text-blue-700">
-                        {{ total_obtained|floatformat:0 }} <span class="text-blue-300 mx-1">/</span> {{ total_max|floatformat:0 }}
-                    </td>
-                    <td class="py-4 px-6 text-center font-black text-blue-700">
-                        {{ percentage }}%
-                    </td>
+                <tr class="font-bold">
+                    <td class="text-right uppercase">Aggregate Total</td>
+                    <td class="text-center">{{ total_obtained|floatformat:0 }} / {{ total_max|floatformat:0 }}</td>
+                    <td class="text-center">{{ percentage }}%</td>
                 </tr>
             </tfoot>
         </table>
         {% endif %}
+
+        {# 3. Documents Upload #}
+        {% for section in section_list %}
+            {% if section.grouper == "Documents Upload" %}
+            <div class="section-title">{{ section.grouper }}</div>
+            <table>
+                <tbody>
+                    {% for item in section.list %}
+                    <tr>
+                        <th>{% if item.field %}{{ item.field.label }}{% else %}{{ item.field_label }}{% endif %}</th>
+                        <td>
+                            {% if item.field.field_type == 'file' %}
+                                [Document Uploaded]
+                            {% else %}
+                                {{ item.display_value|default:item.value|default:"-" }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        {% endfor %}
 
         <!-- REMARKS -->
         {% if app.remarks %}
@@ -332,11 +268,8 @@
                 </svg>
                 Declaration
             </h4>
-            <p class="text-[10px] text-slate-600 leading-relaxed text-justify italic font-medium">
-                I, {{ app.student.first_name|default:app.student.username|upper }}, hereby declare that all the
-                statements made in this application are true, complete and correct to the best of my knowledge and
-                belief and that in the event of any information being found false or incorrect, my admission may be
-                cancelled.
+            <p class="text-sm leading-relaxed text-justify italic">
+                Hereby declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect, my admission may be cancelled.
             </p>
 
             <div class="flex justify-between items-end mt-12 px-2">

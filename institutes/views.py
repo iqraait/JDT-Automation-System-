@@ -840,14 +840,18 @@ def view_application(request, app_id):
                 name = parts[0].strip()
                 marks = parts[1].strip()
                 
-                # Dynamic Max Marks Lookup
-                max_val = subjects_config.get(name.lower().strip(), 100)
+                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
+                max_val = subjects_config.get(name.lower().strip())
                 
-                # Fallback to 3rd part if present
-                if len(parts) >= 3 and name.lower().strip() not in subjects_config:
-                     try:
-                         max_val = float(parts[2])
-                     except: pass
+                # If not in config, check if saved in value string
+                if max_val is None:
+                    if len(parts) >= 3:
+                        try:
+                            max_val = float(parts[2])
+                        except:
+                            max_val = 100
+                    else:
+                        max_val = 100
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
@@ -1000,14 +1004,21 @@ def calculate_total_and_percentage(application):
                 subject = parts[0].lower().strip()
                 mark_val = float(parts[1].strip())
                 
-                # NEW: Prioritize Max from stored value if available
+                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
                 config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": False, "main": False, "sub": False})
+                max_val = config.get("max")
                 
-                max_val = config["max"]
+                # If config says 100 (default) or is missing, check if saved in value string
                 if len(parts) >= 3:
                     try:
-                        max_val = float(parts[2])
+                        # Only override if it looks like a real value
+                        stored_max = float(parts[2])
+                        if stored_max > 0:
+                            max_val = stored_max
                     except: pass
+                
+                if max_val is None or max_val == 0:
+                    max_val = 100
                 
                 if config.get("include", False):
                     total += mark_val

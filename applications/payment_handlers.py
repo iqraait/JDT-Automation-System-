@@ -249,7 +249,7 @@ class PhiCommerceHandler(BasePaymentHandler):
                 logger.error("PhiCommerce missing redirectURI/tranCtx in success response: %s", res_data)
                 return {"error": "Missing redirectURI or tranCtx in gateway response"}
 
-            # ── Failure ───────────────────────────────────────────────────
+            # ── Failure ─────────────
             error_msg = (
                 res_data.get("responseDescription")
                 or res_data.get("respDescription")

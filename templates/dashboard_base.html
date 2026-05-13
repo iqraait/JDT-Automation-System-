@@ -142,9 +142,9 @@
         <main class="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8">
             
             {% if messages %}
-            <div class="max-w-4xl mx-auto mb-6">
+            <div class="max-w-4xl mx-auto mb-6 message-container space-y-3">
                 {% for message in messages %}
-                <div class="p-4 rounded-2xl flex items-center gap-3 {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-100{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-100{% else %}bg-blue-50 text-blue-700 border border-blue-100{% endif %}">
+                <div class="p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-black/5 transform transition-all animate-fade-in-up {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-100{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-100{% else %}bg-blue-50 text-blue-700 border border-blue-100{% endif %}">
                     {% if message.tags == 'error' %}
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     {% elif message.tags == 'success' %}
@@ -185,7 +185,23 @@
             }, 500); // Wait for transition
         }
     }
+
+    // Auto-dismiss messages
+    document.addEventListener('DOMContentLoaded', () => {
+        const alerts = document.querySelectorAll('.message-container > div');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.classList.add('opacity-0', 'scale-95', 'translate-y-2');
+                setTimeout(() => alert.remove(), 500);
+            }, 4000);
+        });
+    });
 </script>
+<style>
+    .message-container > div {
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+</style>
 <style>
     /* Hide scrollbar for Chrome, Safari and Opera */
     .scrollbar-hide::-webkit-scrollbar {

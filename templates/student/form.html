@@ -271,29 +271,24 @@ document.getElementById('course').addEventListener('change', function () {
         // REQUIREMENT: Render Fee Category Dropdown if types exist
         if (feeTypes.length > 0) {
             let feeHTML = `
-                <div class="bg-blue-600 rounded-3xl border border-blue-500 shadow-xl overflow-hidden mb-10 transition-all transform hover:scale-[1.01]">
-                    <div class="bg-blue-700/50 px-6 py-4 md:px-8 md:py-5 border-b border-white/10 flex items-center justify-between">
-                        <h3 class="font-bold text-white uppercase tracking-widest text-[10px] md:text-sm flex items-center gap-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-10 transition-all hover:shadow-md">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 uppercase tracking-widest text-[10px] md:text-sm flex items-center gap-3">
                             Application Category & Fee
                         </h3>
                     </div>
                     <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-center">
                         <div class="space-y-3">
-                            <label class="text-xs font-bold text-blue-100 uppercase tracking-widest">Select Your Category</label>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Select Your Category</label>
                             <select name="selected_fee_type" id="selected_fee_type" required 
                                     onchange="updateFeeDisplay(this)"
-                                    class="w-full bg-white/10 border border-white/20 text-white px-6 py-4 rounded-2xl focus:ring-4 focus:ring-white/10 focus:bg-white/20 outline-none transition-all font-bold cursor-pointer backdrop-blur-sm">
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-bold cursor-pointer appearance-none">
                                 <option value="" class="text-slate-900">Choose Category</option>
                                 ${feeTypes.map(ft => `<option value="${ft.id}" data-amount="${ft.amount}" class="text-slate-900">${ft.name}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="bg-white/10 rounded-2xl p-6 flex flex-col items-center justify-center border border-white/10 backdrop-blur-sm">
-                            <span class="text-[10px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Applicable Fee</span>
-                            <div class="text-3xl font-black text-white flex items-baseline gap-1">
-                                <span class="text-sm">₹</span>
-                                <span id="display_fee_amount">0.00</span>
-                            </div>
+                        <div class="hidden">
+                            <span id="display_fee_amount">0.00</span>
                         </div>
                     </div>
                 </div>

@@ -453,8 +453,6 @@ def phicommerce_callback(request):
                 application.status = 'submitted'
                 application.save()
                 messages.success(request, "Payment successful! Your application has been submitted.")
-            else:
-                messages.success(request, "Payment successful! Your application has been submitted.")
                 
         except Payment.DoesNotExist:
             messages.error(request, "Transaction record not found.")
@@ -711,16 +709,18 @@ def view_application(request, app_id):
                 name = parts[0].strip()
                 marks = parts[1].strip()
                 
-                # Dynamic Max Marks Lookup
-                # NEW: Prioritize Max from stored value if available (3rd part of colon string)
-                max_val = 100
-                if len(parts) >= 3:
-                    try:
-                        max_val = float(parts[2])
-                    except: 
-                        max_val = subjects_config.get(name.lower().strip(), 100)
-                else:
-                    max_val = subjects_config.get(name.lower().strip(), 100)
+                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
+                max_val = subjects_config.get(name.lower().strip())
+                
+                # If not in config, check if saved in value string
+                if max_val is None:
+                    if len(parts) >= 3:
+                        try:
+                            max_val = float(parts[2])
+                        except:
+                            max_val = 100
+                    else:
+                        max_val = 100
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
