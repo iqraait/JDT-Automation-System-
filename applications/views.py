@@ -12,7 +12,7 @@ from core.utils import generate_application_pdf
 import datetime
 from io import BytesIO
 from institutes.models import Institute, AcademicYear
-from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument, ApplicationFeeType
+from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument, ApplicationFeeType, QualifyingExam
 
 
 @login_required
