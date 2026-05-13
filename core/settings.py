@@ -16,11 +16,11 @@ CSRF_TRUSTED_ORIGINS = [
     'http://15.207.187.228'
 ]
 
-# FORCE HTTP (Non-Secure)
+# FORCE HTTP (Non-Secure) for compatibility
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = True
 
 INSTALLED_APPS = [
      'jazzmin',
@@ -189,8 +189,6 @@ EMAIL_HOST_USER = 'erp@jdticas.in'
 EMAIL_HOST_PASSWORD = 'crfk wcys naik svzv'
 DEFAULT_FROM_EMAIL = 'erp@jdticas.in'
 
-# HTTPS Security Settings
+# Proxy header for SSL termination
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+
