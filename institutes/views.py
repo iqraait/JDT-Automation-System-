@@ -498,37 +498,32 @@ def load_form_fields(request):
 
 
 def load_exam_subjects(request):
-    course_id = request.GET.get('course_id')
-    if not course_id:
-        return JsonResponse([], safe=False)
-    course = get_object_or_404(Course, id=course_id)
-    
-    # 1. Find the qualifying exam field in the course's form
-    # We look for a field with 'exam' in the label as per ranking logic
-    exam_field = FormField.objects.filter(form__course=course, label__icontains="exam").first()
-    
-    if not exam_field:
+    exam_id = request.GET.get('exam_id')
+    if not exam_id:
         return JsonResponse([], safe=False)
         
-    # 2. Get the subjects for the exams configured in this field (if it's a select)
-    # For simplicity, we fetch all unique exams associated with this course's category or similar
-    # But usually, there's a specific 'QualifyingExam' model.
-    # The simplest way is to return subjects for ALL exams if no specific one is locked,
-    # or let the user choose the exam first.
+    # Find the QualifyingExam object
+    exam_obj = None
+    if str(exam_id).isdigit():
+        exam_obj = QualifyingExam.objects.filter(id=exam_id).first()
     
+    if not exam_obj:
+        # Try finding by name if it's not a numeric ID
+        exam_obj = QualifyingExam.objects.filter(name__iexact=exam_id).first()
+
+    if not exam_obj:
+        return JsonResponse([], safe=False)
+        
     subjects_data = []
-    # If the user selected an exam in the form, we could narrow it down.
-    # For now, return subjects for the first QualifyingExam found or all.
-    exams = QualifyingExam.objects.all()
-    for ex in exams:
-        for sub in ex.subjects.all():
-            subjects_data.append({
-                'exam_id': ex.id,
-                'exam_name': ex.name,
-                'subject_id': sub.id,
-                'subject_name': sub.name,
-                'max_marks': sub.max_marks
-            })
+    for sub in ExamSubject.objects.filter(exam=exam_obj):
+        subjects_data.append({
+            'exam_id': exam_obj.id,
+            'exam_name': exam_obj.name,
+            'subject_id': sub.id,
+            'subject_name': sub.name,
+            'max_marks': sub.max_marks,
+            'pass_mark': sub.pass_mark
+        })
             
     return JsonResponse(subjects_data, safe=False)
 
@@ -840,18 +835,19 @@ def view_application(request, app_id):
                 name = parts[0].strip()
                 marks = parts[1].strip()
                 
-                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
-                max_val = subjects_config.get(name.lower().strip())
+                # Dynamic Max Marks Lookup - PRIORITIZE STORED VALUE (Copy of Form)
+                max_val = 100
+                if len(parts) >= 3:
+                    try:
+                        max_val = float(parts[2])
+                    except:
+                        max_val = subjects_config.get(name.lower().strip(), 100)
+                else:
+                    max_val = subjects_config.get(name.lower().strip(), 100)
                 
-                # If not in config, check if saved in value string
-                if max_val is None:
-                    if len(parts) >= 3:
-                        try:
-                            max_val = float(parts[2])
-                        except:
-                            max_val = 100
-                    else:
-                        max_val = 100
+                # Ensure we don't have 0 as max
+                if not max_val or max_val == 0:
+                    max_val = 100
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
@@ -879,8 +875,8 @@ def view_application(request, app_id):
                         fv.display_value = exam_obj.name
 
                 # Robust ID-to-Name resolution for Full Name fallback
-                if label_lower == "full name" and (not val or ":" in val):
-                    fv.display_value = application.student.first_name
+                if ("name" in label_lower or "candidate" in label_lower) and (not val or ":" in val or val == "None" or not val.strip()):
+                    fv.display_value = application.student.first_name if application.student.first_name else application.student.username
 
                 normal_fields.append(fv)
 
@@ -1004,21 +1000,21 @@ def calculate_total_and_percentage(application):
                 subject = parts[0].lower().strip()
                 mark_val = float(parts[1].strip())
                 
-                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
-                config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": False, "main": False, "sub": False})
-                max_val = config.get("max")
-                
-                # If config says 100 (default) or is missing, check if saved in value string
+                # Dynamic Max Marks Lookup - PRIORITIZE STORED VALUE
+                max_val = 100
                 if len(parts) >= 3:
                     try:
-                        # Only override if it looks like a real value
-                        stored_max = float(parts[2])
-                        if stored_max > 0:
-                            max_val = stored_max
+                        max_val = float(parts[2])
                     except: pass
                 
-                if max_val is None or max_val == 0:
-                    max_val = 100
+                if not max_val or max_val == 100:
+                    config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": False, "main": False, "sub": False})
+                    if max_val == 100 or not max_val:
+                        max_val = config.get("max", 100)
+                else:
+                    config = subjects_config.get(subject, {"max": 100, "pass": 35, "include": False, "main": False, "sub": False})
+                
+                if not max_val: max_val = 100
                 
                 if config.get("include", False):
                     total += mark_val

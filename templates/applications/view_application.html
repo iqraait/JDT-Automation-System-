@@ -108,16 +108,7 @@
         }
 
         .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 80px;
-            color: rgba(0, 0, 0, 0.05);
-            pointer-events: none;
-            z-index: 0;
-            font-weight: bold;
-            text-transform: uppercase;
+            display: none !important;
         }
     </style>
 </head>
@@ -146,7 +137,6 @@
     </div>
 
     <div class="a4-page">
-        <div class="watermark uppercase">{{ app.status }}</div>
 
         <!-- HEADER -->
         <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-4">

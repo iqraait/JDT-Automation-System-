@@ -208,11 +208,19 @@ def apply_course(request):
                     try:
                         marks_val = float(marks_str)
                         
-                        # Use selected_exam_id if found to get the correct max_marks
+                        # Robust Exam & Subject Lookup
+                        exam_obj = None
                         if selected_exam_id:
-                            subj_obj = ExamSubject.objects.filter(name=subject_name, exam_id=selected_exam_id).first()
+                            if str(selected_exam_id).isdigit():
+                                exam_obj = QualifyingExam.objects.filter(id=selected_exam_id).first()
+                            if not exam_obj:
+                                exam_obj = QualifyingExam.objects.filter(name__iexact=selected_exam_id).first()
+                        
+                        subj_obj = None
+                        if exam_obj:
+                            subj_obj = ExamSubject.objects.filter(name__iexact=subject_name, exam=exam_obj).first()
                         else:
-                            subj_obj = ExamSubject.objects.filter(name=subject_name).first()
+                            subj_obj = ExamSubject.objects.filter(name__iexact=subject_name).first()
                         
                         max_val = subj_obj.max_marks if subj_obj else 100
                         pass_val = subj_obj.pass_mark if subj_obj else 0
@@ -709,18 +717,19 @@ def view_application(request, app_id):
                 name = parts[0].strip()
                 marks = parts[1].strip()
                 
-                # Dynamic Max Marks Lookup - PRIORITIZE ADMIN CONFIG
-                max_val = subjects_config.get(name.lower().strip())
+                # Dynamic Max Marks Lookup - PRIORITIZE STORED VALUE (Copy of Form)
+                max_val = 100
+                if len(parts) >= 3:
+                    try:
+                        max_val = float(parts[2])
+                    except:
+                        max_val = subjects_config.get(name.lower().strip(), 100)
+                else:
+                    max_val = subjects_config.get(name.lower().strip(), 100)
                 
-                # If not in config, check if saved in value string
-                if max_val is None:
-                    if len(parts) >= 3:
-                        try:
-                            max_val = float(parts[2])
-                        except:
-                            max_val = 100
-                    else:
-                        max_val = 100
+                # Ensure we don't have 0 as max
+                if not max_val or max_val == 0:
+                    max_val = 100
                 
                 marks_val = float(marks)
                 total_obtained += marks_val
@@ -748,8 +757,8 @@ def view_application(request, app_id):
                         fv.display_value = exam_obj.name
                 
                 # Robust ID-to-Name resolution for Full Name fallback
-                if label_lower == "full name" and (not val or ":" in val):
-                    fv.display_value = application.student.first_name
+                if ("name" in label_lower or "candidate" in label_lower) and (not val or ":" in val or val == "None" or not val.strip()):
+                    fv.display_value = application.student.first_name if application.student.first_name else application.student.username
                 
                 normal_fields.append(fv)
 

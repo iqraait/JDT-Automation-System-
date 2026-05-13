@@ -5,18 +5,33 @@
 {% block header_title %}Online Application Form{% endblock %}
 
 {% block sidebar_nav %}
-<a href="/dashboard/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+<a href="/dashboard/"
+    class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+        </path>
+    </svg>
     <span class="font-medium">Dashboard</span>
 </a>
 
-<a href="/apply/" class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+<a href="/apply/"
+    class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+        </path>
+    </svg>
     <span class="font-medium">Apply Online</span>
 </a>
 
-<a href="/my-applications/" class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+<a href="/my-applications/"
+    class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+        </path>
+    </svg>
     <span class="font-medium">My Applications</span>
 </a>
 {% endblock %}
@@ -25,7 +40,8 @@
 <div class="max-w-5xl mx-auto space-y-8">
 
     <!-- STATUS BANNER -->
-    <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-center gap-3 text-emerald-700 font-medium animate-pulse">
+    <div
+        class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-center gap-3 text-emerald-700 font-medium animate-pulse">
         <span class="flex h-3 w-3 relative">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -35,13 +51,15 @@
 
     <!-- MAIN FORM CARD -->
     <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-        
+
         <div class="bg-slate-50 border-b border-slate-100 p-6 md:p-10">
-            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-2 text-center uppercase tracking-tight">Online Application Form</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-2 text-center uppercase tracking-tight">Online
+                Application Form</h2>
             <p class="text-xs md:text-sm text-slate-500 text-center font-medium">JDT Islam College of Arts & Science</p>
         </div>
 
-        <form id="applicationForm" method="POST" enctype="multipart/form-data" class="p-4 md:p-10 space-y-8 md:space-y-10">
+        <form id="applicationForm" method="POST" enctype="multipart/form-data"
+            class="p-4 md:p-10 space-y-8 md:space-y-10">
             {% csrf_token %}
 
             <!-- COURSE SELECTION -->
@@ -53,7 +71,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Institute</label>
-                        <select id="institute" name="institute" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                        <select id="institute" name="institute"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                             <option value="">Select Institute</option>
                             {% for i in institutes %}
                             <option value="{{ i.id }}">{{ i.name }}</option>
@@ -63,14 +82,16 @@
 
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Academic Year</label>
-                        <select id="academic_year" name="academic_year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                        <select id="academic_year" name="academic_year"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                             <option value="">Select Year</option>
                         </select>
                     </div>
 
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Course</label>
-                        <select id="course" name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                        <select id="course" name="course"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                             <option value="">Select Course</option>
                         </select>
                     </div>
@@ -89,7 +110,11 @@
                 <button id="submitBtn"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-95 disabled:bg-slate-300 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed group flex items-center gap-3">
                     <span>Submit Application</span>
-                    <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
                 </button>
                 <p class="text-sm text-slate-400">Please review all information before submitting.</p>
             </div>
@@ -100,181 +125,181 @@
 </div>
 
 <script>
-// Logic strictly preserved but markup enhanced for premium feel
+    // Logic strictly preserved but markup enhanced for premium feel
 
-function calculateTotal() {
-    const totalEl = document.getElementById('totalMarks');
-    const maxEl = document.getElementById('maxMarks');
-    const percentEl = document.getElementById('percentage');
-    const msgEl = document.getElementById("eligibilityMsg");
-    const submitBtn = document.getElementById('submitBtn');
+    function calculateTotal() {
+        const totalEl = document.getElementById('totalMarks');
+        const maxEl = document.getElementById('maxMarks');
+        const percentEl = document.getElementById('percentage');
+        const msgEl = document.getElementById("eligibilityMsg");
+        const submitBtn = document.getElementById('submitBtn');
 
-    let total = 0;
-    let maxTotal = 0;
-    let allFilled = true;
-    let allValid = true;
-    let validationErrors = [];
+        let total = 0;
+        let maxTotal = 0;
+        let allFilled = true;
+        let allValid = true;
+        let validationErrors = [];
 
-    document.querySelectorAll('.mark-error').forEach(el => el.innerText = '');
+        document.querySelectorAll('.mark-error').forEach(el => el.innerText = '');
 
-    document.querySelectorAll('[name^="subject_"]').forEach(input => {
-        let val = input.value;
-        if (val === '') {
-            allFilled = false;
-        }
+        document.querySelectorAll('[name^="subject_"]').forEach(input => {
+            let val = input.value;
+            if (val === '') {
+                allFilled = false;
+            }
 
-        let num = parseFloat(val) || 0;
-        let max = parseFloat(input.dataset.max) || 0;
-        let pass = parseFloat(input.dataset.pass) || 0;
-        let subName = input.name.replace("subject_", "").replace(/_/g, " ");
-        let errorEl = input.closest('.flex-col').querySelector('.mark-error');
+            let num = parseFloat(val) || 0;
+            let max = parseFloat(input.dataset.max) || 0;
+            let pass = parseFloat(input.dataset.pass) || 0;
+            let subName = input.name.replace("subject_", "").replace(/_/g, " ");
+            let errorEl = input.closest('.flex-col').querySelector('.mark-error');
 
-        // Validation for Max Marks
-        if (num > max) {
-            allValid = false;
-            errorEl.innerText = `Exceeds max (${max})`;
-            validationErrors.push(`${subName}: Exceeds max`);
-            input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
-        } else if (num < 0) {
-            allValid = false;
-            errorEl.innerText = 'Cannot be negative';
-            validationErrors.push(`${subName}: Negative marks`);
-            input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
-        } else if (num < pass) {
-            allValid = false;
-            errorEl.innerText = `Failed (Min ${pass})`;
-            validationErrors.push(`${subName}: Below pass mark (${pass})`);
-            input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
-        } else {
-            input.classList.remove('border-red-500', 'bg-red-50', 'text-red-600');
-        }
-
-        total += num;
-        maxTotal += max;
-    });
-
-    if (submitBtn) {
-        // If there are subject inputs, validation matters
-        const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
-        if (hasSubjects) {
-            if (allValid && allFilled) {
-                submitBtn.disabled = false;
+            // Validation for Max Marks
+            if (num > max) {
+                allValid = false;
+                errorEl.innerText = `Exceeds max (${max})`;
+                validationErrors.push(`${subName}: Exceeds max`);
+                input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
+            } else if (num < 0) {
+                allValid = false;
+                errorEl.innerText = 'Cannot be negative';
+                validationErrors.push(`${subName}: Negative marks`);
+                input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
+            } else if (num < pass) {
+                allValid = false;
+                errorEl.innerText = `Failed (Min ${pass})`;
+                validationErrors.push(`${subName}: Below pass mark (${pass})`);
+                input.classList.add('border-red-500', 'bg-red-50', 'text-red-600');
             } else {
+                input.classList.remove('border-red-500', 'bg-red-50', 'text-red-600');
+            }
+
+            total += num;
+            maxTotal += max;
+        });
+
+        if (submitBtn) {
+            // If there are subject inputs, validation matters
+            const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+            if (hasSubjects) {
+                if (allValid && allFilled) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
+            } else {
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Explicitly reset success message if invalid
+        if (msgEl) {
+            msgEl.innerText = "ℹ️ Enter marks to check eligibility";
+            msgEl.className = "text-slate-500 italic";
+        }
+
+        let percent = maxTotal ? ((total / maxTotal) * 100) : 0;
+
+        if (totalEl) totalEl.innerText = total;
+        if (maxEl) maxEl.innerText = maxTotal;
+        if (percentEl) percentEl.innerText = percent.toFixed(2) + "%";
+
+        if (msgEl && submitBtn) {
+            const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+            if (!hasSubjects) {
+                msgEl.innerText = "";
+                return;
+            }
+
+            if (!allValid) {
+                msgEl.innerHTML = `<div class="text-red-500 font-bold">${validationErrors.join('<br>')}</div>`;
                 submitBtn.disabled = true;
             }
-        } else {
-            submitBtn.disabled = false;
+            else if (allFilled && percent >= 50) {
+                msgEl.innerText = "✅ Eligible for Admission";
+                msgEl.className = "font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100 inline-block";
+                submitBtn.disabled = false;
+            }
+            else if (allFilled && percent < 50) {
+                msgEl.innerText = "❌ Not eligible (Minimum 50% required)";
+                msgEl.className = "font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-100 inline-block";
+                submitBtn.disabled = true;
+            }
+            else {
+                msgEl.innerText = "ℹ️ Enter marks to check eligibility";
+                msgEl.className = "text-slate-500 italic";
+                submitBtn.disabled = true;
+            }
         }
     }
 
-    // Explicitly reset success message if invalid
-    if (msgEl) {
-        msgEl.innerText = "ℹ️ Enter marks to check eligibility";
-        msgEl.className = "text-slate-500 italic";
+    function refreshYears() {
+        let instituteId = document.getElementById('institute').value;
+        let yearSelect = document.getElementById('academic_year');
+        let courseSelect = document.getElementById('course');
+
+        // Clear dependents
+        yearSelect.innerHTML = '<option value="">Select Year</option>';
+        courseSelect.innerHTML = '<option value="">Select Course</option>';
+        document.getElementById('dynamic-fields').innerHTML = '';
+
+        if (!instituteId) return;
+
+        fetch(`/load-academic-years/?institute_id=${instituteId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(y => {
+                    yearSelect.innerHTML += `<option value="${y.id}">${y.name}</option>`;
+                });
+            });
     }
 
-    let percent = maxTotal ? ((total / maxTotal) * 100) : 0;
+    function refreshCourses() {
+        let instituteId = document.getElementById('institute').value;
+        let yearId = document.getElementById('academic_year').value;
+        let courseSelect = document.getElementById('course');
 
-    if (totalEl) totalEl.innerText = total;
-    if (maxEl) maxEl.innerText = maxTotal;
-    if (percentEl) percentEl.innerText = percent.toFixed(2) + "%";
+        courseSelect.innerHTML = '<option value="">Select Course</option>';
+        document.getElementById('dynamic-fields').innerHTML = '';
 
-    if (msgEl && submitBtn) {
-        const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
-        if (!hasSubjects) {
-            msgEl.innerText = "";
+        if (!instituteId || !yearId) return;
+
+        fetch(`/load-courses/?institute_id=${instituteId}&academic_year_id=${yearId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(c => {
+                    courseSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                });
+            });
+    }
+
+    document.getElementById('institute').addEventListener('change', refreshYears);
+    document.getElementById('academic_year').addEventListener('change', refreshCourses);
+
+    document.getElementById('course').addEventListener('change', function () {
+        let courseId = this.value;
+        let container = document.getElementById('dynamic-fields');
+
+        if (!courseId) {
+            container.innerHTML = '';
             return;
         }
 
-        if (!allValid) {
-            msgEl.innerHTML = `<div class="text-red-500 font-bold">${validationErrors.join('<br>')}</div>`;
-            submitBtn.disabled = true;
-        }
-        else if (allFilled && percent >= 50) {
-            msgEl.innerText = "✅ Eligible for Admission";
-            msgEl.className = "font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100 inline-block";
-            submitBtn.disabled = false;
-        } 
-        else if (allFilled && percent < 50) {
-            msgEl.innerText = "❌ Not eligible (Minimum 50% required)";
-            msgEl.className = "font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-100 inline-block";
-            submitBtn.disabled = true;
-        } 
-        else {
-            msgEl.innerText = "ℹ️ Enter marks to check eligibility";
-            msgEl.className = "text-slate-500 italic";
-            submitBtn.disabled = true;
-        }
-    }
-}
+        fetch(`/load-form-fields/?course_id=${courseId}`)
+            .then(res => res.json())
+            .then(payload => {
+                const data = payload.fields || [];
+                const feeTypes = payload.fee_types || [];
 
-function refreshYears() {
-    let instituteId = document.getElementById('institute').value;
-    let yearSelect = document.getElementById('academic_year');
-    let courseSelect = document.getElementById('course');
-    
-    // Clear dependents
-    yearSelect.innerHTML = '<option value="">Select Year</option>';
-    courseSelect.innerHTML = '<option value="">Select Course</option>';
-    document.getElementById('dynamic-fields').innerHTML = '';
+                container.innerHTML = '';
 
-    if (!instituteId) return;
-
-    fetch(`/load-academic-years/?institute_id=${instituteId}`)
-    .then(res => res.json())
-    .then(data => {
-        data.forEach(y => {
-            yearSelect.innerHTML += `<option value="${y.id}">${y.name}</option>`;
-        });
-    });
-}
-
-function refreshCourses() {
-    let instituteId = document.getElementById('institute').value;
-    let yearId = document.getElementById('academic_year').value;
-    let courseSelect = document.getElementById('course');
-    
-    courseSelect.innerHTML = '<option value="">Select Course</option>';
-    document.getElementById('dynamic-fields').innerHTML = '';
-
-    if (!instituteId || !yearId) return;
-
-    fetch(`/load-courses/?institute_id=${instituteId}&academic_year_id=${yearId}`)
-    .then(res => res.json())
-    .then(data => {
-        data.forEach(c => {
-            courseSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-        });
-    });
-}
-
-document.getElementById('institute').addEventListener('change', refreshYears);
-document.getElementById('academic_year').addEventListener('change', refreshCourses);
-
-document.getElementById('course').addEventListener('change', function () {
-    let courseId = this.value;
-    let container = document.getElementById('dynamic-fields');
-
-    if (!courseId) {
-        container.innerHTML = '';
-        return;
-    }
-
-    fetch(`/load-form-fields/?course_id=${courseId}`)
-    .then(res => res.json())
-    .then(payload => {
-        const data = payload.fields || [];
-        const feeTypes = payload.fee_types || [];
-        
-        container.innerHTML = '';
-        
-        // REQUIREMENT: Render Fee Category Dropdown if types exist
-        if (feeTypes.length > 0) {
-            let feeHTML = `
+                // REQUIREMENT: Render Fee Category Dropdown if types exist
+                if (feeTypes.length > 0) {
+                    let feeHTML = `
                 <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-10 transition-all hover:shadow-md">
                     <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                         <h3 class="font-bold text-slate-800 uppercase tracking-widest text-[10px] md:text-sm flex items-center gap-3">
-                            Application Category & Fee
+                            Application Category
                         </h3>
                     </div>
                     <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-center">
@@ -293,17 +318,17 @@ document.getElementById('course').addEventListener('change', function () {
                     </div>
                 </div>
             `;
-            container.insertAdjacentHTML('afterbegin', feeHTML);
-        }
+                    container.insertAdjacentHTML('afterbegin', feeHTML);
+                }
 
-        let grouped = {};
-        data.forEach(f => {
-            if (!grouped[f.section]) grouped[f.section] = [];
-            grouped[f.section].push(f);
-        });
+                let grouped = {};
+                data.forEach(f => {
+                    if (!grouped[f.section]) grouped[f.section] = [];
+                    grouped[f.section].push(f);
+                });
 
-        for (let section in grouped) {
-            let sectionHTML = `
+                for (let section in grouped) {
+                    let sectionHTML = `
                 <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
                     <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                         <h3 class="font-bold text-slate-800">${section}</h3>
@@ -312,41 +337,41 @@ document.getElementById('course').addEventListener('change', function () {
                     <div class="section-content grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 md:p-8">
             `;
 
-                grouped[section].forEach(f => {
-                let input = '';
-                const baseClass = "w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all";
-                const reqAttr = f.required ? 'required' : '';
-                const placeholder = f.placeholder || (f.type === 'number' ? '0' : (f.type === 'textarea' ? 'Type here...' : `Enter ${f.label}`));
+                    grouped[section].forEach(f => {
+                        let input = '';
+                        const baseClass = "w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all";
+                        const reqAttr = f.required ? 'required' : '';
+                        const placeholder = f.placeholder || (f.type === 'number' ? '0' : (f.type === 'textarea' ? 'Type here...' : `Enter ${f.label}`));
 
-                if (f.type === 'text') {
-                    input = `<input type="text" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
-                }
-                else if (f.type === 'number') {
-                    input = `<input type="number" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
-                }
-                else if (f.type === 'date') {
-                    input = `<input type="date" name="field_${f.id}" class="${baseClass}" ${reqAttr}>`;
-                }
-                else if (f.type === 'textarea') {
-                    input = `<textarea name="field_${f.id}" class="${baseClass} h-24" placeholder="${placeholder}" ${reqAttr}></textarea>`;
-                }
-                else if (f.type === 'select') {
-                    let isExam = f.label.toLowerCase().includes('exam');
-                    input = `<select name="field_${f.id}" class="${baseClass} appearance-none cursor-pointer" ${reqAttr} ${isExam ? `onchange="handleExamChange(${f.id}, this)"` : ''}>
+                        if (f.type === 'text') {
+                            input = `<input type="text" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
+                        }
+                        else if (f.type === 'number') {
+                            input = `<input type="number" name="field_${f.id}" class="${baseClass}" placeholder="${placeholder}" ${reqAttr}>`;
+                        }
+                        else if (f.type === 'date') {
+                            input = `<input type="date" name="field_${f.id}" class="${baseClass}" ${reqAttr}>`;
+                        }
+                        else if (f.type === 'textarea') {
+                            input = `<textarea name="field_${f.id}" class="${baseClass} h-24" placeholder="${placeholder}" ${reqAttr}></textarea>`;
+                        }
+                        else if (f.type === 'select') {
+                            let isExam = f.label.toLowerCase().includes('exam');
+                            input = `<select name="field_${f.id}" class="${baseClass} appearance-none cursor-pointer" ${reqAttr} ${isExam ? `onchange="handleExamChange(${f.id}, this)"` : ''}>
                         <option value="">Select</option>
                         ${f.options.map(o => `<option value="${o.value}">${o.text}</option>`).join('')}
                     </select>`;
-                }
-                else if (f.type === 'radio') {
-                    input = `<div class="flex flex-wrap gap-4 pt-2">` + f.options.map(o => `
+                        }
+                        else if (f.type === 'radio') {
+                            input = `<div class="flex flex-wrap gap-4 pt-2">` + f.options.map(o => `
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input type="radio" name="field_${f.id}" value="${o.value}" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" ${reqAttr}>
                             <span class="text-sm text-slate-600 group-hover:text-slate-900 transition-colors">${o.text}</span>
                         </label>
                     `).join('') + `</div>`;
-                }
-                else if (f.type === 'file') {
-                    input = `
+                        }
+                        else if (f.type === 'file') {
+                            input = `
                         <div class="space-y-4">
                             <div class="relative group mt-1">
                                 <input type="file" name="field_${f.id}" id="file_${f.id}" class="hidden" ${reqAttr} onchange="startFileUploadAnimation(${f.id}, this)">
@@ -370,32 +395,32 @@ document.getElementById('course').addEventListener('change', function () {
                             </div>
                         </div>
                     `;
-                }
+                        }
 
-                sectionHTML += `
+                        sectionHTML += `
                     <div class="flex flex-col space-y-2">
                         <label class="text-sm font-semibold text-slate-600">${f.label} ${f.required ? '<span class="text-red-500">*</span>' : ''}</label>
                         ${input}
                     </div>
                 `;
+                    });
+
+                    sectionHTML += `</div></div>`;
+                    container.innerHTML += sectionHTML;
+                }
             });
-
-            sectionHTML += `</div></div>`;
-            container.innerHTML += sectionHTML;
-        }
     });
-});
 
-function handleExamChange(fieldId, selectEl) {
-    let examId = selectEl.value;
-    fetch(`/load_exam_subjects/?exam_id=${examId}`)
-    .then(res => res.json())
-    .then(data => {
-        let sectionDiv = selectEl.closest('.bg-white');
-        let old = sectionDiv.querySelector('.subject-table-container');
-        if (old) old.remove();
+    function handleExamChange(fieldId, selectEl) {
+        let examId = selectEl.value;
+        fetch(`/load_exam_subjects/?exam_id=${examId}`)
+            .then(res => res.json())
+            .then(data => {
+                let sectionDiv = selectEl.closest('.bg-white');
+                let old = sectionDiv.querySelector('.subject-table-container');
+                if (old) old.remove();
 
-        let html = `
+                let html = `
             <div class="mt-8 subject-table-container animate-fade-in">
                 <h4 class="font-bold text-blue-600 mb-4 flex items-center gap-2 text-sm uppercase tracking-widest">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -413,8 +438,8 @@ function handleExamChange(fieldId, selectEl) {
                         <tbody class="divide-y divide-slate-100">
         `;
 
-        data.forEach(sub => {
-            html += `
+                data.forEach(sub => {
+                    html += `
                 <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
                     <td class="px-4 md:px-6 py-4 text-slate-700 font-medium break-words min-w-[140px] max-w-[200px] md:max-w-md">
                         ${sub.name}
@@ -439,9 +464,9 @@ function handleExamChange(fieldId, selectEl) {
                     </td>
                 </tr>
             `;
-        });
+                });
 
-        html += `
+                html += `
                         </tbody>
                         <tfoot>
                             <tr class="bg-blue-50/50">
@@ -467,103 +492,103 @@ function handleExamChange(fieldId, selectEl) {
             </div>
         `;
 
-        sectionDiv.querySelector('.section-content').insertAdjacentHTML('afterend', html);
-    });
-}
+                sectionDiv.querySelector('.section-content').insertAdjacentHTML('afterend', html);
+            });
+    }
 
-function updateFeeDisplay(select) {
-    const amount = select.options[select.selectedIndex].dataset.amount || "0.00";
-    document.getElementById('display_fee_amount').innerText = amount;
-    
-    // Update button text if free
-    const btn = document.getElementById('submitBtn');
-    if (parseFloat(amount) === 0) {
-        btn.innerHTML = `
+    function updateFeeDisplay(select) {
+        const amount = select.options[select.selectedIndex].dataset.amount || "0.00";
+        document.getElementById('display_fee_amount').innerText = amount;
+
+        // Update button text if free
+        const btn = document.getElementById('submitBtn');
+        if (parseFloat(amount) === 0) {
+            btn.innerHTML = `
             <span>Submit Application (Free)</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         `;
-    } else {
-        btn.innerHTML = `
+        } else {
+            btn.innerHTML = `
             <span>Submit Application</span>
             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         `;
-    }
-}
-
-function startFileUploadAnimation(id, input) {
-    if (!input.files.length) return;
-    
-    const container = document.getElementById(`progress_container_${id}`);
-    const bar = document.getElementById(`progress_bar_${id}`);
-    const percent = document.getElementById(`progress_percent_${id}`);
-    const fileNameText = document.getElementById(`file_name_${id}`);
-    const statusMsg = document.getElementById(`status_msg_${id}`);
-    const labelText = document.getElementById(`label_text_${id}`);
-    
-    const file = input.files[0];
-    
-    // REQUIREMENT: 1 MB limit validation
-    if (file && file.size > 1 * 1024 * 1024) {
-        alert(`File "${file.name}" is too large. Maximum size allowed is 1 MB.`);
-        input.value = ""; // Clear input
-        return;
+        }
     }
 
-    fileNameText.innerText = file.name;
-    labelText.innerText = "Change File";
-    
-    // Show container
-    container.classList.remove('hidden');
-    
-    // Reset state
-    bar.style.width = '0%';
-    percent.innerText = '0%';
-    statusMsg.innerHTML = '<span class="animate-pulse text-blue-500">Uploading...</span>';
-    
-    let progress = 0;
-    const duration = 1200; // 1.2 seconds total animation
-    const startTime = Date.now();
-    
-    const interval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        progress = Math.min(Math.round((elapsed / duration) * 100), 100);
-        
-        bar.style.width = `${progress}%`;
-        percent.innerText = `${progress}%`;
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            statusMsg.innerHTML = `
+    function startFileUploadAnimation(id, input) {
+        if (!input.files.length) return;
+
+        const container = document.getElementById(`progress_container_${id}`);
+        const bar = document.getElementById(`progress_bar_${id}`);
+        const percent = document.getElementById(`progress_percent_${id}`);
+        const fileNameText = document.getElementById(`file_name_${id}`);
+        const statusMsg = document.getElementById(`status_msg_${id}`);
+        const labelText = document.getElementById(`label_text_${id}`);
+
+        const file = input.files[0];
+
+        // REQUIREMENT: 1 MB limit validation
+        if (file && file.size > 1 * 1024 * 1024) {
+            alert(`File "${file.name}" is too large. Maximum size allowed is 1 MB.`);
+            input.value = ""; // Clear input
+            return;
+        }
+
+        fileNameText.innerText = file.name;
+        labelText.innerText = "Change File";
+
+        // Show container
+        container.classList.remove('hidden');
+
+        // Reset state
+        bar.style.width = '0%';
+        percent.innerText = '0%';
+        statusMsg.innerHTML = '<span class="animate-pulse text-blue-500">Uploading...</span>';
+
+        let progress = 0;
+        const duration = 1200; // 1.2 seconds total animation
+        const startTime = Date.now();
+
+        const interval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            progress = Math.min(Math.round((elapsed / duration) * 100), 100);
+
+            bar.style.width = `${progress}%`;
+            percent.innerText = `${progress}%`;
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                statusMsg.innerHTML = `
                 <span class="text-emerald-500 flex items-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     Completed Successfully
                 </span>
             `;
-            // Add a completion pulse effect to the bar
-            bar.classList.replace('bg-blue-600', 'bg-emerald-500');
-        }
-    }, 50);
-}
-
-// Final submission check
-document.getElementById('applicationForm').addEventListener('submit', function(e) {
-    const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
-    if (hasSubjects) {
-        calculateTotal(); // Run one last time
-        let allValid = true;
-        document.querySelectorAll('[name^="subject_"]').forEach(input => {
-            let val = input.value;
-            let num = parseFloat(val) || 0;
-            let max = parseFloat(input.dataset.max) || 0;
-            let pass = parseFloat(input.dataset.pass) || 0;
-            if (num > max || num < pass || val === '') allValid = false;
-        });
-
-        if (!allValid) {
-            e.preventDefault();
-            alert("Please correct the errors in your marks before submitting.");
-        }
+                // Add a completion pulse effect to the bar
+                bar.classList.replace('bg-blue-600', 'bg-emerald-500');
+            }
+        }, 50);
     }
-});
+
+    // Final submission check
+    document.getElementById('applicationForm').addEventListener('submit', function (e) {
+        const hasSubjects = document.querySelectorAll('[name^="subject_"]').length > 0;
+        if (hasSubjects) {
+            calculateTotal(); // Run one last time
+            let allValid = true;
+            document.querySelectorAll('[name^="subject_"]').forEach(input => {
+                let val = input.value;
+                let num = parseFloat(val) || 0;
+                let max = parseFloat(input.dataset.max) || 0;
+                let pass = parseFloat(input.dataset.pass) || 0;
+                if (num > max || num < pass || val === '') allValid = false;
+            });
+
+            if (!allValid) {
+                e.preventDefault();
+                alert("Please correct the errors in your marks before submitting.");
+            }
+        }
+    });
 </script>
 {% endblock %}
