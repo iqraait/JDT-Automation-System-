@@ -1634,26 +1634,59 @@ def edit_application(request, app_id):
                 "pass": s.pass_mark
             }
 
+    # 2. Extract stored marks and maintain exact form order
     subjects = []
-    latest_subjects = {}
+    if exam_id:
+        # Load subjects from config to maintain order
+        exam_subjects = ExamSubject.objects.filter(exam_id=exam_id).order_by('id')
+        
+        # Map values from field_values
+        stored_values = {}
+        for v in app.field_values.all():
+            val_str = str(v.value or "").strip()
+            if ":" in val_str:
+                parts = val_str.split(":")
+                if len(parts) >= 2:
+                    subj_name = parts[0].strip()
+                    subj_marks = parts[1].strip()
+                    subj_max = parts[2].strip() if len(parts) >= 3 else None
+                    stored_values[subj_name.lower()] = {
+                        "marks": subj_marks,
+                        "max": subj_max
+                    }
 
-    for v in app.field_values.all().order_by('-id'):
-        if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
-            parts = str(v.value).split(":")
-            if len(parts) >= 2:
-                name = parts[0].strip()
-                marks = parts[1].strip()
-                if name not in latest_subjects:
-                    latest_subjects[name] = marks
+        for es in exam_subjects:
+            val = stored_values.get(es.name.lower().strip())
+            marks = val["marks"] if val else ""
+            # Prioritize stored max marks, fallback to config
+            max_val = val["max"] if val and val["max"] else es.max_marks
             
-    for name, marks in latest_subjects.items():
-        conf = subjects_config.get(name.lower().strip(), {"max": 100, "pass": 35})
-        subjects.append({
-            "name": name,
-            "marks": marks,
-            "max": conf["max"],
-            "pass": conf["pass"]
-        })
+            subjects.append({
+                "name": es.name,
+                "marks": marks,
+                "max": max_val,
+                "pass": es.pass_mark
+            })
+    else:
+        # Fallback if no exam identified (older records)
+        latest_subjects = {}
+        for v in app.field_values.all().order_by('-id'):
+            if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
+                parts = str(v.value).split(":")
+                if len(parts) >= 2:
+                    name = parts[0].strip()
+                    marks = parts[1].strip()
+                    max_v = parts[2].strip() if len(parts) >= 3 else "100"
+                    if name not in latest_subjects:
+                        latest_subjects[name] = {"marks": marks, "max": max_v}
+        
+        for name, data in latest_subjects.items():
+            subjects.append({
+                "name": name,
+                "marks": data["marks"],
+                "max": data["max"],
+                "pass": 35
+            })
         
         
 

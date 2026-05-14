@@ -96,16 +96,20 @@
                             {% endif %}
                         </td>
                         <td class="px-8 py-5">
-                            {% if app.status == "selected" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100 uppercase tracking-wider">✅ Verified</span>
-                            {% elif app.status == "rejected" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100 uppercase tracking-wider">❌ Rejected</span>
-                            {% elif app.status == "hold" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold border border-amber-100 uppercase tracking-wider">⏸ Review Hold</span>
-                            {% elif app.status == "submitted" %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-bold border border-indigo-100 uppercase tracking-wider">📩 Submitted</span>
+                            {% if app.payment.status == "success" %}
+                                {% if app.status == "selected" %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100 uppercase tracking-wider">✅ Verified</span>
+                                {% elif app.status == "rejected" %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100 uppercase tracking-wider">❌ Rejected</span>
+                                {% elif app.status == "hold" %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold border border-amber-100 uppercase tracking-wider">⏸ Review Hold</span>
+                                {% elif app.status == "submitted" %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-bold border border-indigo-100 uppercase tracking-wider">📩 Submitted</span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[11px] font-bold border border-slate-200 uppercase tracking-wider">🕒 Under Audit</span>
+                                {% endif %}
                             {% else %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[11px] font-bold border border-slate-200 uppercase tracking-wider">🕒 Under Audit</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-bold border border-rose-100 uppercase tracking-wider">💳 Payment Pending</span>
                             {% endif %}
 
                             {% if app.admission %}
@@ -116,11 +120,9 @@
                         </td>
                         <td class="px-8 py-5 text-right flex items-center justify-end gap-2">
                              {% if app.payment.status == "success" %}
-                             <a href="/view/{{ app.id }}/" target="_blank" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors group/btn relative" title="View Form">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                             </a>
-                             <a href="{% url 'download_application_pdf' app.id %}" class="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors group/btn relative" title="Download PDF">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                             <a href="/view/{{ app.id }}/" target="_blank" class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg transition-all duration-300 group/btn border border-blue-100" title="Print Application">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Print Form</span>
                              </a>
                              {% endif %}
                              {% if app.remarks %}

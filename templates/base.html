@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}JDT Islam College of Arts & Science{% endblock %}</title>
+    <title>{% block title %}JDT Group Of Institutions{% endblock %}</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Google Fonts: Roboto & Montserrat -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
 
     <style>
         * {
             font-style: normal !important;
         }
+
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f8fafc;
@@ -25,13 +29,16 @@
         ::-webkit-scrollbar {
             width: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
@@ -45,7 +52,8 @@
         }
 
         .glass-dark {
-            background: rgba(30, 58, 138, 0.85); /* Sapphire Blue */
+            background: rgba(30, 58, 138, 0.85);
+            /* Sapphire Blue */
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -57,21 +65,31 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Card Hover Effects */
         .hover-card {
             transition: all 0.3s ease;
         }
+
         .hover-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(134, 36, 36, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
 
         /* Form Input Focus */
-        input:focus, select:focus, textarea:focus {
+        input:focus,
+        select:focus,
+        textarea:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -80,6 +98,7 @@
 
     {% block extra_head %}{% endblock %}
 </head>
+
 <body class="page-fade-in">
 
     {% block body_content %}
@@ -87,4 +106,5 @@
 
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>
