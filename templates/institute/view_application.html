@@ -233,8 +233,8 @@
         {% endfor %}
 
         {# 2. Qualifying Examination Marks #}
-        {% if subject_marks %}
-        <div class="section-title">Qualifying Examination Marks</div>
+        {% if subject_marks or total_obtained %}
+        <div class="section-title">Qualifying Subjects & Marks</div>
         <table>
             <thead>
                 <tr>
@@ -249,6 +249,10 @@
                     <td class="font-bold">{{ m.name }}</td>
                     <td class="text-center font-bold">{{ m.marks|floatformat:0 }}</td>
                     <td class="text-center font-bold">{{ m.max|floatformat:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-slate-400 italic py-4">No marks data found for this application.</td>
                 </tr>
                 {% endfor %}
             </tbody>
