@@ -1507,15 +1507,10 @@ def edit_application(request, app_id):
         if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
             f.current_value = app.student.first_name
         
-        # NEW: Resolve Qualifying Examination name if it's an ID
-        elif "exam" in label_lower or "qualifying" in label_lower:
-            val = str(f.current_value).strip()
-            if val.isdigit() or (val.lower().startswith('id:') and val[3:].strip().isdigit()):
-                clean_id = val[3:].strip() if val.lower().startswith('id:') else val
-                from academics.models import QualifyingExam
-                exam_obj = QualifyingExam.objects.filter(id=clean_id).first()
-                if exam_obj:
-                    f.current_value = exam_obj.name
+        # NEW: For display purposes in headers/logs, we can resolve the name, 
+        # but for the form field itself (f.current_value), we must keep the raw code 
+        # so that <select> and <radio> inputs can correctly show the 'selected' state.
+        pass
 
         # Resolve Field Options for non-choice fields (e.g. text fields used as ID holders)
         if f.field_type not in ['select', 'radio', 'checkbox'] and f.current_value:
@@ -1533,11 +1528,9 @@ def edit_application(request, app_id):
     # =========================
     if request.method == 'POST':
 
-        #  UPDATE NORMAL FIELDS
-        ApplicationFieldValue.objects.filter(
-             application=app,
-             value__contains=":"
-              ).delete()
+        # 1. Update Normal Fields (exclude marks which are handled separately)
+        # We don't delete here anymore, we'll do it cleanly below
+
 
 
         for field in fields:    
@@ -1590,10 +1583,12 @@ def edit_application(request, app_id):
                 subject_name = key.replace("subject_", "").strip()
                 marks = request.POST.get(key)
                 max_val = request.POST.get(f"max_{subject_name}", "100")
-                if marks:
+                if marks is not None and marks != "": # Save even if 0
                     ApplicationFieldValue.objects.create(
                         application=app,
-                        field=qe_field,  
+                        field=qe_field,
+                        field_label=qe_field.label if qe_field else "Qualifying Examination Marks",
+                        field_type="text", # Snapshot fields
                         value=f"{subject_name}:{marks}:{max_val}"
                     )
 
@@ -1617,6 +1612,13 @@ def edit_application(request, app_id):
         lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
         if "exam" in lbl or "qualifying" in lbl:
             val = str(fv.value).strip()
+            # If it's a choice/code, resolve the display name first
+            if fv.field and fv.field.field_type in ['select', 'radio']:
+                from academics.models import FieldOption
+                opt = FieldOption.objects.filter(field=fv.field, value=val).first()
+                if opt:
+                    val = opt.display_text
+
             if val.isdigit():
                 exam_id = int(val)
             else:
