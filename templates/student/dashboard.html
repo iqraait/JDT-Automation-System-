@@ -62,20 +62,19 @@
         </h3>
 
         <!-- 🔔 NOTIFICATION POPUP BUTTON -->
-        {% if notices %}
         <button onclick="toggleNoticeModal()" class="relative flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl hover:border-blue-600 hover:bg-blue-50 transition-all group shadow-sm">
             <div class="relative">
                 <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                {% if notices %}
                 <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                {% endif %}
             </div>
             <span class="text-sm font-bold text-slate-600 group-hover:text-blue-700">View Announcements</span>
             <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-lg">{{ notices|length }}</span>
         </button>
-        {% endif %}
     </div>
 
     <!-- 📢 OPEN ANNOUNCEMENTS DISPLAY (MODIFIED TO INCLUDE BOTH) -->
-    {% if notices or notifications %}
     <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white shadow-xl shadow-blue-200 overflow-hidden relative group">
         <!-- Abstract Background Shape -->
         <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
@@ -91,6 +90,7 @@
             
             <div class="flex-1 min-w-0">
                 {% with latest_item=notices.0|default:notifications.0 %}
+                {% if latest_item %}
                 <div class="flex items-center gap-3 mb-2">
                     <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">Latest Announcement</span>
                     <span class="text-white/60 text-xs font-medium">{% if notices.0 %}{{ notices.0.created_at|date:"F d, Y" }}{% else %}Active Notice{% endif %}</span>
@@ -99,6 +99,15 @@
                 <p class="text-blue-100/90 text-sm line-clamp-2 leading-relaxed">
                     {% if notices.0 %}{{ notices.0.content|truncatewords:40 }}{% else %}{{ notifications.0.message|truncatewords:40 }}{% endif %}
                 </p>
+                {% else %}
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">Notice Board</span>
+                </div>
+                <h4 class="text-2xl font-black mb-2 truncate">Institutional Announcements</h4>
+                <p class="text-blue-100/90 text-sm line-clamp-2 leading-relaxed">
+                    Check here for the latest updates from JDT Group of Institutions.
+                </p>
+                {% endif %}
                 {% endwith %}
             </div>
             
@@ -109,7 +118,6 @@
             </div>
         </div>
     </div>
-    {% endif %}
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- APPLY CARD -->

@@ -17,12 +17,21 @@
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 10mm 15mm;
+            padding: 8mm 12mm;
             margin: 10mm auto;
             background: white;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             position: relative;
             border: 1px solid #000;
+        }
+
+        @media screen and (max-width: 210mm) {
+            .a4-page {
+                width: 95%;
+                margin: 5mm auto;
+                padding: 5mm;
+                min-height: auto;
+            }
         }
 
         @media print {
@@ -65,9 +74,9 @@
 
         th, td {
             border: 1px solid #000;
-            padding: 6px 10px;
+            padding: 5px 10px;
             text-align: left;
-            font-size: 11px;
+            font-size: 12px;
             color: #000 !important;
             font-weight: normal !important;
             font-style: normal !important;
@@ -80,13 +89,13 @@
         }
 
         .section-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             color: #000 !important;
             text-transform: uppercase;
-            margin: 20px 0 8px 0;
+            margin: 15px 0 6px 0;
             border-bottom: 2px solid #000;
-            padding-bottom: 4px;
+            padding-bottom: 3px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -95,9 +104,9 @@
         .signature-line {
             border-top: 1px solid #000;
             width: 160px;
-            margin-top: 40px;
+            margin-top: 30px;
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             padding-top: 4px;
         }
@@ -301,11 +310,11 @@
                 I, ________________________________________, hereby declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect, my admission may be cancelled.
             </p>
 
-            <div class="flex justify-between items-end mt-12 px-2">
-                <div class="space-y-4">
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Place:
+            <div class="flex justify-between items-end mt-6 px-2">
+                <div class="space-y-3">
+                    <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Place:
                         .............................</p>
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Date:
+                    <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Date:
                         .............................</p>
                 </div>
                 <div class="flex gap-12">
@@ -328,17 +337,17 @@
         </div>
 
         <!-- OFFICE USE -->
-        <div class="mt-12 border-2 border-slate-900 rounded-3xl p-8 bg-slate-50/30 relative overflow-hidden">
+        <div class="mt-8 border-2 border-slate-900 rounded-3xl p-6 bg-slate-50/30 relative overflow-hidden">
             <div class="absolute top-0 right-0 p-4 opacity-5">
                 <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
                 </svg>
             </div>
             <h4
-                class="text-center text-[12px] font-black uppercase tracking-tighter border-b-2 border-slate-900 pb-4 mb-6">
+                class="text-center text-[13px] font-black uppercase tracking-tighter border-b-2 border-slate-900 pb-4 mb-6">
                 Internal Office Use Only</h4>
 
-            <div class="grid grid-cols-2 gap-y-6 gap-x-12 text-[10px] font-bold text-slate-600">
+            <div class="grid grid-cols-2 gap-y-6 gap-x-12 text-[11px] font-bold text-slate-600">
                 <div class="space-y-4">
                     <p class="border-b border-slate-200 pb-1">Verification Status:
                         ............................................</p>
@@ -353,10 +362,10 @@
                 </div>
             </div>
 
-            <div class="flex justify-end mt-14">
+            <div class="flex justify-end mt-8">
                 <div class="text-center">
                     <div class="h-10"></div>
-                    <p class="font-black text-[11px] uppercase tracking-tighter border-t-2 border-slate-900 pt-2 px-6">
+                    <p class="font-black text-[12px] uppercase tracking-tighter border-t-2 border-slate-900 pt-2 px-6">
                         Seal & Signature of Principal</p>
                 </div>
             </div>

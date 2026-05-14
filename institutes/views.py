@@ -815,70 +815,98 @@ def view_application(request, app_id):
         for s in ExamSubject.objects.filter(exam=exam_obj):
             subjects_config[s.name.lower().strip()] = s.max_marks
 
+    # 2. Fetch ALL fields defined for this form to include non-filled ones
+    from academics.models import FormField
+    all_form_fields = FormField.objects.filter(form=application.course.form).select_related('section').order_by('section__order', 'order')
+    
+    # Map existing values to fields for easy lookup
+    field_to_values = {}
     for fv in field_values:
-        label_lower = fv.field.label.lower() if fv.field else (fv.field_label.lower() if fv.field_label else "")
+        if fv.field_id not in field_to_values:
+            field_to_values[fv.field_id] = []
+        field_to_values[fv.field_id].append(fv)
+
+    # Process all fields
+    for field in all_form_fields:
+        values = field_to_values.get(field.id, [])
         
-        # Check for photo and signature
-        is_media = False
-        if (fv.field and fv.field.is_photo) or "photo" in label_lower or "passport" in label_lower:
-            student_photo = fv.value
-            is_media = True
-        elif (fv.field and fv.field.is_signature) or "signature" in label_lower:
-            student_signature = fv.value
-            is_media = True
-        
-        # Determine if this value is a subject mark
-        label = fv.field.label if fv.field else fv.field_label
-        if fv.value and ":" in str(fv.value) and not is_media:
-            try:
-                parts = str(fv.value).split(":")
-                name = parts[0].strip()
-                marks = parts[1].strip()
-                
-                # Dynamic Max Marks Lookup - PRIORITIZE STORED VALUE (Copy of Form)
-                max_val = 100
-                if len(parts) >= 3:
-                    try:
-                        max_val = float(parts[2])
-                    except:
-                        max_val = subjects_config.get(name.lower().strip(), 100)
-                else:
-                    max_val = subjects_config.get(name.lower().strip(), 100)
-                
-                # Ensure we don't have 0 as max
-                if not max_val or max_val == 0:
+        if not values:
+            # Create a mock fv for empty fields
+            mock_fv = type('MockFV', (), {
+                'field': field,
+                'field_label': field.label,
+                'value': '-',
+                'display_value': '-'
+            })
+            values = [mock_fv]
+
+        for fv in values:
+            label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
+            
+            # Check for photo and signature
+            is_media = False
+            if (fv.field and fv.field.is_photo) or "photo" in label_lower or "passport" in label_lower:
+                student_photo = fv.value if fv.value != '-' else None
+                is_media = True
+            elif (fv.field and fv.field.is_signature) or "signature" in label_lower:
+                student_signature = fv.value if fv.value != '-' else None
+                is_media = True
+            
+            # Determine if this value is a subject mark
+            label = fv.field.label if fv.field else fv.field_label
+            if fv.value and ":" in str(fv.value) and not is_media:
+                try:
+                    parts = str(fv.value).split(":")
+                    name = parts[0].strip()
+                    marks = parts[1].strip()
+                    
+                    # Dynamic Max Marks Lookup
                     max_val = 100
-                
-                marks_val = float(marks)
-                total_obtained += marks_val
-                total_max += max_val
-                
-                subject_marks.append({'name': name, 'marks': marks_val, 'max': max_val})
-            except (ValueError, IndexError):
+                    if len(parts) >= 3:
+                        try:
+                            max_val = float(parts[2])
+                        except:
+                            max_val = subjects_config.get(name.lower().strip(), 100)
+                    else:
+                        max_val = subjects_config.get(name.lower().strip(), 100)
+                    
+                    if not max_val or max_val == 0:
+                        max_val = 100
+                    
+                    marks_val = float(marks)
+                    total_obtained += marks_val
+                    total_max += max_val
+                    
+                    subject_marks.append({'name': name, 'marks': marks_val, 'max': max_val})
+                except (ValueError, IndexError):
+                    if not is_media:
+                        normal_fields.append(fv)
+            else:
                 if not is_media:
+                    val = str(fv.value).strip()
+                    if not hasattr(fv, 'display_value'):
+                        fv.display_value = val
+                    
+                    # Resolve Display Text for Select/Dropdown fields
+                    if fv.field and fv.field.field_type in ['select', 'radio'] and val != '-':
+                        from academics.models import FieldOption
+                        opt = FieldOption.objects.filter(field=fv.field, value=val).first()
+                        if opt:
+                            fv.display_value = opt.display_text
+
+                    # If this is the exam field, ensure it shows the correctly resolved name
+                    if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
+                        if exam_obj:
+                            fv.display_value = exam_obj.name
+                    
+                    # Robust ID-to-Name resolution for Full Name fallback
+                    if ("name" in label_lower or "candidate" in label_lower) and (not val or ":" in val or val == "None" or not val.strip() or val == "-"):
+                        if val == "-":
+                            fv.display_value = application.student.first_name if application.student.first_name else application.student.username
+                        else:
+                            fv.display_value = val
+                    
                     normal_fields.append(fv)
-        else:
-            if not is_media:
-                val = str(fv.value).strip()
-                fv.display_value = val
-                
-                # Resolve Display Text for Select/Dropdown fields
-                if fv.field and fv.field.field_type in ['select', 'radio']:
-                    from academics.models import FieldOption
-                    opt = FieldOption.objects.filter(field=fv.field, value=val).first()
-                    if opt:
-                        fv.display_value = opt.display_text
-
-                # Fix: If this is the exam field, ensure it shows the correctly resolved name
-                if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
-                    if exam_obj:
-                        fv.display_value = exam_obj.name
-
-                # Robust ID-to-Name resolution for Full Name fallback
-                if ("name" in label_lower or "candidate" in label_lower) and (not val or ":" in val or val == "None" or not val.strip()):
-                    fv.display_value = application.student.first_name if application.student.first_name else application.student.username
-
-                normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
 
@@ -897,6 +925,7 @@ def view_application(request, app_id):
     }
 
     return render(request, 'applications/view_application.html', context)
+
 
 
 # # =========================
