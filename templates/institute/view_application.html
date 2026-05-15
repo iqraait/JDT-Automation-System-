@@ -341,6 +341,39 @@
             </div>
         </div>
 
+        <!-- PAYMENT INFORMATION -->
+        {% if payment %}
+        <div class="section-title">Payment Information</div>
+        <table class="mb-4">
+            <tbody>
+                <tr>
+                    <th style="width: 30%;">Payment Status</th>
+                    <td style="width: 70%; font-weight: bold; color: {% if payment.status == 'success' %}#16a34a{% else %}#dc2626{% endif %};">
+                        {{ payment.get_status_display|upper }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Transaction ID</th>
+                    <td style="font-family: monospace;">{{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }}</td>
+                </tr>
+                {% if payment.payment_mode %}
+                <tr>
+                    <th>Payment Mode</th>
+                    <td>{{ payment.payment_mode|upper }}</td>
+                </tr>
+                {% endif %}
+                
+                {# Attempt to extract UPI ID from gateway response #}
+                {% if payment.gateway_response.vpa or payment.gateway_response.upi_id or payment.gateway_response.customer_vpa %}
+                <tr>
+                    <th>UPI ID / VPA</th>
+                    <td style="font-weight: bold;">{{ payment.gateway_response.vpa|default:payment.gateway_response.upi_id|default:payment.gateway_response.customer_vpa }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        {% endif %}
+
         <!-- OFFICE USE -->
         <div class="mt-4 border-2 border-slate-900 rounded-2xl p-4 bg-slate-50/30 relative overflow-hidden">
             <div class="absolute top-0 right-0 p-4 opacity-5">

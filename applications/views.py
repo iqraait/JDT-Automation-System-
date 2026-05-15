@@ -831,6 +831,9 @@ def view_application(request, app_id):
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
 
+    from .models import Payment
+    payment = Payment.objects.filter(application=application).first()
+
     context = {
         'application': application,
         'app': application, 
@@ -841,6 +844,7 @@ def view_application(request, app_id):
         'percentage': round(percentage, 2),
         'photo': student_photo,
         'signature': student_signature,
+        'payment': payment,
         'MEDIA_URL': settings.MEDIA_URL if hasattr(settings, 'MEDIA_URL') else getattr(settings, 'MEDIA_URL', '/media/'),
         'print_date': datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
     }
