@@ -55,17 +55,20 @@
 
     <!-- ⚡ QUICK ACTIONS (NEW) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <a href="{% url 'manage_notices' %}" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-100 transition-all group">
+        <button onclick="toggleNoticeModal()" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-100 transition-all group relative text-left">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all relative">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                    {% if notices %}
+                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                    {% endif %}
                 </div>
                 <div>
-                    <h4 class="font-black text-slate-800 uppercase tracking-tight">Post Notice</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">General Announcements</p>
+                    <h4 class="font-black text-slate-800 uppercase tracking-tight">Notice Board</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">View Announcements</p>
                 </div>
             </div>
-        </a>
+        </button>
 
         <a href="{% url 'rank_list' %}" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-emerald-600 hover:shadow-xl hover:shadow-emerald-100 transition-all group">
             <div class="flex items-center gap-4">
@@ -294,6 +297,61 @@
     </div>
 </div>
 
+<!-- 🔔 ANNOUNCEMENTS MODAL -->
+<div id="noticeModal" class="fixed inset-0 z-[300] hidden">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300" onclick="toggleNoticeModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] overflow-hidden bg-white rounded-[3rem] shadow-2xl animate-modal-in border border-slate-100 flex flex-col">
+        <!-- Header -->
+        <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight">Institutional Notices</h3>
+                <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">LATEST UPDATES FROM ADMINISTRATION</p>
+            </div>
+            <button onclick="toggleNoticeModal()" class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:rotate-90 transition-all shadow-sm border border-slate-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-10 overflow-y-auto space-y-8 custom-scrollbar">
+            {% for notice in notices %}
+            <div class="space-y-4 pb-8 {% if not forloop.last %}border-b border-slate-100{% endif %}">
+                <div class="flex items-center justify-between">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                        {{ notice.created_at|date:"d M, Y" }}
+                    </span>
+                    {% if notice.file_attachment %}
+                    <a href="{{ notice.file_attachment.url }}" target="_blank" class="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        ATTACHMENT
+                    </a>
+                    {% endif %}
+                </div>
+                <h4 class="text-xl font-bold text-slate-800">{{ notice.title }}</h4>
+                <div class="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{{ notice.content }}</div>
+            </div>
+            {% endfor %}
+
+            {% if not notices %}
+            <div class="py-20 text-center space-y-4">
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                </div>
+                <p class="text-slate-400 font-bold">No active notices at this time.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-10 py-6 bg-slate-50 text-center">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Notice Board</p>
+        </div>
+    </div>
+</div>
+
 <!-- 🔥 STATUS MODAL -->
 <div id="statusModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[200] p-4">
     <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all p-10">
@@ -414,5 +472,35 @@ window.onkeydown = function(e) {
         document.getElementById('importModal').classList.add('hidden');
     }
 };
+function toggleNoticeModal() {
+    const modal = document.getElementById('noticeModal');
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    } else {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
 </script>
+
+<style>
+@keyframes modalIn {
+    from { opacity: 0; transform: translate(-50%, -40%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+.animate-modal-in {
+    animation: modalIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+</style>
 {% endblock %}

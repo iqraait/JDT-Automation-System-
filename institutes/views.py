@@ -1508,6 +1508,13 @@ def institute_dashboard(request):
 
     courses = Course.objects.filter(institute=institute)
     years = AcademicYear.objects.all()
+    # REQUIREMENT: Notice Board visibility for all users
+    from academics.models import NoticeBoard
+    notices = NoticeBoard.objects.filter(
+        is_active=True,
+        course__isnull=True,
+        assigned_class__isnull=True
+    ).order_by('-created_at')[:10]
 
     return render(request, 'institute/dashboard.html', {
         'page_obj': page_obj,
@@ -1518,6 +1525,7 @@ def institute_dashboard(request):
         'selected_year': year_filter,
         'selected_status': status_filter,
         'query': query,
+        'notices': notices
     })
 
 # =========================
@@ -1565,6 +1573,10 @@ def edit_application(request, app_id):
             opt = FieldOption.objects.filter(field=f, value=f.current_value).first()
             if opt:
                 f.current_value = opt.display_text
+        
+        # REQUIREMENT: Choice 3 must remain blank if not filled
+        if "choice 3" in f.label.lower() and (not f.current_value or f.current_value.lower() in ['none', 'null', 'select', '']):
+            f.current_value = ""
 
         f.value = f.current_value  # Support templates using .value or .current_value
 
