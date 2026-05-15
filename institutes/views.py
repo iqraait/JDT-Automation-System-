@@ -1551,13 +1551,14 @@ def edit_application(request, app_id):
         form=app.course.form
     ).select_related('section').order_by('section__order', 'order')
 
-    # =========================
     # ATTACH VALUES TO FIELDS
-    # =========================
     # Use order_by('id') so that if duplicates exist, the latest one (highest ID) is kept in the dictionary
+    # CRITICAL: Exclude snapshot values (containing :) from field_values used for form rendering
     field_values = {}
     for v in app.field_values.filter(field__isnull=False).order_by('id'):
-        field_values[v.field_id] = v.value
+        val_str = str(v.value or "")
+        if ":" not in val_str: 
+            field_values[v.field_id] = v.value
 
     for f in fields:
         f.current_value = field_values.get(f.id, "")
@@ -1575,7 +1576,7 @@ def edit_application(request, app_id):
                 f.current_value = opt.display_text
         
         # REQUIREMENT: Choice 3 must remain blank if not filled
-        if "choice 3" in f.label.lower() and (not f.current_value or f.current_value.lower() in ['none', 'null', 'select', '']):
+        if not f.current_value or str(f.current_value).lower() in ['none', 'null', 'select', '', '-', 'empty']:
             f.current_value = ""
 
         f.value = f.current_value  # Support templates using .value or .current_value
@@ -1685,10 +1686,14 @@ def edit_application(request, app_id):
     subjects_config = {}
 
     # Identify the examination from form values
-    for fv in app.field_values.all():
+    for fv in app.field_values.all().order_by('-id'): # Check latest first
         label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        val = str(fv.value).strip()
+        
+        # Skip snapshots when looking for the Exam ID
+        if ":" in val: continue
+
         if ("exam" in label or "qualifying" in label) and "marks" not in label:
-            val = str(fv.value).strip()
             # If it's a choice/code, resolve the display name first
             if fv.field and fv.field.field_type in ['select', 'radio']:
                 from academics.models import FieldOption
