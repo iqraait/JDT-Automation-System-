@@ -1546,7 +1546,11 @@ def edit_application(request, app_id):
     # =========================
     # ATTACH VALUES TO FIELDS
     # =========================
-    field_values = {v.field_id: v.value for v in app.field_values.all()}
+    # Use order_by('id') so that if duplicates exist, the latest one (highest ID) is kept in the dictionary
+    field_values = {}
+    for v in app.field_values.filter(field__isnull=False).order_by('id'):
+        field_values[v.field_id] = v.value
+
     for f in fields:
         f.current_value = field_values.get(f.id, "")
         label_lower = f.label.lower()
@@ -1555,11 +1559,6 @@ def edit_application(request, app_id):
         if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
             f.current_value = app.student.first_name
         
-        # NEW: For display purposes in headers/logs, we can resolve the name, 
-        # but for the form field itself (f.current_value), we must keep the raw code 
-        # so that <select> and <radio> inputs can correctly show the 'selected' state.
-        pass
-
         # Resolve Field Options for non-choice fields (e.g. text fields used as ID holders)
         if f.field_type not in ['select', 'radio', 'checkbox'] and f.current_value:
             from academics.models import FieldOption
@@ -1569,42 +1568,55 @@ def edit_application(request, app_id):
 
         f.value = f.current_value  # Support templates using .value or .current_value
 
-    
-
     # =========================
     # SAVE (POST)
     # =========================
     if request.method == 'POST':
 
-        # 1. Update Normal Fields (exclude marks which are handled separately)
-        # We don't delete here anymore, we'll do it cleanly below
-
-
-
         for field in fields:    
             key = f'field_{field.id}'
             
-        
             # FILE FIELD
             if field.field_type == 'file':
                 file_obj = request.FILES.get(key)
 
                 if file_obj:
-                    ApplicationFieldValue.objects.update_or_create(
+                    # Clean up duplicates to avoid MultipleObjectsReturned
+                    ApplicationFieldValue.objects.filter(application=app, field=field).delete()
+                    ApplicationFieldValue.objects.create(
                         application=app,
                         field=field,
-                        defaults={'value': file_obj.name}
+                        field_label=field.label,
+                        field_type=field.field_type,
+                        value=file_obj.name
                     )
 
             else:
                 val = request.POST.get(key)
 
                 if val is not None:
-                    ApplicationFieldValue.objects.update_or_create(
-                        application=app,
-                        field=field,
-                        defaults={'value': val}
-                    )
+                    # Clean up duplicates to avoid MultipleObjectsReturned
+                    # and ensure we only have one record per field
+                    fvs = ApplicationFieldValue.objects.filter(application=app, field=field)
+                    if fvs.count() > 1:
+                        fvs.delete()
+                        ApplicationFieldValue.objects.create(
+                            application=app,
+                            field=field,
+                            field_label=field.label,
+                            field_type=field.field_type,
+                            value=val
+                        )
+                    else:
+                        ApplicationFieldValue.objects.update_or_create(
+                            application=app,
+                            field=field,
+                            defaults={
+                                'value': val,
+                                'field_label': field.label,
+                                'field_type': field.field_type
+                            }
+                        )
 
         # =========================
         #  UPDATE SUBJECTS (FIXED)
