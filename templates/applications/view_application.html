@@ -163,6 +163,7 @@
                 <div class="mt-2 inline-block px-3 py-1 border border-black text-xs font-bold uppercase">
                     Academic Year {{ app.academic_year|default:"2025-2026" }}
                 </div>
+                <h2 class="text-xl font-black uppercase mt-3 tracking-tighter text-slate-800">Admission Application Form</h2>
             </div>
             <div class="w-32">
                 {% if photo %}
@@ -180,13 +181,10 @@
             </div>
         </div>
 
-        <div class="header-bar">
-            Admission Application Form
-        </div>
 
         <div class="flex justify-between items-center mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application ID</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application Form ID</p>
                 <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">#{{ app.id|stringformat:"05d" }}</p>
                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Generated on: {{ print_date }}</p>
             </div>
@@ -290,16 +288,6 @@
             {% endif %}
         {% endfor %}
 
-        <!-- REMARKS -->
-        {% if app.remarks %}
-        <div class="section-title">
-            <span class="bg-slate-900 text-white w-6 h-6 flex items-center justify-center rounded-lg text-[10px]">R</span>
-            Administrative Remarks
-        </div>
-        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-sm font-medium text-slate-700 italic">
-            {{ app.remarks }}
-        </div>
-        {% endif %}
 
         <!-- DECLARATION -->
         <div class="mt-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -341,38 +329,6 @@
             </div>
         </div>
 
-        <!-- PAYMENT INFORMATION -->
-        {% if payment %}
-        <div class="section-title">Payment Information</div>
-        <table class="mb-4">
-            <tbody>
-                <tr>
-                    <th style="width: 30%;">Payment Status</th>
-                    <td style="width: 70%; font-weight: bold; color: {% if payment.status == 'success' %}#16a34a{% else %}#dc2626{% endif %};">
-                        {{ payment.get_status_display|upper }}
-                    </td>
-                </tr>
-                <tr>
-                    <th>Transaction ID</th>
-                    <td style="font-family: monospace;">{{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }}</td>
-                </tr>
-                {% if payment.payment_mode %}
-                <tr>
-                    <th>Payment Mode</th>
-                    <td>{{ payment.payment_mode|upper }}</td>
-                </tr>
-                {% endif %}
-                
-                {# Attempt to extract UPI ID from gateway response #}
-                {% if payment.gateway_response.vpa or payment.gateway_response.upi_id or payment.gateway_response.customer_vpa %}
-                <tr>
-                    <th>UPI ID / VPA</th>
-                    <td style="font-weight: bold;">{{ payment.gateway_response.vpa|default:payment.gateway_response.upi_id|default:payment.gateway_response.customer_vpa }}</td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
-        {% endif %}
 
         <!-- OFFICE USE -->
         <div class="mt-4 border-2 border-slate-900 rounded-2xl p-4 bg-slate-50/30 relative overflow-hidden">
@@ -409,7 +365,18 @@
             </div>
         </div>
 
-        <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-12 tracking-widest no-print">
+        {% if payment %}
+        <p class="text-center text-[8px] text-slate-400 font-bold uppercase mt-10 tracking-widest">
+            Payment: {{ payment.get_status_display|upper }} &nbsp;•&nbsp; 
+            ID: {{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }} &nbsp;•&nbsp; 
+            Mode: {{ payment.payment_mode|upper }} 
+            {% if payment.gateway_response.vpa or payment.gateway_response.upi_id or payment.gateway_response.customer_vpa %}
+            &nbsp;•&nbsp; UPI: {{ payment.gateway_response.vpa|default:payment.gateway_response.upi_id|default:payment.gateway_response.customer_vpa }}
+            {% endif %}
+        </p>
+        {% endif %}
+
+        <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-2 tracking-widest no-print">
             Applied On: {{ app.created_at|date:"d/m/Y H:i" }} &nbsp;&nbsp;•&nbsp;&nbsp; Printed On: {{ print_date }}
         </p>
     </div>
