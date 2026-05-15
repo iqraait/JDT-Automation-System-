@@ -1620,11 +1620,12 @@ def edit_application(request, app_id):
             field__field_type='file' # Don't delete file values which might have colons (rare but possible)
         ).delete()
 
-        # Only target fields in the 'Qualifying Examination' section
-        qe_field = FormField.objects.filter(
-            form=app.course.form, 
-            section__name__icontains="Qualifying Examination"
-        ).first()
+        # Only target fields in the 'Qualifying Examination' section or similar
+        qe_field = FormField.objects.filter(form=app.course.form, section__name__icontains="Qualifi").first()
+        if not qe_field:
+            qe_field = FormField.objects.filter(form=app.course.form, label__icontains="Qualifi").first()
+        if not qe_field:
+            qe_field = FormField.objects.filter(form=app.course.form, section__name__icontains="mark").first()
 
         for key in request.POST:
             if key.startswith("subject_"):
@@ -1656,9 +1657,13 @@ def edit_application(request, app_id):
 
     # 1. Identify Qualifying Exam and Subjects Configuration
     exam_id = None
+    exam_obj = None
+    subjects_config = {}
+
+    # Identify the examination from form values
     for fv in app.field_values.all():
-        lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if "exam" in lbl or "qualifying" in lbl:
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if ("exam" in label or "qualifying" in label) and "marks" not in label:
             val = str(fv.value).strip()
             # If it's a choice/code, resolve the display name first
             if fv.field and fv.field.field_type in ['select', 'radio']:
@@ -1672,41 +1677,63 @@ def edit_application(request, app_id):
             else:
                 from academics.models import QualifyingExam
                 ex = QualifyingExam.objects.filter(name__iexact=val).first()
-                if ex: exam_id = ex.id
+                if ex: 
+                    exam_id = ex.id
+                    exam_obj = ex
             if exam_id: break
 
-    subjects_config = {}
-    if exam_id:
+    if exam_id and not exam_obj:
+        from academics.models import QualifyingExam
+        exam_obj = QualifyingExam.objects.filter(id=exam_id).first()
+
+    if exam_obj:
         from academics.models import ExamSubject
-        for s in ExamSubject.objects.filter(exam_id=exam_id):
+        for s in ExamSubject.objects.filter(exam=exam_obj):
             subjects_config[s.name.lower().strip()] = {
                 "max": s.max_marks,
-                "pass": s.pass_mark
+                "pass": s.pass_mark,
+                "name": s.name
             }
 
-    # 2. Extract stored marks and maintain exact form order
-    subjects = []
-    if exam_id:
-        # Load subjects from config to maintain order
-        exam_subjects = ExamSubject.objects.filter(exam_id=exam_id).order_by('id')
-        
-        # Map values from field_values
-        stored_values = {}
-        for v in app.field_values.all():
-            val_str = str(v.value or "").strip()
-            if ":" in val_str:
-                parts = val_str.split(":")
-                if len(parts) >= 2:
-                    subj_name = parts[0].strip()
-                    subj_marks = parts[1].strip()
-                    subj_max = parts[2].strip() if len(parts) >= 3 else None
-                    stored_values[subj_name.lower()] = {
-                        "marks": subj_marks,
-                        "max": subj_max
-                    }
+    # 2. Extract ALL stored marks (exact copy requirement)
+    # We use a dictionary to keep the latest value for each subject name
+    stored_marks = {}
+    for v in app.field_values.all():
+        val_str = str(v.value or "").strip()
+        # Same logic as view_application: check for colon and numeric second part
+        if ":" in val_str:
+            label_lower = (v.field.label if v.field else v.field_label or "").lower()
+            is_media = any(x in label_lower for x in ["photo", "signature", "sign"])
+            if is_media: continue
 
-        for es in exam_subjects:
-            val = stored_values.get(es.name.lower().strip())
+            parts = val_str.split(":")
+            if len(parts) >= 2:
+                s_name = parts[0].strip()
+                s_marks = parts[1].strip()
+                s_max = parts[2].strip() if len(parts) >= 3 else None
+                
+                # Check if second part is numeric to avoid false positives
+                try:
+                    float(s_marks)
+                    stored_marks[s_name.lower().strip()] = {
+                        "name": s_name,
+                        "marks": s_marks,
+                        "max": s_max
+                    }
+                except ValueError:
+                    continue
+
+    # 3. Prepare final subjects list
+    subjects = []
+    processed_names = set()
+
+    # Priority 1: Subjects from Exam Configuration (maintains order)
+    if exam_obj:
+        from academics.models import ExamSubject
+        for es in ExamSubject.objects.filter(exam=exam_obj).order_by('id'):
+            es_name_lower = es.name.lower().strip()
+            val = stored_marks.get(es_name_lower)
+            
             marks = val["marks"] if val else ""
             # Prioritize stored max marks, fallback to config
             max_val = val["max"] if val and val["max"] else es.max_marks
@@ -1717,25 +1744,17 @@ def edit_application(request, app_id):
                 "max": max_val,
                 "pass": es.pass_mark
             })
-    else:
-        # Fallback if no exam identified (older records)
-        latest_subjects = {}
-        for v in app.field_values.all().order_by('-id'):
-            if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
-                parts = str(v.value).split(":")
-                if len(parts) >= 2:
-                    name = parts[0].strip()
-                    marks = parts[1].strip()
-                    max_v = parts[2].strip() if len(parts) >= 3 else "100"
-                    if name not in latest_subjects:
-                        latest_subjects[name] = {"marks": marks, "max": max_v}
-        
-        for name, data in latest_subjects.items():
+            processed_names.add(es_name_lower)
+
+    # Priority 2: Any other marks found in DB but not in config (the "exact copy" part)
+    for name_lower, data in stored_marks.items():
+        if name_lower not in processed_names:
+            config = subjects_config.get(name_lower, {"max": 100, "pass": 35})
             subjects.append({
-                "name": name,
+                "name": data["name"],
                 "marks": data["marks"],
-                "max": data["max"],
-                "pass": 35
+                "max": data["max"] or config["max"],
+                "pass": config["pass"]
             })
         
         

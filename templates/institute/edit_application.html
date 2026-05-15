@@ -86,32 +86,56 @@
                             <option value="{{ opt.value }}" {% if field.value == opt.value %}selected{% endif %}>{{ opt.display_text }}</option>
                             {% endfor %}
                         </select>
-
-                        <!-- ACADEMIC MATRIX (TIE-BREAKERS) -->
                         {% if "exam" in field.label|lower %}
-                        <div class="mt-6 p-8 bg-blue-50/50 rounded-[2.5rem] border-2 border-blue-100 col-span-1 md:col-span-2">
-                            <h4 class="text-[10px] font-black text-blue-600 mb-6 uppercase tracking-[0.2em] flex items-center gap-3">
-                                <span class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-mono">Σ</span>
-                                Metric Performance Data
-                            </h4>
-                            <div class="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
-                                <table class="w-full text-xs">
+                        <!-- ACADEMIC MATRIX (TIE-BREAKERS) -->
+                        <div class="mt-8 p-6 md:p-10 bg-blue-50/40 rounded-[2rem] border-2 border-blue-100/50 col-span-1 md:col-span-2 shadow-sm">
+                            <div class="flex items-center justify-between mb-8">
+                                <div class="flex items-center gap-4">
+                                    <div class="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xl font-black text-slate-800 tracking-tight">Metric Performance Data</h4>
+                                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Qualifying Examination Marks Details</p>
+                                    </div>
+                                </div>
+                                <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-blue-100 shadow-sm">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span class="text-[10px] font-black text-slate-600 uppercase">Live Validation</span>
+                                </div>
+                            </div>
+
+                            <div class="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl shadow-blue-900/5">
+                                <table class="w-full text-left table-fixed">
                                     <thead>
-                                        <tr class="bg-slate-50 text-slate-400">
-                                            <th class="px-6 py-4 text-left uppercase tracking-widest font-black">Subject Cluster</th>
-                                            <th class="px-6 py-4 text-center uppercase tracking-widest font-black">Audit Marks</th>
+                                        <tr class="bg-slate-50/80 text-slate-500 border-b border-blue-50">
+                                            <th class="w-[60%] px-6 py-5 text-[10px] uppercase tracking-widest font-black">Subject Cluster</th>
+                                            <th class="w-[40%] px-6 py-5 text-center text-[10px] uppercase tracking-widest font-black">Marks Obtained / Max</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         {% for s in subjects %}
-                                        <tr class="hover:bg-slate-50/50 transition-colors">
-                                            <td class="px-6 py-5 font-black text-slate-700 text-sm">{{ s.name }}</td>
+                                        <tr class="hover:bg-blue-50/30 transition-colors group">
                                             <td class="px-6 py-5">
-                                                <div class="flex items-center justify-center gap-3">
-                                                    <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}"
-                                                           class="w-24 bg-slate-50 border-2 border-slate-100 p-3 rounded-xl font-black text-blue-600 text-center focus:border-blue-500 outline-none transition-all">
-                                                    <input type="hidden" name="max_{{ s.name }}" value="{{ s.max }}">
-                                                    <span class="text-slate-300 font-bold text-[10px] italic">MAX {{ s.max }} (MN: {{ s.pass }})</span>
+                                                <div class="flex flex-col">
+                                                    <span class="font-bold text-slate-800 text-sm group-hover:text-blue-700 transition-colors">{{ s.name }}</span>
+                                                    {% if s.pass %}
+                                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">Min. Required: {{ s.pass }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-5">
+                                                <div class="flex flex-col items-center gap-2">
+                                                    <div class="flex items-center gap-3">
+                                                        <input type="number" name="subject_{{ s.name }}" value="{{ s.marks }}" step="0.01"
+                                                               class="w-24 bg-slate-50 border-2 border-slate-200 p-3 rounded-xl font-black text-blue-700 text-center focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-inner">
+                                                        <span class="text-slate-400 font-black text-sm">/</span>
+                                                        <div class="relative">
+                                                            <input type="number" name="max_{{ s.name }}" value="{{ s.max }}"
+                                                                   class="w-20 bg-slate-100/50 border-2 border-slate-100 p-3 rounded-xl font-bold text-slate-500 text-center focus:border-blue-400 outline-none transition-all">
+                                                            <div class="absolute -top-2 -right-2 px-1.5 py-0.5 bg-slate-200 rounded text-[8px] font-black text-slate-600 uppercase">Max</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
