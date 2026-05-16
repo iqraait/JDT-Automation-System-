@@ -17,7 +17,7 @@
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 8mm 12mm;
+            padding: 8mm 12mm 10% 12mm;
             margin: 10mm auto;
             background: white;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
@@ -48,7 +48,7 @@
                 margin: 0;
                 box-shadow: none;
                 border: none;
-                padding: 15mm 10mm;
+                padding: 15mm 10mm 6% 10mm;
                 page-break-after: always;
             }
             .no-print {
@@ -163,7 +163,7 @@
                 <div class="mt-2 inline-block px-3 py-1 border border-black text-xs font-bold uppercase">
                     Academic Year {{ app.academic_year|default:"2025-2026" }}
                 </div>
-                <h2 class="text-xl font-black uppercase mt-3 tracking-tighter text-slate-800">Admission Application Form</h2>
+                <h6 class="text-xs font-black uppercase mt-3 tracking-tighter text-slate-800">Admission Application Form</h6>
             </div>
             <div class="w-32">
                 {% if photo %}
@@ -276,7 +276,9 @@
                         <th>{% if item.field %}{{ item.field.label }}{% else %}{{ item.field_label }}{% endif %}</th>
                         <td>
                             {% if item.field.field_type == 'file' %}
-                                [Document Uploaded]
+                                {% if item.id and item.value and item.value != '-' and item.value != 'None' and item.value != '' %}
+                                     [Document Uploaded]
+                                {% endif %}
                             {% else %}
                                 {{ item.display_value|default:item.value|default:"-" }}
                             {% endif %}
@@ -366,7 +368,7 @@
         </div>
 
         {% if payment %}
-        <p class="text-center text-[8px] text-slate-400 font-bold uppercase mt-10 tracking-widest">
+        <p class="text-center text-[14px] text-slate-400 font-bold uppercase mt-10 tracking-widest">
             Payment: {{ payment.get_status_display|upper }} &nbsp;•&nbsp; 
             ID: {{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }} &nbsp;•&nbsp; 
             Mode: {{ payment.payment_mode|upper }} 
@@ -376,7 +378,7 @@
         </p>
         {% endif %}
 
-        <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-2 tracking-widest no-print">
+        <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-2 tracking-widest">
             Applied On: {{ app.created_at|date:"d/m/Y H:i" }} &nbsp;&nbsp;•&nbsp;&nbsp; Printed On: {{ print_date }}
         </p>
     </div>
