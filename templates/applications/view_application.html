@@ -34,10 +34,16 @@
             }
         }
 
+        @media screen {
+            .print-header, .print-footer {
+                display: none !important;
+            }
+        }
+
         @media print {
             @page {
                 size: A4;
-                margin: 15mm 0;
+                margin: 0;
             }
             body {
                 background: white;
@@ -146,7 +152,14 @@
         </button>
     </div>
 
-    <div class="a4-page">
+    <table class="print-wrapper" style="width: 100%; border: none; margin: 0; padding: 0; border-collapse: collapse;">
+        <thead class="print-header" style="border: none;">
+            <tr style="border: none;"><td style="border: none; padding: 0;"><div style="height: 15mm;"></div></td></tr>
+        </thead>
+        <tbody style="border: none;">
+            <tr style="border: none;">
+                <td style="border: none; padding: 0;">
+                    <div class="a4-page">
 
         <!-- HEADER -->
         <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
@@ -386,7 +399,14 @@
         <p class="text-center text-[8px] text-slate-300 font-bold uppercase mt-2 tracking-widest">
             Applied On: {{ app.created_at|date:"d/m/Y H:i" }} &nbsp;&nbsp;•&nbsp;&nbsp; Printed On: {{ print_date }}
         </p>
-    </div>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot class="print-footer" style="border: none;">
+            <tr style="border: none;"><td style="border: none; padding: 0;"><div style="height: 15mm;"></div></td></tr>
+        </tfoot>
+    </table>
 
 </body>
 
