@@ -11,7 +11,7 @@
             font-family: 'Arial', sans-serif;
             background-color: #f8fafc;
             color: #000 !important;
-            line-height: 1.3;
+            line-height: 1.15;
         }
 
         .a4-page {
@@ -76,14 +76,14 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         th, td {
             border: 1px solid #000;
-            padding: 5px 10px;
+            padding: 3px 6px;
             text-align: left;
-            font-size: 12px;
+            font-size: 11px;
             color: #000 !important;
             font-weight: normal !important;
             font-style: normal !important;
@@ -96,13 +96,13 @@
         }
 
         .section-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             color: #000 !important;
             text-transform: uppercase;
-            margin: 10px 0 4px 0;
+            margin: 6px 0 2px 0;
             border-bottom: 1.5px solid #000;
-            padding-bottom: 2px;
+            padding-bottom: 1px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -111,11 +111,11 @@
         .signature-line {
             border-top: 1px solid #000;
             width: 160px;
-            margin-top: 30px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            padding-top: 4px;
+            padding-top: 2px;
         }
 
         h1, h2, h3, h4, p, span, div {
@@ -162,7 +162,7 @@
                     <div class="a4-page">
 
         <!-- HEADER -->
-        <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
+        <div class="flex justify-between items-start border-b-2 border-black pb-2 mb-2">
             <div class="w-24">
                 {% if app.institute.logo %}
                 <img src="{{ app.institute.logo.url }}" alt="Logo" class="max-w-full h-auto">
@@ -195,7 +195,7 @@
         </div>
 
 
-        <div class="flex justify-between items-center mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+        <div class="flex justify-between items-center mb-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
             <div>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application Form ID</p>
                 <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">#{{ app.id|stringformat:"05d" }}</p>
@@ -305,7 +305,7 @@
 
 
         <!-- DECLARATION -->
-        <div class="mt-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <div class="mt-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
             <h4 class="text-[11px] font-black uppercase mb-3 flex items-center gap-2">
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -318,7 +318,7 @@
                 I, ________________________________________, hereby declare that all the statements made in this application are true, complete and correct to the best of my knowledge and belief and that in the event of any information being found false or incorrect, my admission may be cancelled.
             </p>
 
-            <div class="flex justify-between items-end mt-6 px-2">
+            <div class="flex justify-between items-end mt-3 px-2">
                 <div class="space-y-3">
                     <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Place:
                         .............................</p>
@@ -328,16 +328,16 @@
                 <div class="flex gap-12">
                     <div class="flex flex-col items-center">
                         {% if signature %}
-                        <div class="h-16 flex items-end -mb-2">
-                            <img src="{{ MEDIA_URL }}{{ signature }}" class="max-h-16 w-auto" alt="Signature">
+                        <div class="h-12 flex items-end -mb-2">
+                            <img src="{{ MEDIA_URL }}{{ signature }}" class="max-h-12 w-auto" alt="Signature">
                         </div>
                         {% else %}
-                        <div class="h-14"></div>
+                        <div class="h-10"></div>
                         {% endif %}
                         <div class="signature-line">Student Signature</div>
                     </div>
                     <div class="flex flex-col items-center">
-                        <div class="h-12"></div>
+                        <div class="h-8"></div>
                         <div class="signature-line">Guardian Signature</div>
                     </div>
                 </div>
@@ -346,14 +346,14 @@
 
 
         <!-- OFFICE USE -->
-        <div class="mt-4 border-2 border-slate-900 rounded-2xl p-4 bg-slate-50/30 relative overflow-hidden">
+        <div class="mt-2 border-2 border-slate-900 rounded-2xl p-2 bg-slate-50/30 relative overflow-hidden">
             <div class="absolute top-0 right-0 p-4 opacity-5">
                 <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
                 </svg>
             </div>
             <h4
-                class="text-center text-[13px] font-black uppercase tracking-tighter border-b-2 border-slate-900 pb-4 mb-6">
+                class="text-center text-[13px] font-black uppercase tracking-tighter border-b-2 border-slate-900 pb-2 mb-3">
                 Internal Office Use Only</h4>
 
             <div class="grid grid-cols-2 gap-y-3 gap-x-12 text-[11px] font-bold text-slate-600">
@@ -377,9 +377,9 @@
                 </div>
             </div>
 
-            <div class="flex justify-end mt-8">
+            <div class="flex justify-end mt-4">
                 <div class="text-center">
-                    <div class="h-10"></div>
+                    <div class="h-8"></div>
                     <p class="font-black text-[12px] uppercase tracking-tighter border-t-2 border-slate-900 pt-2 px-6">
                         Seal & Signature of Principal</p>
                 </div>
@@ -387,7 +387,7 @@
         </div>
 
         {% if payment %}
-        <p class="text-center text-[12px] text-slate-400 font-bold uppercase mt-10 tracking-widest">
+        <p class="text-center text-[12px] text-slate-400 font-bold uppercase mt-4 tracking-widest">
             Payment: {{ payment.get_status_display|upper }} &nbsp;•&nbsp; 
             ID: {{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }} 
             {% if payment.gateway_response.vpa or payment.gateway_response.upi_id or payment.gateway_response.customer_vpa %}
