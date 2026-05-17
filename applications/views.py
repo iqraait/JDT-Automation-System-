@@ -683,7 +683,7 @@ def view_application(request, app_id):
     exam_name_from_form = None
     for fv in field_values:
         label = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if ("exam" in label or "qualifying" in label) and "marks" not in label:
+        if ("exam" in label or "qualifying" in label) and "marks" not in label and "register" not in label and "no." not in label and "board" not in label and "year" not in label:
             val = str(fv.value).strip()
             # If it's a choice field, get the display text first
             if fv.field and fv.field.field_type in ['select', 'radio']:
@@ -816,7 +816,7 @@ def view_application(request, app_id):
                     fv.display_value = opt.display_text
 
             # If this is the exam field, ensure it shows the correctly resolved name
-            if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
+            if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower and "register" not in label_lower and "no." not in label_lower and "board" not in label_lower and "year" not in label_lower:
                 if exam_obj:
                     fv.display_value = exam_obj.name
             

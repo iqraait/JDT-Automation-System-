@@ -47,6 +47,7 @@ User = get_user_model()
 
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from core.sms_utils import send_sms
 
 def send_admission_email(admission):
     """Sends a selection/admission memo to the student email."""
@@ -79,6 +80,11 @@ def send_admission_email(admission):
             html_message=html_message,
             fail_silently=True
         )
+        
+        # Send SMS
+        if student.mobile_number:
+            sms_text = f"Congratulations {student.first_name or student.username}! You are selected for {admission.application.course.name}. Please login to complete admission: {login_url}"
+            send_sms(student.mobile_number, sms_text)
     except Exception as e:
         print(f"Email failed: {e}")
 
@@ -125,6 +131,11 @@ def send_status_email(application, new_status):
             fail_silently=False  # Changed to False to see errors
         )
         print(f"Status email sent to {student.email} for Application #{application.id}")
+
+        # Send SMS
+        if student.mobile_number:
+            sms_text = f"Update: Your application for {application.course.name} is {status_display}. Check portal for details: {login_url}"
+            send_sms(student.mobile_number, sms_text)
     except Exception as e:
         print(f"CRITICAL: Status email failed for App #{application.id}: {e}")
 
@@ -162,6 +173,11 @@ def send_admission_status_email(admission, new_status):
             html_message=html_message,
             fail_silently=True
         )
+
+        # Send SMS
+        if student.mobile_number:
+            sms_text = f"Alert: Your admission status for {admission.application.course.name} has been updated to {status_display}."
+            send_sms(student.mobile_number, sms_text)
     except Exception as e:
         print(f"Admission status email failed: {e}")
 
@@ -784,7 +800,7 @@ def view_application(request, app_id):
     exam_name_from_form = None
     for fv in field_values:
         label = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if ("exam" in label or "qualifying" in label) and "marks" not in label:
+        if ("exam" in label or "qualifying" in label) and "marks" not in label and "register" not in label and "no." not in label and "board" not in label and "year" not in label:
             val = str(fv.value).strip()
             # If it's a choice field, get the display text first
             if fv.field and fv.field.field_type in ['select', 'radio']:
@@ -914,7 +930,7 @@ def view_application(request, app_id):
                     fv.display_value = val
             
             # Special case for exam name to show the friendly name
-            if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower:
+            if ("exam" in label_lower or "qualifying" in label_lower) and "marks" not in label_lower and "register" not in label_lower and "no." not in label_lower and "board" not in label_lower and "year" not in label_lower:
                 if exam_obj:
                     fv.display_value = exam_obj.name
             
