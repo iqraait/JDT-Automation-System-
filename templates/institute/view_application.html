@@ -199,7 +199,7 @@
         
         {# First show all sections except Qualification and Documents #}
         {% for section in section_list %}
-            {% if section.grouper != "Qualification Details" and section.grouper != "Documents Upload" %}
+            {% if section.grouper != "Qualification Details" and section.grouper != "Qualification Marks Details" and section.grouper != "Documents Upload" %}
             <div class="section-title">{{ section.grouper|default:"Personal Details" }}</div>
             <table>
                 <tbody>
@@ -216,7 +216,7 @@
 
         {# 1. Qualification Details #}
         {% for section in section_list %}
-            {% if section.grouper == "Qualification Details" %}
+            {% if section.grouper == "Qualification Details" or section.grouper == "Qualification Marks Details" %}
             <div class="section-title">{{ section.grouper }}</div>
             <table>
                 <tbody>
@@ -345,9 +345,9 @@
 
             <div class="grid grid-cols-2 gap-y-3 gap-x-12 text-[11px] font-bold text-slate-600">
                 <div class="space-y-4">
-                    <p class="border-b border-slate-200 pb-1">Verification Status:
+                    <p class="border-b border-slate-200 pb-1">Admission Quota:
                         ............................................</p>
-                    <p class="border-b border-slate-200 pb-1">Admission Number:
+                    <p class="border-b border-slate-200 pb-1">No. Date Of TC:
                         ............................................</p>
                 </div>
                 <div class="space-y-4">
