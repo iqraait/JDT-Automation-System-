@@ -85,9 +85,14 @@
                                     Paid
                                 </div>
                             {% elif app.payment.status == "failed" %}
-                                <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                    Payment Failed
+                                <div class="flex flex-col gap-2">
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-100 w-fit">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                        Payment Failed
+                                    </div>
+                                    <button type="button" onclick="showRetryModal('{{ app.id }}')" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-100 w-fit">
+                                        Retry Payment
+                                    </button>
                                 </div>
                             {% else %}
                                 <a href="/payment/{{ app.id }}/" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-100">
@@ -184,12 +189,60 @@ function closeRemarks() {
     modal.classList.remove('flex');
 }
 
+function showRetryModal(appId) {
+    document.getElementById('retryContinueBtn').href = '/payment/' + appId + '/';
+    const modal = document.getElementById('retryModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeRetryModal() {
+    const modal = document.getElementById('retryModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
 // Close on outside click
 window.onclick = function(event) {
-    const modal = document.getElementById('remarksModal');
-    if (event.target == modal) {
+    const remarksModal = document.getElementById('remarksModal');
+    const retryModal = document.getElementById('retryModal');
+    if (event.target == remarksModal) {
         closeRemarks();
+    }
+    if (event.target == retryModal) {
+        closeRetryModal();
     }
 }
 </script>
+
+<!-- RETRY PAYMENT MODAL -->
+<div id="retryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[150] animate-fade-in p-4">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all">
+        <div class="p-8">
+            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6 mx-auto border border-red-100">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-4 text-center tracking-tight">Warning</h3>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
+                <p class="text-amber-800 text-[13px] font-semibold text-center leading-relaxed">
+                    If Application fee is debited from your Account, <span class="font-black text-red-600 block mt-1 text-base">Don't make payment again!</span>
+                </p>
+                <div class="mt-4 pt-4 border-t border-amber-200/50 text-center">
+                    <p class="text-amber-700 text-xs font-bold uppercase tracking-widest">Please Call/Whatsapp</p>
+                    <p class="text-amber-900 font-black text-xl mt-1">6282014276</p>
+                    <p class="text-amber-600 text-[10px] font-bold uppercase tracking-widest mt-1">(10am - 5pm)</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeRetryModal()" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all uppercase tracking-widest text-xs">
+                    Cancel
+                </button>
+                <a id="retryContinueBtn" href="#" class="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-200 text-center flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+                    Continue
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
