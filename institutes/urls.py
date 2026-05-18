@@ -26,6 +26,10 @@ urlpatterns = [
     path('student-list/', student_list_view, name='student_list'),
     path('student-list/export/', export_students_excel, name='export_students_excel'),
 
+    # ✅ NEW: Payment Details
+    path('payment-list/', payment_list_view, name='payment_list'),
+    path('payment-list/export/', export_payments_excel, name='export_payments_excel'),
+
     path('application/<int:app_id>/download/', download_application_zip, name='download_application'),
     
     # STUDENT STATUS

@@ -2265,3 +2265,84 @@ def enter_academic_results(request):
         'selected_period': selected_period,
         'selected_subject': selected_subject
     })
+
+# =========================
+# PAYMENT DETAILS
+# =========================
+from django.core.paginator import Paginator
+from applications.models import Payment
+
+@login_required
+def payment_list_view(request):
+    institute = getattr(request.user, 'institute', None)
+    if not institute:
+        return HttpResponse("Unauthorized", status=401)
+        
+    # Filter payments for this institute
+    payments = Payment.objects.filter(application__institute=institute).select_related(
+        'application__student', 'application__course'
+    ).order_by('-created_at')
+    
+    # Search
+    search_query = request.GET.get('q', '')
+    if search_query:
+        payments = payments.filter(
+            Q(application__student__first_name__icontains=search_query) |
+            Q(application__student__username__icontains=search_query) |
+            Q(gateway_transaction_id__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+        
+    # Pagination
+    paginator = Paginator(payments, 50) # 50 per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'institute/payment_list.html', {
+        'page_obj': page_obj,
+        'search_query': search_query
+    })
+
+@login_required
+def export_payments_excel(request):
+    institute = getattr(request.user, 'institute', None)
+    if not institute:
+        return HttpResponse("Unauthorized", status=401)
+        
+    payments = Payment.objects.filter(application__institute=institute).select_related('application__student')
+    
+    search_query = request.GET.get('q', '')
+    if search_query:
+        payments = payments.filter(
+            Q(application__student__first_name__icontains=search_query) |
+            Q(application__student__username__icontains=search_query) |
+            Q(gateway_transaction_id__icontains=search_query) |
+            Q(id__icontains=search_query)
+        ).distinct()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Student Payments"
+
+    headers = ['ID', 'Student Name', 'Payment Status', 'Amount', 'Payment Mode', 'Gateway Transaction ID', 'Created At']
+    ws.append(headers)
+
+    for payment in payments:
+        student_name = payment.application.student.first_name or payment.application.student.username
+        created_at_str = payment.created_at.strftime('%Y-%m-%d %H:%M') if payment.created_at else ''
+        status_display = dict(Payment._meta.get_field('status').choices).get(payment.status, payment.status).title()
+        
+        ws.append([
+            str(payment.id),
+            student_name,
+            status_display,
+            float(payment.amount),
+            payment.payment_mode or '-',
+            payment.gateway_transaction_id or '-',
+            created_at_str
+        ])
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Payment_Details_{institute.name}.xlsx"'
+    wb.save(response)
+    return response
