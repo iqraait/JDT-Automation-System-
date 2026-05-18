@@ -74,6 +74,7 @@ from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
+from core.sms_utils import send_sms
 from django.db.models import Q
 
 def forgot_password(request):
@@ -108,6 +109,11 @@ def forgot_password(request):
                 html_message=html_message,
                 fail_silently=False
             )
+
+            # Send SMS
+            if user.mobile_number:
+                sms_text = f"Password reset request received for your JDT account. Use this link to reset: {reset_url}"
+                send_sms(user.mobile_number, sms_text)
             
             return render(request, 'student/forgot_password.html', {'success': 'Reset link sent to your registered email.'})
         else:

@@ -189,6 +189,12 @@ EMAIL_HOST_USER = 'erp@jdticas.in'
 EMAIL_HOST_PASSWORD = 'crfk wcys naik svzv'
 DEFAULT_FROM_EMAIL = 'erp@jdticas.in'
 
+# SMS Configuration (Fast2SMS)
+SMS_API_KEY = 'ENTER_YOUR_FAST2SMS_API_KEY_HERE' 
+
+
 # Proxy header for SSL termination
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True

@@ -3,8 +3,8 @@
 {% block body_content %}
 <div class="flex h-screen bg-slate-50 overflow-hidden">
 
-    <!-- SIDEBAR (Overlay Mode for All Screens) -->
-    <aside id="sidebar" class="w-72 bg-gradient-to-b from-[#1e3a8a] to-[#1e40af] text-white flex-col transition-all duration-500 ease-in-out -translate-x-full fixed inset-y-0 left-0 z-50 shadow-2xl flex">
+    <!-- SIDEBAR (Sticky on lg screens, Overlay on mobile) -->
+    <aside id="sidebar" class="w-72 bg-gradient-to-b from-[#1e3a8a] to-[#1e40af] text-white flex-col transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 fixed lg:relative inset-y-0 left-0 z-50 shadow-2xl flex flex-shrink-0">
 
         <div class="p-8 flex items-center justify-between border-b border-white/10 flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -13,7 +13,7 @@
                 </div>
                 <h2 class="text-xl font-bold tracking-tight text-white">{% block sidebar_title %}JDT CMS{% endblock %}</h2>
             </div>
-            <button onclick="toggleSidebar()" class="text-white/70 hover:text-white transition-colors">
+            <button onclick="toggleSidebar()" class="text-white/70 hover:text-white transition-colors lg:hidden">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
@@ -93,7 +93,7 @@
     </aside>
 
     <!-- GLOBAL OVERLAY (Fading Background) -->
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-500"></div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 lg:hidden"></div>
 
     <!-- MAIN CONTENT AREA (Always Full Width) -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -102,7 +102,7 @@
         <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-30">
 
             <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                <button onclick="toggleSidebar()" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all flex-shrink-0 shadow-sm group">
+                <button onclick="toggleSidebar()" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all flex-shrink-0 shadow-sm group lg:hidden">
                     <svg class="h-6 w-6 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
                 <h1 class="text-sm md:text-xl font-bold text-slate-800 truncate tracking-tight uppercase md:normal-case">{% block header_title %}Dashboard{% endblock %}</h1>
@@ -123,16 +123,28 @@
                 </form>
                 {% endblock %}
 
-                <!-- USER PROFILE -->
-                <div class="flex items-center gap-2 md:gap-3 pl-3 md:pl-6 border-l border-slate-200">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-sm font-semibold text-slate-800">{{ request.user.username }}</p>
-                        <p class="text-xs text-slate-500 font-medium capitalize">
-                            {% if request.user.is_staff %}Administrator{% else %}Student Portal{% endif %}
-                        </p>
+                <!-- USER PROFILE DROPDOWN -->
+                <div class="relative group">
+                    <div class="flex items-center gap-2 md:gap-3 pl-3 md:pl-6 border-l border-slate-200 cursor-pointer py-2">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-semibold text-slate-800">{{ request.user.username }}</p>
+                            <p class="text-xs text-slate-500 font-medium capitalize">
+                                {% if request.user.is_staff %}Administrator{% else %}Student Portal{% endif %}
+                            </p>
+                        </div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm ring-1 ring-slate-100 flex-shrink-0">
+                            {{ request.user.username|first|upper }}
+                        </div>
                     </div>
-                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm ring-1 ring-slate-100 flex-shrink-0">
-                        {{ request.user.username|first|upper }}
+                    <!-- Dropdown Menu -->
+                    <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top-right scale-95 group-hover:scale-100">
+                        <div class="p-2 space-y-1 relative">
+                            <!-- Invisible safe-hover bridge -->
+                            <div class="absolute -top-4 left-0 right-0 h-4 bg-transparent"></div>
+                            <a href="{% url 'forgot_password' %}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors font-medium">Change Password</a>
+                            <div class="h-px bg-slate-100 my-1"></div>
+                            <a href="{% if request.user.role == 'institute' %}{% url 'institute_logout' %}{% else %}/logout/{% endif %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium">Logout</a>
+                        </div>
                     </div>
                 </div>
             </div>

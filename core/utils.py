@@ -242,8 +242,8 @@ def generate_application_pdf(application, buffer):
         [Paragraph("FOR OFFICE USE ONLY", ParagraphStyle('Off', parent=styles['Normal'], fontSize=10, alignment=1, fontName='Roboto-Bold'))],
         [Spacer(1, 5)],
         [Table([
-            ["Verification Status: ............................", "Admission Number: ............................"],
-            ["Payment Ref: ....................................", "Checked By: ......................................."]
+            ["Admission Quota: ............................", "No: Date Of Tc: ............................"],
+            ["Rank: ....................................", "Checked By: ......................................."]
         ], colWidths=[3*inch, 3*inch])],
         [Spacer(1, 15)],
         [Paragraph("................................................<br/>Seal & Signature of Principal", ParagraphStyle('Seal', parent=styles['Normal'], fontSize=8, alignment=2))]
