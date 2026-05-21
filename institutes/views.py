@@ -1420,10 +1420,13 @@ def institute_dashboard(request):
          return redirect('/')
 
     # Support filtering and search
+    # Support filtering and search
     query = request.GET.get('q', '')
     course_filter = request.GET.get('course', '')
     year_filter = request.GET.get('year', '')
     status_filter = request.GET.get('status', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
 
     # Query applications for this institute (both pending-registration and admitted)
     # REQUIREMENT: Only students with Payment Status = Paid should appear
@@ -1457,6 +1460,11 @@ def institute_dashboard(request):
         else:
             # Try both if unknown
             apps = apps.filter(Q(status=status_filter) | Q(admission__status=status_filter))
+
+    if date_from:
+        apps = apps.filter(created_at__date__gte=date_from)
+    if date_to:
+        apps = apps.filter(created_at__date__lte=date_to)
 
     # Performance: Pagination
     paginator = Paginator(apps, 20)
@@ -1528,6 +1536,8 @@ def institute_dashboard(request):
         'selected_course': course_filter,
         'selected_year': year_filter,
         'selected_status': status_filter,
+        'date_from': date_from,
+        'date_to': date_to,
         'query': query,
         'notices': notices
     })
@@ -2283,8 +2293,11 @@ def payment_list_view(request):
         'application__student', 'application__course'
     ).order_by('-created_at')
     
-    # Search
+    # Search and Filter
     search_query = request.GET.get('q', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
     if search_query:
         payments = payments.filter(
             Q(application__student__first_name__icontains=search_query) |
@@ -2293,6 +2306,11 @@ def payment_list_view(request):
             Q(id__icontains=search_query)
         )
         
+    if date_from:
+        payments = payments.filter(created_at__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(created_at__date__lte=date_to)
+        
     # Pagination
     paginator = Paginator(payments, 50) # 50 per page
     page_number = request.GET.get('page')
@@ -2300,7 +2318,9 @@ def payment_list_view(request):
     
     return render(request, 'institute/payment_list.html', {
         'page_obj': page_obj,
-        'search_query': search_query
+        'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to
     })
 
 @login_required
@@ -2312,6 +2332,9 @@ def export_payments_excel(request):
     payments = Payment.objects.filter(application__institute=institute).select_related('application__student')
     
     search_query = request.GET.get('q', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
     if search_query:
         payments = payments.filter(
             Q(application__student__first_name__icontains=search_query) |
@@ -2319,6 +2342,11 @@ def export_payments_excel(request):
             Q(gateway_transaction_id__icontains=search_query) |
             Q(id__icontains=search_query)
         ).distinct()
+
+    if date_from:
+        payments = payments.filter(created_at__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(created_at__date__lte=date_to)
 
     wb = Workbook()
     ws = wb.active
