@@ -1,0 +1,261 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Fee Reports & Financial Audits | JDT Automation{% endblock %}
+
+{% block sidebar_title %}Admission Portal{% endblock %}
+
+{% block header_title %}Financial Analytics & Audits{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
+    
+    <!-- HEADER AND ACTIONS -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+        <div>
+            <h1 class="text-4xl font-black text-slate-800 tracking-tight">Fee <span class="text-blue-600">Reports</span> & Audits</h1>
+            <p class="text-slate-500 mt-2 font-medium">Audit dynamic demand charts, outstanding balance rosters, and real-time receipts.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'student_list' %}" class="px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Student Inventory
+            </a>
+        </div>
+    </div>
+
+    <!-- OVERALL METRIC CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Aggregate Demand -->
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2rem] p-8 shadow-xl shadow-blue-100 space-y-4 relative overflow-hidden group">
+            <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                <svg class="w-36 h-36" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+            </div>
+            <p class="text-xs font-black uppercase tracking-[0.2em] text-blue-200">Aggregate Demanded Fees</p>
+            <h3 class="text-4xl font-black font-mono">₹{{ total_all_demand|floatformat:2 }}</h3>
+            <p class="text-[10px] text-blue-100 font-bold bg-white/10 px-3 py-1 rounded-lg inline-block">Sum of Mapped Structures Dues</p>
+        </div>
+
+        <!-- Aggregate Collected -->
+        <div class="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm space-y-4 relative overflow-hidden group">
+            <div class="absolute -right-4 -bottom-4 text-emerald-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
+                <svg class="w-36 h-36" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Aggregate Receipts Collected</p>
+            <h3 class="text-4xl font-black font-mono text-emerald-600">₹{{ total_all_collected|floatformat:2 }}</h3>
+            <p class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg inline-block">Includes Penalties / Fines</p>
+        </div>
+
+        <!-- Aggregate Outstanding -->
+        <div class="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm space-y-4 relative overflow-hidden group">
+            <div class="absolute -right-4 -bottom-4 text-rose-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
+                <svg class="w-36 h-36" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </div>
+            <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Total Outstanding Balance</p>
+            <h3 class="text-4xl font-black font-mono text-rose-600">₹{{ total_all_pending|floatformat:2 }}</h3>
+            <p class="text-[10px] text-rose-600 font-bold bg-rose-50 px-3 py-1 rounded-lg inline-block">Outstanding Dues Dues</p>
+        </div>
+    </div>
+
+    <!-- ADVANCED FILTER MATRIX -->
+    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+            
+            <!-- Academic Session -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Session</label>
+                <select name="academic_year_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Years</option>
+                    {% for b in batches %}
+                    <option value="{{ b.id }}" {% if selected_year == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Course selection -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Course</label>
+                <select name="course_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Class selection -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Class Division</label>
+                <select name="class_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Classes</option>
+                    {% for cls in classes %}
+                    <option value="{{ cls.id }}" {% if selected_class == cls.id|stringformat:"s" %}selected{% endif %}>{{ cls.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Term Year selection -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Active Term</label>
+                <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Terms</option>
+                    {% for cy in class_years %}
+                    <option value="{{ cy.id }}" {% if selected_class_year == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy.name }} ({{ cy.class_obj.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Fee Category Master -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Billing Category</label>
+                <select name="fee_category_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Categories</option>
+                    {% for fc in fee_categories %}
+                    <option value="{{ fc.id }}" {% if selected_fee_category == fc.id|stringformat:"s" %}selected{% endif %}>{{ fc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Fee Type filter -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Fee Type</label>
+                <div class="flex gap-2">
+                    <select name="fee_type_id" class="flex-1 bg-slate-50 border border-slate-200 px-3 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-[10px] text-slate-700">
+                        <option value="">All Types</option>
+                        {% for ft in fee_types %}
+                        <option value="{{ ft.id }}" {% if selected_fee_type == ft.id|stringformat:"s" %}selected{% endif %}>{{ ft.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-100 transition-all flex-shrink-0 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- STUDENT OUTSTANDING DEMANDS ROSTER -->
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden animate-fade-in">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-slate-800">Outstanding Balance Roster</h3>
+            <span class="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-widest">Active Debts</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-medium text-slate-500">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <th class="px-8 py-5">Student Info</th>
+                        <th class="px-8 py-5">Register No</th>
+                        <th class="px-8 py-5">Term & Class</th>
+                        <th class="px-8 py-5">Fee Category</th>
+                        <th class="px-8 py-5 font-mono">Net Demand</th>
+                        <th class="px-8 py-5 font-mono">Paid Fees</th>
+                        <th class="px-8 py-5 font-mono">Fines Collected</th>
+                        <th class="px-8 py-5 font-mono text-rose-600">Pending Balance</th>
+                        <th class="px-8 py-5">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 font-medium">
+                    {% for item in roster_data %}
+                    <tr class="hover:bg-slate-50/20 transition-all">
+                        <td class="px-8 py-5">
+                            <p class="font-black text-slate-700 text-sm leading-tight">{{ item.admission.application.display_name }}</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ item.admission.application.student.email|default:item.admission.application.student.username }}</p>
+                        </td>
+                        <td class="px-8 py-5 font-bold font-mono text-slate-600">{{ item.admission.register_number }}</td>
+                        <td class="px-8 py-5">
+                            <span class="font-bold text-slate-700 leading-tight block">{{ item.admission.assigned_class_year.name }}</span>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 block">{{ item.admission.assigned_class.name }}</span>
+                        </td>
+                        <td class="px-8 py-5">
+                            <span class="font-bold text-slate-700 leading-tight block">{{ item.fee_category.name }}</span>
+                            {% if item.discount_pct > 0 %}
+                            <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block mt-1">Discount: {{ item.discount_pct|floatformat:0 }}%</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-8 py-5 font-black text-slate-700 font-mono text-sm">₹{{ item.demand|floatformat:2 }}</td>
+                        <td class="px-8 py-5 font-black text-emerald-600 font-mono">₹{{ item.collected|floatformat:2 }}</td>
+                        <td class="px-8 py-5 font-black text-amber-600 font-mono">₹{{ item.fine_collected|floatformat:2 }}</td>
+                        <td class="px-8 py-5 font-black text-rose-600 font-mono text-sm">
+                            ₹{{ item.pending|floatformat:2 }}
+                        </td>
+                        <td class="px-8 py-5">
+                            <a href="{% url 'manage_student_fees' item.admission.id %}" class="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all block text-center shadow-sm">
+                                View Ledger
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-8 py-20 text-center text-slate-400 italic">No student demands found matching the active filter parameters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DAILY COLLECTION AUDIT TRAIL -->
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-slate-800">Daily Collection Audit Log</h3>
+            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Auditing (Last 100)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-medium text-slate-500">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <th class="px-8 py-5">Receipt ID</th>
+                        <th class="px-8 py-5">Date</th>
+                        <th class="px-8 py-5">Candidate Name</th>
+                        <th class="px-8 py-5">Demanded Head</th>
+                        <th class="px-8 py-5 font-mono">Amount Paid</th>
+                        <th class="px-8 py-5 font-mono">Penalty Paid</th>
+                        <th class="px-8 py-5">Mode</th>
+                        <th class="px-8 py-5 font-mono">Reference No</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 font-medium">
+                    {% for payment in ledger_payments %}
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="px-8 py-5 font-black text-slate-700">#{{ payment.id }}</td>
+                        <td class="px-8 py-5">{{ payment.payment_date|date:"d M, Y" }}</td>
+                        <td class="px-8 py-5">
+                            <span class="font-bold text-slate-800 block">{{ payment.admission.application.display_name }}</span>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">{{ payment.admission.register_number }}</span>
+                        </td>
+                        <td class="px-8 py-5 font-bold text-slate-600">{{ payment.fee_head.fee_type.name }}</td>
+                        <td class="px-8 py-5 font-black text-slate-800 font-mono text-sm">₹{{ payment.amount_paid|floatformat:2 }}</td>
+                        <td class="px-8 py-5 font-black text-amber-600 font-mono">₹{{ payment.fine_paid|floatformat:2 }}</td>
+                        <td class="px-8 py-5">
+                            <span class="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider
+                                {% if payment.payment_mode == 'cash' %}bg-amber-50 text-amber-600
+                                {% elif payment.payment_mode == 'online' %}bg-blue-50 text-blue-600
+                                {% else %}bg-purple-50 text-purple-600{% endif %}">
+                                {{ payment.get_payment_mode_display }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-5 font-mono">{{ payment.reference_no|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-8 py-12 text-center text-slate-400 italic">No dynamic collection logs recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+</style>
+{% endblock %}

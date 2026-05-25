@@ -11,7 +11,8 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from academics.models import (
     Course, FormField, FormSection, CourseCategory, CourseSubCategory, 
-    ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument
+    ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument,
+    ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment
 )
 from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission
 from .models import Institute, AcademicYear
@@ -274,12 +275,12 @@ def register_student(request, app_id):
             registration_id=registration_id,
             date_of_join=doj_obj,
             selected_course=course,
-            fee_category_id=fee_cat_id,
+            fee_category_id=fee_cat_id if fee_cat_id else None,
             joining_period_id=joining_period_id if joining_period_id else None,
-            calculated_fee=calculated_fee,
-            discount_amount=discount_amount,
+            calculated_fee=calculated_fee if calculated_fee else 0.00,
+            discount_amount=discount_amount if discount_amount else 0.00,
             discount_reason=discount_reason,
-            final_fee=final_fee,
+            final_fee=final_fee if final_fee else 0.00,
             care_of=care_of,
             guardian_name=guardian_name,
             guardian_mobile=guardian_mobile,
@@ -639,13 +640,13 @@ def register_manual(request):
             registration_id=registration_id,
             date_of_join=doj_obj,
             selected_course_id=course_id,
-            fee_category_id=fee_cat_id,
+            fee_category_id=fee_cat_id if fee_cat_id else None,
             joining_period_id=joining_period_id if joining_period_id else None,
             assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None,
-            calculated_fee=calculated_fee,
-            discount_amount=discount_amount,
+            calculated_fee=calculated_fee if calculated_fee else 0.00,
+            discount_amount=discount_amount if discount_amount else 0.00,
             discount_reason=discount_reason,
-            final_fee=final_fee,
+            final_fee=final_fee if final_fee else 0.00,
             care_of=care_of,
             guardian_name=guardian_name,
             guardian_mobile=guardian_mobile,
@@ -2374,3 +2375,277 @@ def export_payments_excel(request):
     response['Content-Disposition'] = f'attachment; filename="Payment_Details_{institute.name}.xlsx"'
     wb.save(response)
     return response
+
+
+# =============================================================================
+# STUDENT FEE MANAGEMENT VIEWS
+# =============================================================================
+@login_required
+def manage_student_fees(request, admission_id):
+    institute = request.user.institute
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=institute)
+    
+    if request.method == 'POST':
+        class_year_id = request.POST.get('class_year_id')
+        fee_category_id = request.POST.get('fee_category_id')
+        custom_discount = request.POST.get('custom_discount')
+        if class_year_id:
+            admission.assigned_class_year_id = class_year_id
+        else:
+            admission.assigned_class_year = None
+            
+        if fee_category_id:
+            admission.assigned_fee_category_id = fee_category_id
+        else:
+            admission.assigned_fee_category = None
+            
+        if custom_discount:
+            try:
+                admission.custom_discount_percentage = float(custom_discount)
+            except ValueError:
+                pass
+        else:
+            admission.custom_discount_percentage = None
+            
+        admission.save()
+        messages.success(request, f"Fee assignment updated for {admission.application.display_name}")
+        return redirect('manage_student_fees', admission_id=admission_id)
+        
+    # Dropdown fallback logic if class is optional/blank (pull course-level class years)
+    if admission.assigned_class:
+        class_years = ClassYear.objects.filter(class_obj=admission.assigned_class, is_active=True)
+    else:
+        class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True)
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
+    
+    # Mapped Fee Structure
+    fee_heads_data = []
+    total_demand = 0.0
+    total_collected = 0.0
+    total_pending = 0.0
+    total_fine = 0.0
+    
+    # Active Class Resolution fallback
+    active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
+    
+    if active_class and admission.assigned_class_year and admission.assigned_fee_category:
+        structure = FeeStructure.objects.filter(
+            academic_year=admission.application.academic_year,
+            institute=institute,
+            course=admission.selected_course,
+            class_obj=active_class,
+            class_year=admission.assigned_class_year,
+            fee_category=admission.assigned_fee_category
+        ).first()
+        
+        if structure:
+            heads = structure.heads.filter(is_active=True)
+            for head in heads:
+                # CHECK IF DISCOUNT IS ELIGIBLE (User Enhancement 1)
+                if head.fee_type.is_discountable:
+                    discount_pct = admission.custom_discount_percentage if admission.custom_discount_percentage is not None else admission.assigned_fee_category.discount_percentage
+                    discount_pct = discount_pct or 0
+                else:
+                    discount_pct = 0
+                
+                discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                
+                has_fine = False
+                fine_amt = 0.0
+                if datetime.date.today() > head.due_date:
+                    has_fine = True
+                    fine_amt = float(head.fine_amount)
+                    
+                payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head)
+                paid_fee = sum(float(p.amount_paid) for p in payments)
+                paid_fine = sum(float(p.fine_paid) for p in payments)
+                
+                pending_fee = discounted_amount - paid_fee
+                pending_fine = fine_amt - paid_fine if has_fine else 0.0
+                
+                total_for_head = discounted_amount + fine_amt
+                total_paid_for_head = paid_fee + paid_fine
+                total_pending_for_head = pending_fee + pending_fine
+                
+                fee_heads_data.append({
+                    'head': head,
+                    'discounted_amount': discounted_amount,
+                    'discount_pct': discount_pct,
+                    'fine_amount': fine_amt,
+                    'paid_fee': paid_fee,
+                    'paid_fine': paid_fine,
+                    'pending_fee': max(0.0, pending_fee),
+                    'pending_fine': max(0.0, pending_fine),
+                    'total': total_for_head,
+                    'total_paid': total_paid_for_head,
+                    'total_pending': max(0.0, total_pending_for_head)
+                })
+                
+                total_demand += discounted_amount
+                total_collected += paid_fee
+                total_pending += max(0.0, pending_fee)
+                total_fine += paid_fine
+                
+    payments_history = StudentFeePayment.objects.filter(admission=admission).order_by('-created_at')
+    
+    return render(request, 'institute/manage_student_fees.html', {
+        'admission': admission,
+        'class_years': class_years,
+        'fee_categories': fee_categories,
+        'fee_heads_data': fee_heads_data,
+        'total_demand': total_demand,
+        'total_collected': total_collected,
+        'total_pending': total_pending,
+        'total_fine_collected': total_fine,
+        'payments_history': payments_history
+    })
+
+
+@login_required
+def collect_student_fee(request, admission_id, head_id):
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    head = get_object_or_404(FeeHead, id=head_id)
+    
+    if request.method == 'POST':
+        amount_paid = request.POST.get('amount_paid', 0)
+        fine_paid = request.POST.get('fine_paid', 0)
+        payment_mode = request.POST.get('payment_mode', 'cash')
+        reference_no = request.POST.get('reference_no', '')
+        remarks = request.POST.get('remarks', '')
+        
+        try:
+            amt_val = float(amount_paid) if amount_paid else 0.0
+            fine_val = float(fine_paid) if fine_paid else 0.0
+            
+            StudentFeePayment.objects.create(
+                admission=admission,
+                fee_head=head,
+                amount_paid=amt_val,
+                fine_paid=fine_val,
+                payment_mode=payment_mode,
+                reference_no=reference_no,
+                remarks=remarks,
+                payment_date=datetime.date.today()
+            )
+            messages.success(request, f"Payment of ₹{amt_val + fine_val} recorded successfully!")
+        except Exception as e:
+            messages.error(request, f"Error processing payment: {str(e)}")
+            
+    return redirect('manage_student_fees', admission_id=admission_id)
+
+
+@login_required
+def fee_reports(request):
+    institute = request.user.institute
+    
+    academic_year_id = request.GET.get('academic_year_id')
+    course_id = request.GET.get('course_id')
+    class_id = request.GET.get('class_id')
+    class_year_id = request.GET.get('class_year_id')
+    fee_category_id = request.GET.get('fee_category_id')
+    fee_type_id = request.GET.get('fee_type_id')
+    
+    admissions_qs = Admission.objects.filter(application__institute=institute)
+    if academic_year_id:
+        admissions_qs = admissions_qs.filter(application__academic_year_id=academic_year_id)
+    if course_id:
+        admissions_qs = admissions_qs.filter(selected_course_id=course_id)
+    if class_id:
+        admissions_qs = admissions_qs.filter(assigned_class_id=class_id)
+    if class_year_id:
+        admissions_qs = admissions_qs.filter(assigned_class_year_id=class_year_id)
+    if fee_category_id:
+        admissions_qs = admissions_qs.filter(assigned_fee_category_id=fee_category_id)
+        
+    admissions = list(admissions_qs.select_related('application__student', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
+    
+    roster_data = []
+    total_all_demand = 0.0
+    total_all_collected = 0.0
+    total_all_pending = 0.0
+    
+    for adm in admissions:
+        active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
+        if active_class and adm.assigned_class_year and adm.assigned_fee_category:
+            structure = FeeStructure.objects.filter(
+                academic_year=adm.application.academic_year,
+                institute=institute,
+                course=adm.selected_course,
+                class_obj=active_class,
+                class_year=adm.assigned_class_year,
+                fee_category=adm.assigned_fee_category
+            ).first()
+            
+            if structure:
+                heads = structure.heads.filter(is_active=True)
+                if fee_type_id:
+                    heads = heads.filter(fee_type_id=fee_type_id)
+                    
+                std_demand = 0.0
+                std_collected = 0.0
+                std_fines = 0.0
+                
+                for head in heads:
+                    # CHECK IF DISCOUNT IS ELIGIBLE (User Enhancement 1)
+                    if head.fee_type.is_discountable:
+                        discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                        discount_pct = discount_pct or 0
+                    else:
+                        discount_pct = 0
+                        
+                    discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                    std_demand += discounted_amount
+                    
+                    payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                    std_collected += sum(float(p.amount_paid) for p in payments)
+                    std_fines += sum(float(p.fine_paid) for p in payments)
+                    
+                pending_fee = std_demand - std_collected
+                
+                roster_data.append({
+                    'admission': adm,
+                    'fee_category': adm.assigned_fee_category,
+                    'discount_pct': discount_pct,
+                    'demand': std_demand,
+                    'collected': std_collected,
+                    'fine_collected': std_fines,
+                    'pending': max(0.0, pending_fee),
+                })
+                
+                total_all_demand += std_demand
+                total_all_collected += std_collected + std_fines
+                total_all_pending += max(0.0, pending_fee)
+                
+    ledger_payments = StudentFeePayment.objects.filter(admission__application__institute=institute).select_related('admission__application__student', 'fee_head__fee_type').order_by('-created_at')
+    
+    if fee_type_id:
+        ledger_payments = ledger_payments.filter(fee_head__fee_type_id=fee_type_id)
+    if fee_category_id:
+        ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
+        
+    batches = AcademicYear.objects.all()
+    courses = Course.objects.filter(institute=institute)
+    classes = Class.objects.filter(institute=institute)
+    class_years = ClassYear.objects.filter(is_active=True)
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
+    fee_types = FeeType.objects.filter(is_active=True)
+    
+    return render(request, 'institute/fee_reports.html', {
+        'roster_data': roster_data,
+        'total_all_demand': total_all_demand,
+        'total_all_collected': total_all_collected,
+        'total_all_pending': total_all_pending,
+        'ledger_payments': ledger_payments[:100],
+        'batches': batches,
+        'courses': courses,
+        'classes': classes,
+        'class_years': class_years,
+        'fee_categories': fee_categories,
+        'fee_types': fee_types,
+        'selected_year': academic_year_id,
+        'selected_course': course_id,
+        'selected_class': class_id,
+        'selected_class_year': class_year_id,
+        'selected_fee_category': fee_category_id,
+        'selected_fee_type': fee_type_id
+    })

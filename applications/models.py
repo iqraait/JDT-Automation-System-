@@ -119,7 +119,7 @@ class PaymentConfig(models.Model):
     name = models.CharField(max_length=100)
     gateway_type = models.CharField(max_length=20, choices=GATEWAY_CHOICES)
 
-    merchant_id = models.CharField(max_length=255)
+    merchant_id = models.CharField(max_length=255, default="")
 
     # CCAvenue
     access_code = models.CharField(max_length=255, blank=True, null=True)
@@ -128,7 +128,7 @@ class PaymentConfig(models.Model):
     # PhiCommerce
     secret_key = models.CharField(max_length=255, blank=True, null=True)
     terminal_id = models.CharField(max_length=255, blank=True, null=True)
-    aggregator_id = models.CharField(max_length=255)
+    aggregator_id = models.CharField(max_length=255, default="")
 
     # Environment
     environment = models.CharField(max_length=10, choices=ENV_CHOICES, default='uat')
@@ -293,11 +293,32 @@ class Admission(models.Model):
         blank=True,
         related_name='admissions'
     )
-    
-    fee_category = models.ForeignKey(FeeCategory, on_delete=models.PROTECT)
+    fee_category = models.ForeignKey(FeeCategory, on_delete=models.SET_NULL, null=True, blank=True)
     
     # NEW: Assigned Class
     assigned_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='admissions')
+    
+    assigned_class_year = models.ForeignKey(
+        'academics.ClassYear',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admissions'
+    )
+    assigned_fee_category = models.ForeignKey(
+        'academics.FeeCategoryMaster',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admissions'
+    )
+    custom_discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Overrides fee category discount head percentage if set"
+    )
     
     calculated_fee = models.DecimalField(max_digits=10, decimal_places=2)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

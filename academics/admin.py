@@ -15,7 +15,13 @@ from .models import (
     Timetable,
     AcademicResult,
     StudentDocument,
-    ApplicationFeeType
+    ApplicationFeeType,
+    ClassYear,
+    FeeCategoryMaster,
+    FeeType,
+    FeeStructure,
+    FeeHead,
+    StudentFeePayment
 )
 
 
@@ -160,3 +166,35 @@ class SubjectAdmin(admin.ModelAdmin):
     list_filter = ['course', 'category', 'institute', 'period']
     search_fields = ['name', 'subject_code']
     filter_horizontal = ['classes']
+
+
+class FeeHeadInline(admin.TabularInline):
+    model = FeeHead
+    extra = 1
+
+@admin.register(ClassYear)
+class ClassYearAdmin(admin.ModelAdmin):
+    list_display = ['name', 'class_obj', 'is_active']
+    list_filter = ['class_obj', 'is_active']
+
+@admin.register(FeeCategoryMaster)
+class FeeCategoryMasterAdmin(admin.ModelAdmin):
+    list_display = ['name', 'discount_percentage', 'is_active']
+    search_fields = ['name']
+
+@admin.register(FeeType)
+class FeeTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_discountable', 'is_active']
+    search_fields = ['name']
+
+@admin.register(FeeStructure)
+class FeeStructureAdmin(admin.ModelAdmin):
+    list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
+    list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
+    inlines = [FeeHeadInline]
+
+@admin.register(StudentFeePayment)
+class StudentFeePaymentAdmin(admin.ModelAdmin):
+    list_display = ['admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no']
+    list_filter = ['payment_mode', 'payment_date']
+    search_fields = ['admission__register_number', 'reference_no']

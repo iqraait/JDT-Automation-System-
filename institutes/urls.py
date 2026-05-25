@@ -44,4 +44,9 @@ urlpatterns = [
     path('notices/', manage_notices, name='manage_notices'),
     path('timetables/', manage_timetables, name='manage_timetables'),
     path('academic-results/', enter_academic_results, name='enter_academic_results'),
+    
+    # ✅ STUDENT FEE MANAGEMENT URLS
+    path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),
+    path('student/<int:admission_id>/fees/collect/<int:head_id>/', collect_student_fee, name='collect_student_fee'),
+    path('fee-reports/', fee_reports, name='fee_reports'),
 ]

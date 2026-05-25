@@ -115,8 +115,8 @@
 
                         <!-- Fee Category -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Fee Category <span class="text-red-500">*</span></label>
-                            <select name="fee_category_id" id="fee_cat_id" required onchange="calculateManualFees()"
+                            <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Fee Category</label>
+                            <select name="fee_category_id" id="fee_cat_id" onchange="calculateManualFees()"
                                 class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
                                 <option value="">-- Choose Category --</option>
                                 {% for cat in fee_categories %}
@@ -138,8 +138,8 @@
 
                 <!-- NEW: CLASS SELECTION -->
                 <div id="classSection" class="animate-fade-in pt-8 border-t border-slate-100">
-                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class <span class="text-red-500">*</span></label>
-                    <select name="assigned_class_id" id="assigned_class_id" required
+                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class</label>
+                    <select name="assigned_class_id" id="assigned_class_id"
                         class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
                         <option value="">-- Select Class --</option>
                     </select>

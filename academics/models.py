@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from institutes.models import Institute
 
@@ -335,3 +336,87 @@ class StudentDocument(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.admission.application.student.username}"
+
+
+class ClassYear(models.Model):
+    class_obj = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='class_years')
+    name = models.CharField(max_length=100, help_text="e.g., Year 1, Year 2, Year 3, Semester 1")
+    is_active = models.BooleanField(default=True)
+    class Meta:
+        verbose_name = "Class Year"
+        verbose_name_plural = "Class Years"
+        ordering = ['name']
+    def __str__(self):
+        return f"{self.class_obj.name} - {self.name}"
+
+class FeeCategoryMaster(models.Model):
+    name = models.CharField(max_length=100, help_text="e.g., General, Sponsorship, Orphan, Fee Waiver")
+    description = models.TextField(blank=True, null=True)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Percentage discount (0.00 to 100.00)")
+    is_active = models.BooleanField(default=True)
+    class Meta:
+        verbose_name = "Fee Category Master"
+        verbose_name_plural = "Fee Category Masters"
+    def __str__(self):
+        return f"{self.name} ({self.discount_percentage}%)"
+
+class FeeType(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="e.g., Tuition Fee, Sports Fee, Hostel Fee")
+    description = models.TextField(blank=True, null=True)
+    is_discountable = models.BooleanField(default=True, help_text="Is this fee type eligible for category/custom discounts?")
+    is_active = models.BooleanField(default=True)
+    class Meta:
+        verbose_name = "Fee Type"
+        verbose_name_plural = "Fee Types"
+    def __str__(self):
+        return self.name
+
+class FeeStructure(models.Model):
+    academic_year = models.ForeignKey('institutes.AcademicYear', on_delete=models.CASCADE, related_name='fee_structures')
+    institute = models.ForeignKey('institutes.Institute', on_delete=models.CASCADE, related_name='fee_structures')
+    course = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='fee_structures')
+    class_obj = models.ForeignKey('academics.Class', on_delete=models.CASCADE, related_name='fee_structures')
+    class_year = models.ForeignKey(ClassYear, on_delete=models.CASCADE, related_name='fee_structures')
+    fee_category = models.ForeignKey(FeeCategoryMaster, on_delete=models.CASCADE, related_name='fee_structures')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        verbose_name = "Fee Structure"
+        verbose_name_plural = "Fee Structures"
+        unique_together = ('academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category')
+    def __str__(self):
+        return f"{self.course.name} - {self.class_obj.name} ({self.class_year.name}) - {self.fee_category.name}"
+
+class FeeHead(models.Model):
+    fee_structure = models.ForeignKey(FeeStructure, on_delete=models.CASCADE, related_name='heads')
+    fee_type = models.ForeignKey(FeeType, on_delete=models.PROTECT, related_name='fee_heads')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    start_date = models.DateField()
+    due_date = models.DateField()
+    fine_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Fine to apply after due date")
+    is_active = models.BooleanField(default=True)
+    class Meta:
+        verbose_name = "Fee Head / Structure Item"
+        verbose_name_plural = "Fee Heads / Structure Items"
+    def __str__(self):
+        return f"{self.fee_type.name}: ₹{self.amount}"
+
+class StudentFeePayment(models.Model):
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='fee_payments')
+    fee_head = models.ForeignKey(FeeHead, on_delete=models.PROTECT, related_name='payments')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    fine_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    payment_date = models.DateField(default=datetime.date.today)
+    payment_mode = models.CharField(
+        max_length=50, 
+        choices=[('cash', 'Cash'), ('online', 'Online'), ('bank_transfer', 'Bank Transfer')], 
+        default='cash'
+    )
+    reference_no = models.CharField(max_length=100, blank=True, null=True, help_text="Receipt, Transaction ID, etc.")
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        verbose_name = "Student Fee Payment"
+        verbose_name_plural = "Student Fee Payments"
+    def __str__(self):
+        return f"{self.admission.register_number} - {self.fee_head.fee_type.name} - ₹{self.amount_paid}"

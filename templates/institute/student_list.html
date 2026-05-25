@@ -12,11 +12,18 @@
             <h1 class="text-4xl font-black text-slate-800 tracking-tight">Student <span class="text-blue-600">Lists</span></h1>
             <p class="text-slate-500 mt-2 font-medium">Manage and export registered student records</p>
         </div>
-        <a href="{% url 'export_students_excel' %}?{{ request.GET.urlencode }}" 
-           class="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all flex items-center gap-3">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Export to Excel
-        </a>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'fee_reports' %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3.3-3.3l.3.3m0 0l.3-.3m-.3.3v-3.2M21 17v-2a4 4 0 00-4-4h-.5a4 4 0 00-4 4v2m0 0l.3-.3m-.3.3l.3.3M12 14v-4m0 0l.3.3M12 10l-.3.3M12 4a3 3 0 110 6 3 3 0 010-6zm-6 2a2 2 0 110 4 2 2 0 010-4zm12 2a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                Fee Reports
+            </a>
+            <a href="{% url 'export_students_excel' %}?{{ request.GET.urlencode }}" 
+               class="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Export to Excel
+            </a>
+        </div>
     </div>
 
     <!-- Django Messages -->
@@ -160,6 +167,10 @@
                                 <!-- Review Application -->
                                 <a href="{% url 'view_application' adm.application.id %}" title="Review Application" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50 rounded-xl transition-all">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </a>
+                                <!-- Manage Fees -->
+                                <a href="{% url 'manage_student_fees' adm.id %}" title="Manage Fees" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-amber-600 hover:border-amber-100 hover:shadow-lg hover:shadow-amber-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </a>
                                 <!-- Edit Registration -->
                                 <a href="{% url 'register_student' adm.application.id %}" title="Edit Registration" class="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-50 rounded-xl transition-all">
