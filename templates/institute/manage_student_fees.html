@@ -135,9 +135,18 @@
 
         <!-- FEE DEMANDS & HEADS MATRIX (Right Column - Spans 2 cols) -->
         <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden lg:col-span-2">
-            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <h3 class="text-xl font-bold text-slate-800">Fee Demands & Heads</h3>
-                <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">Active Matrix</span>
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-xl font-bold text-slate-800">Fee Demands & Heads</h3>
+                    <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">Active Matrix</span>
+                </div>
+                <!-- Select All Control -->
+                {% if fee_heads_data %}
+                <div class="flex items-center gap-2.5 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/50">
+                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="w-4.5 h-4.5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all">
+                    <label for="selectAllCheckbox" class="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">Select All Dues</label>
+                </div>
+                {% endif %}
             </div>
             
             <div class="p-8">
@@ -162,11 +171,18 @@
                     {% for item in fee_heads_data %}
                     <div class="border border-slate-100 rounded-3xl p-6 hover:shadow-lg hover:shadow-slate-100/50 transition-all space-y-4">
                         <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <span class="text-xs font-black text-blue-600 uppercase tracking-wider block mb-1">
-                                    {{ item.head.fee_type.name }}
-                                </span>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider font-mono">Due Date: {{ item.head.due_date|date:"d M, Y" }}</p>
+                            <div class="flex items-start gap-4">
+                                {% if item.total_pending > 0 %}
+                                <div class="pt-0.5">
+                                    <input type="checkbox" name="selected_heads" value="{{ item.head.id }}" data-name="{{ item.head.fee_type.name }}" data-pending-fee="{{ item.pending_fee }}" data-pending-fine="{{ item.pending_fine }}" onchange="onHeadCheckboxChange()" class="head-checkbox w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <span class="text-xs font-black text-blue-600 uppercase tracking-wider block mb-1">
+                                        {{ item.head.fee_type.name }}
+                                    </span>
+                                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider font-mono">Due Date: {{ item.head.due_date|date:"d M, Y" }}</p>
+                                </div>
                             </div>
                             <div class="text-right">
                                 <span class="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider
@@ -364,7 +380,200 @@
     </div>
 </div>
 
+<!-- =============================================================================
+     BULK COLLECTION FLOATING DRAWER
+     ============================================================================= -->
+<div id="bulkCollectionDrawer" class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 text-white py-5 px-8 flex flex-col sm:flex-row items-center justify-between gap-4 transform translate-y-full transition-transform duration-300 ease-out z-[140] shadow-2xl">
+    <div class="flex items-center gap-4">
+        <span id="bulkCountBadge" class="bg-blue-600 text-white font-black text-xs px-3.5 py-2 rounded-xl uppercase tracking-widest font-mono">0 Selected</span>
+        <div class="text-sm font-medium">
+            <span class="text-slate-400">Aggregated Total Outstanding:</span>
+            <span id="bulkTotalDues" class="font-black text-lg text-emerald-400 font-mono ml-1">₹0.00</span>
+        </div>
+    </div>
+    <button type="button" onclick="openBulkPaymentModal()" class="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-900 font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        Collect Selected Fully
+    </button>
+</div>
+
+<!-- =============================================================================
+     INTERACTIVE BULK COLLECTION MODAL
+     ============================================================================= -->
+<div id="bulkPaymentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[150] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all p-8 md:p-10 space-y-6">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight">Bulk Dues Collection</h3>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Collecting Outstanding Balances Fully</p>
+            </div>
+            <button type="button" onclick="closeBulkPaymentModal()" class="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form id="bulkPaymentForm" method="POST" action="{% url 'collect_multiple_fees' admission.id %}" class="space-y-5">
+            {% csrf_token %}
+            
+            <!-- Hidden inputs container for head IDs -->
+            <div id="bulkHeadIdsContainer"></div>
+            
+            <!-- Selected Heads List -->
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Selected Heads for Payment</label>
+                <div id="bulkHeadsList" class="max-h-36 overflow-y-auto border border-slate-100 bg-slate-50/50 rounded-2xl p-4 divide-y divide-slate-100 space-y-2 text-xs font-medium text-slate-600">
+                </div>
+            </div>
+
+            <!-- Aggregate Amounts Display -->
+            <div class="p-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Aggregated Sum Dues</span>
+                    <p class="text-2xl font-black font-mono text-emerald-400 mt-1" id="bulkModalTotalLabel">₹0.00</p>
+                </div>
+                <div class="text-right text-[10px] font-bold text-slate-300">
+                    <p id="bulkModalFeeBreakdown">Fees: ₹0.00</p>
+                    <p id="bulkModalFineBreakdown">Fines: ₹0.00</p>
+                </div>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Collection Mode</label>
+                <select name="payment_mode" class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                    <option value="cash">Cash</option>
+                    <option value="online">Online Payment</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                </select>
+            </div>
+
+            <!-- Reference No -->
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reference No / Receipt ID</label>
+                <input type="text" name="reference_no" placeholder="e.g. TXN-BULK-80921"
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+            </div>
+
+            <!-- Remarks -->
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Remarks</label>
+                <textarea name="remarks" rows="2" placeholder="Bulk collection transaction..."
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-medium"></textarea>
+            </div>
+
+            <div class="flex gap-4 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeBulkPaymentModal()" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all">Dismiss</button>
+                <button type="submit" class="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black rounded-2xl transition-all shadow-xl shadow-emerald-100">Record Bulk Collection</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    // Multiple Checkbox logic
+    function toggleSelectAll(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.head-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = masterCheckbox.checked;
+        });
+        onHeadCheckboxChange();
+    }
+
+    function onHeadCheckboxChange() {
+        const checkboxes = document.querySelectorAll('.head-checkbox');
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        
+        let checkedCount = 0;
+        let totalDues = 0.0;
+        let totalUnchecked = 0;
+        
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                checkedCount++;
+                const pendingFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
+                const pendingFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
+                totalDues += (pendingFee + pendingFine);
+            } else {
+                totalUnchecked++;
+            }
+        });
+        
+        // Sync master checkbox state
+        if (selectAllCheckbox) {
+            if (checkedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (totalUnchecked === 0) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+        
+        // Render Floating bottom action drawer
+        const drawer = document.getElementById('bulkCollectionDrawer');
+        if (checkedCount > 0) {
+            document.getElementById('bulkCountBadge').innerText = `${checkedCount} Selected`;
+            document.getElementById('bulkTotalDues').innerText = `₹${totalDues.toFixed(2)}`;
+            drawer.classList.remove('translate-y-full');
+        } else {
+            drawer.classList.add('translate-y-full');
+        }
+    }
+
+    function openBulkPaymentModal() {
+        const checkboxes = document.querySelectorAll('.head-checkbox:checked');
+        const container = document.getElementById('bulkHeadIdsContainer');
+        const listDiv = document.getElementById('bulkHeadsList');
+        
+        container.innerHTML = '';
+        listDiv.innerHTML = '';
+        
+        let aggregateTotal = 0.0;
+        let aggregateFee = 0.0;
+        let aggregateFine = 0.0;
+        
+        checkboxes.forEach(cb => {
+            const headId = cb.value;
+            const headName = cb.getAttribute('data-name');
+            const pendingFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
+            const pendingFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
+            
+            aggregateTotal += (pendingFee + pendingFine);
+            aggregateFee += pendingFee;
+            aggregateFine += pendingFine;
+            
+            // Append hidden input for POST submission
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'head_ids';
+            input.value = headId;
+            container.appendChild(input);
+            
+            // Append list item markup
+            const itemDiv = document.createElement('div');
+            itemDiv.className = "flex items-center justify-between py-2";
+            itemDiv.innerHTML = `
+                <span class="font-bold text-slate-800 uppercase tracking-wide">${headName}</span>
+                <span class="font-mono text-slate-500 font-bold">₹${(pendingFee + pendingFine).toFixed(2)}</span>
+            `;
+            listDiv.appendChild(itemDiv);
+        });
+        
+        document.getElementById('bulkModalTotalLabel').innerText = `₹${aggregateTotal.toFixed(2)}`;
+        document.getElementById('bulkModalFeeBreakdown').innerText = `Fees: ₹${aggregateFee.toFixed(2)}`;
+        document.getElementById('bulkModalFineBreakdown').innerText = `Fines: ₹${aggregateFine.toFixed(2)}`;
+        
+        document.getElementById('bulkPaymentModal').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4";
+    }
+
+    function closeBulkPaymentModal() {
+        document.getElementById('bulkPaymentModal').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[150] p-4";
+    }
+
     let maxPendingFee = 0.0;
     let maxPendingFine = 0.0;
     let selectedType = 'full';

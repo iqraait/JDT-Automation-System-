@@ -48,5 +48,6 @@ urlpatterns = [
     # ✅ STUDENT FEE MANAGEMENT URLS
     path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),
     path('student/<int:admission_id>/fees/collect/<int:head_id>/', collect_student_fee, name='collect_student_fee'),
+    path('student/<int:admission_id>/fees/collect-multiple/', collect_multiple_fees, name='collect_multiple_fees'),
     path('fee-reports/', fee_reports, name='fee_reports'),
 ]

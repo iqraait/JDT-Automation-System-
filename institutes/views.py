@@ -2649,3 +2649,86 @@ def fee_reports(request):
         'selected_fee_category': fee_category_id,
         'selected_fee_type': fee_type_id
     })
+
+
+@login_required
+def collect_multiple_fees(request, admission_id):
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    
+    if request.method == 'POST':
+        head_ids = request.POST.getlist('head_ids')
+        payment_mode = request.POST.get('payment_mode', 'cash')
+        reference_no = request.POST.get('reference_no', '')
+        remarks = request.POST.get('remarks', '')
+        
+        if not head_ids:
+            messages.error(request, "No fee heads were selected for collection.")
+            return redirect('manage_student_fees', admission_id=admission_id)
+            
+        success_count = 0
+        total_collected = 0.0
+        
+        try:
+            active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
+            
+            if active_class and admission.assigned_class_year and admission.assigned_fee_category:
+                structure = FeeStructure.objects.filter(
+                    academic_year=admission.application.academic_year,
+                    institute=request.user.institute,
+                    course=admission.selected_course,
+                    class_obj=active_class,
+                    class_year=admission.assigned_class_year,
+                    fee_category=admission.assigned_fee_category
+                ).first()
+                
+                if structure:
+                    heads = structure.heads.filter(id__in=head_ids, is_active=True)
+                    
+                    for head in heads:
+                        if head.fee_type.is_discountable:
+                            discount_pct = admission.custom_discount_percentage if admission.custom_discount_percentage is not None else admission.assigned_fee_category.discount_percentage
+                            discount_pct = discount_pct or 0
+                        else:
+                            discount_pct = 0
+                            
+                        discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                        
+                        has_fine = False
+                        fine_amt = 0.0
+                        if datetime.date.today() > head.due_date:
+                            has_fine = True
+                            fine_amt = float(head.fine_amount)
+                            
+                        payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head)
+                        paid_fee = sum(float(p.amount_paid) for p in payments)
+                        paid_fine = sum(float(p.fine_paid) for p in payments)
+                        
+                        pending_fee = discounted_amount - paid_fee
+                        pending_fine = fine_amt - paid_fine if has_fine else 0.0
+                        
+                        if pending_fee > 0 or pending_fine > 0:
+                            amt_val = max(0.0, pending_fee)
+                            fine_val = max(0.0, pending_fine)
+                            
+                            StudentFeePayment.objects.create(
+                                admission=admission,
+                                fee_head=head,
+                                amount_paid=amt_val,
+                                fine_paid=fine_val,
+                                payment_mode=payment_mode,
+                                reference_no=reference_no,
+                                remarks=remarks,
+                                payment_date=datetime.date.today()
+                            )
+                            total_collected += (amt_val + fine_val)
+                            success_count += 1
+                            
+            if success_count > 0:
+                messages.success(request, f"Successfully collected ₹{total_collected:.2f} for {success_count} fee heads!")
+            else:
+                messages.warning(request, "Selected fee heads have already been fully paid.")
+        except Exception as e:
+            messages.error(request, f"Error processing bulk collection: {str(e)}")
+            
+    return redirect('manage_student_fees', admission_id=admission_id)
+
