@@ -2313,7 +2313,7 @@ def payment_list_view(request):
         payments = payments.filter(created_at__date__lte=date_to)
         
     # Pagination
-    paginator = Paginator(payments, 50) # 50 per page
+    paginator = Paginator(payments, 10) # 10 per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
