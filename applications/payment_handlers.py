@@ -54,37 +54,67 @@ class BasePaymentHandler:
 # =============================================================================
 class CCAvenueHandler(BasePaymentHandler):
     def initiate_payment(self, payment, request):
+        # Allow configuring dynamic custom callback URL
+        callback_url = self.config.callback_url or request.build_absolute_uri('/payment/callback/ccavenue/')
+        
         params = {
             "merchant_id": self.config.merchant_id,
             "order_id": str(payment.id),
             "currency": "INR",
             "amount": str(payment.amount),
-            "redirect_url": request.build_absolute_uri('/payment/callback/ccavenue/'),
-            "cancel_url": request.build_absolute_uri('/payment/callback/ccavenue/'),
+            "redirect_url": callback_url,
+            "cancel_url": callback_url,
             "language": "EN",
-            "billing_name": payment.application.student.get_full_name() or payment.application.student.username,
+            "billing_name": payment.application.display_name or payment.application.student.username,
         }
         
         merchant_data = "&".join([f"{k}={v}" for k, v in params.items()])
         enc_request = cc_encrypt(merchant_data, self.config.working_key)
         
+        # Dynamic base_url or fallback to environment selection
+        if self.config.base_url:
+            base_url = self.config.base_url.rstrip('/')
+        elif self.config.environment == 'prod':
+            base_url = "https://secure.ccavenue.com"
+        else:
+            base_url = "https://test.ccavenue.com"
+            
+        action_url = f"{base_url}/transaction/transaction.do?command=initiateTransaction"
+        
         return {
-            "action_url": "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction",
+            "action_url": action_url,
             "enc_request": enc_request,
             "access_code": self.config.access_code
         }
 
     def verify_payment(self, response_data):
+        if hasattr(response_data, 'dict'):
+            response_data = response_data.dict()
+            
         enc_resp = response_data.get('encResp')
         if not enc_resp:
+            logger.error("CCAvenue verify_payment: No encResp in response data")
             return {"status": "failed", "message": "No response data"}
             
-        dec_resp = cc_decrypt(enc_resp, self.config.working_key)
-        resp_dict = dict(item.split("=") for item in dec_resp.split("&") if "=" in item)
+        try:
+            dec_resp = cc_decrypt(enc_resp, self.config.working_key)
+            resp_dict = {}
+            for item in dec_resp.split("&"):
+                if "=" in item:
+                    parts = item.split("=", 1)
+                    resp_dict[parts[0]] = parts[1]
+        except Exception as e:
+            logger.exception("CCAvenue decryption or parsing failed")
+            return {"status": "failed", "message": f"Decryption failed: {str(e)}"}
         
         status = resp_dict.get('order_status')
         if status == 'Success':
-            return {"status": "success", "txn_id": resp_dict.get('tracking_id'), "raw": resp_dict}
+            return {
+                "status": "success", 
+                "txn_id": resp_dict.get('tracking_id'), 
+                "payment_mode": resp_dict.get('payment_mode'),
+                "raw": resp_dict
+            }
         else:
             return {"status": "failed", "raw": resp_dict}
 

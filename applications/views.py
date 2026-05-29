@@ -398,7 +398,7 @@ def payment_page(request, app_id):
     })
 
 
-@login_required
+@csrf_exempt
 def ccavenue_callback(request):
     from .payment_handlers import CCAvenueHandler
     # We don't have app_id in URL, but we have order_id (which is payment.id) in encResp
@@ -411,7 +411,8 @@ def ccavenue_callback(request):
         return redirect('/my-applications/')
         
     handler = CCAvenueHandler(config)
-    result = handler.verify_payment(request.POST)
+    data = request.POST if request.method == 'POST' else request.GET
+    result = handler.verify_payment(data)
     
     # Tracking
     raw_response = result.get('raw', {})
