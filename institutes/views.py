@@ -1192,6 +1192,10 @@ def export_rank_excel(request):
         mobile = "-"
         gender = "-"
         exam_name = "-"
+        quota = "-"
+        choice1 = "-"
+        choice2 = "-"
+        choice3 = "-"
         subjects_data = {} # {name: {marks, max, pass}}
         
         # We need subjects_config for pass marks
@@ -1227,6 +1231,14 @@ def export_rank_excel(request):
                 mobile = val
             elif "gender" in lbl:
                 gender = val
+            elif "quota" in lbl:
+                quota = val
+            elif "choice 1" in lbl or "choice1" in lbl:
+                choice1 = val
+            elif "choice 2" in lbl or "choice2" in lbl:
+                choice2 = val
+            elif "choice 3" in lbl or "choice3" in lbl:
+                choice3 = val
             elif ("exam" in lbl or "qualifying" in lbl) and "marks" not in lbl:
                 if exam_id:
                     from academics.models import QualifyingExam
@@ -1266,7 +1278,14 @@ def export_rank_excel(request):
             "max_total": max_total,
             "percentage": percentage,
             "main_mark": main_mark,
-            "sub_mark": sub_mark
+            "sub_mark": sub_mark,
+            # Extra fields
+            "date": app.created_at.strftime('%Y-%m-%d') if app.created_at else "-",
+            "form_id": app.id,
+            "quota": quota,
+            "choice1": choice1,
+            "choice2": choice2,
+            "choice3": choice3
         })
 
     # SORT DESCENDING
@@ -1284,7 +1303,7 @@ def export_rank_excel(request):
     # Subject Headers
     for sub in unique_subjects:
         header.extend([f"{sub} (Obtained)", f"{sub} (Out Of)", f"{sub} (Min Mark)"])
-    header.extend(["Total Marks Obtained", "Maximum Marks Total", "Percentage"])
+    header.extend(["Total Marks Obtained", "Maximum Marks Total", "Percentage", "Date", "Form No", "Student Name", "Mobile No.", "Quota", "Gender", "Choice1", "Choice2", "Choice3"])
     
     ws.append(header)
 
@@ -1304,7 +1323,16 @@ def export_rank_excel(request):
         row.extend([
             item['total'],
             item['max_total'],
-            f"{item['percentage']}%"
+            f"{item['percentage']}%",
+            item['date'],
+            item['form_id'],
+            item['name'],
+            item['mobile'],
+            item['quota'],
+            item['gender'],
+            item['choice1'],
+            item['choice2'],
+            item['choice3']
         ])
         ws.append(row)
 
@@ -2298,6 +2326,7 @@ def payment_list_view(request):
     search_query = request.GET.get('q', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+    status_filter = request.GET.get('status', 'all')
     
     if search_query:
         payments = payments.filter(
@@ -2311,6 +2340,8 @@ def payment_list_view(request):
         payments = payments.filter(created_at__date__gte=date_from)
     if date_to:
         payments = payments.filter(created_at__date__lte=date_to)
+    if status_filter and status_filter != 'all':
+        payments = payments.filter(status=status_filter)
         
     # Pagination
     paginator = Paginator(payments, 10) # 10 per page
@@ -2321,7 +2352,8 @@ def payment_list_view(request):
         'page_obj': page_obj,
         'search_query': search_query,
         'date_from': date_from,
-        'date_to': date_to
+        'date_to': date_to,
+        'status_filter': status_filter
     })
 
 @login_required
@@ -2335,6 +2367,7 @@ def export_payments_excel(request):
     search_query = request.GET.get('q', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+    status_filter = request.GET.get('status', 'all')
     
     if search_query:
         payments = payments.filter(
@@ -2348,22 +2381,26 @@ def export_payments_excel(request):
         payments = payments.filter(created_at__date__gte=date_from)
     if date_to:
         payments = payments.filter(created_at__date__lte=date_to)
+    if status_filter and status_filter != 'all':
+        payments = payments.filter(status=status_filter)
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Student Payments"
 
-    headers = ['ID', 'Student Name', 'Payment Status', 'Amount', 'Payment Mode', 'Gateway Transaction ID', 'Created At']
+    headers = ['ID', 'Student Name', 'Mobile No.', 'Payment Status', 'Amount', 'Payment Mode', 'Gateway Transaction ID', 'Created At']
     ws.append(headers)
 
     for payment in payments:
-        student_name = payment.application.student.first_name or payment.application.student.username
+        student_name = payment.application.display_name
+        student_mobile = payment.application.student_mobile
         created_at_str = payment.created_at.strftime('%Y-%m-%d %H:%M') if payment.created_at else ''
         status_display = dict(Payment._meta.get_field('status').choices).get(payment.status, payment.status).title()
         
         ws.append([
             str(payment.id),
             student_name,
+            student_mobile,
             status_display,
             float(payment.amount),
             payment.payment_mode or '-',

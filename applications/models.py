@@ -66,6 +66,24 @@ class Application(models.Model):
 
         return self.student.username
 
+    @property
+    def student_mobile(self):
+        """
+        Returns student's mobile number:
+        1. User mobile_number
+        2. Dynamic field value containing phone/mobile/contact
+        """
+        if self.student.mobile_number:
+            return self.student.mobile_number
+        
+        for fv in self.field_values.all():
+            field_label = fv.field.label if fv.field else fv.field_label
+            if field_label:
+                label = field_label.lower()
+                if "phone" in label or "mobile" in label or "contact" in label:
+                    return fv.value
+        return ""
+
     def __str__(self):
         return f"{self.display_name} - Application #{self.id}"
 
