@@ -2769,3 +2769,36 @@ def collect_multiple_fees(request, admission_id):
             
     return redirect('manage_student_fees', admission_id=admission_id)
 
+
+# =========================
+# SYSTEM BACKUP & RESTORE
+# =========================
+from io import BytesIO
+from django.contrib.admin.views.decorators import staff_member_required
+from .backup import generate_zip_backup
+
+@staff_member_required
+def system_backup_view(request):
+    """
+    Renders the backup dashboard template where staff can request a backup.
+    """
+    return render(request, 'institute/backup.html')
+
+@staff_member_required
+def download_backup_view(request):
+    """
+    Generates and streams a zip file backup.
+    """
+    try:
+        buffer = BytesIO()
+        generate_zip_backup(buffer)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+        filename = f"jdt_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+    except Exception as e:
+        messages.error(request, f"Failed to generate backup: {str(e)}")
+        return redirect('system_backup')
+

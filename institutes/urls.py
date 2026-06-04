@@ -50,4 +50,8 @@ urlpatterns = [
     path('student/<int:admission_id>/fees/collect/<int:head_id>/', collect_student_fee, name='collect_student_fee'),
     path('student/<int:admission_id>/fees/collect-multiple/', collect_multiple_fees, name='collect_multiple_fees'),
     path('fee-reports/', fee_reports, name='fee_reports'),
+    
+    # ✅ SYSTEM BACKUP
+    path('backup/', system_backup_view, name='system_backup'),
+    path('backup/download/', download_backup_view, name='download_backup'),
 ]

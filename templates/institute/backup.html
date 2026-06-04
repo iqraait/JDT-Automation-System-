@@ -1,0 +1,109 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}System Backup & Restore | JDT Automation{% endblock %}
+
+{% block sidebar_title %}Admission Portal{% endblock %}
+
+{% block header_title %}System Administration{% endblock %}
+
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 py-8 space-y-10">
+    
+    <!-- HEADER AND BACK ACTION -->
+    <div class="pb-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-4xl font-black text-slate-800 tracking-tight">System <span class="text-blue-600">Backup</span> & Restore</h1>
+            <p class="text-slate-500 mt-2 font-medium">Create secure snapshots of your codebase, media uploads, and database.</p>
+        </div>
+        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-4 py-2 rounded-xl font-mono">
+            Status: System Online
+        </div>
+    </div>
+
+    <!-- MAIN BACKUP PANEL -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Action Card -->
+        <div class="md:col-span-1 bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-100 border border-slate-100 flex flex-col items-center justify-center text-center space-y-6">
+            <div class="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-lg shadow-blue-50">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-slate-800">Generate Backup</h3>
+                <p class="text-xs text-slate-400 font-bold mt-1 uppercase tracking-wider">ZIP Archive Format</p>
+            </div>
+            <p class="text-xs text-slate-500 font-medium leading-relaxed">Click below to package the codebase, media files, and active database into a downloadable ZIP archive.</p>
+            
+            <a href="{% url 'download_backup' %}" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download Backup File
+            </a>
+        </div>
+
+        <!-- Restore Instruction Card -->
+        <div class="md:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 space-y-6">
+            <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2M4 9h5"></path></svg>
+                </span>
+                Recovery & Restore Guide
+            </h3>
+            
+            <div class="space-y-4 text-sm text-slate-600 leading-relaxed font-medium">
+                <p>If you need to restore your system using the backup ZIP file, follow these instructions carefully:</p>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-6 h-6 bg-slate-100 text-slate-700 font-bold rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">1</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Extract the Codebase</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Unzip the contents of the backup file into your application root folder (e.g. `/home/ubuntu/JDT-Automation-System-`). This will restore all features, HTML templates, CSS styles, and Python logic files.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-6 h-6 bg-slate-100 text-slate-700 font-bold rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">2</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Restore the Database</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Copy the extracted `db.sqlite3` file into the root folder to overwrite the existing database file. All registered students, fee ledgers, payment details, and accounts will be recovered exactly.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-6 h-6 bg-slate-100 text-slate-700 font-bold rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">3</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Recover Student Document Uploads</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Ensure the `media/` folder contents are extracted to the root path. This ensures student photos, signature files, and certificate uploads remain fully accessible.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-6 h-6 bg-slate-100 text-slate-700 font-bold rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">4</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Reboot Gunicorn Service</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Restart the Django daemon service to apply changes. On your EC2 server, execute: <code class="bg-slate-50 px-2 py-1 rounded text-red-600 font-mono text-xs">sudo systemctl restart jdt</code>.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SECURITY POLICY ALERT -->
+    <div class="p-6 bg-amber-50 border border-amber-100 rounded-3xl flex items-start gap-4 shadow-sm">
+        <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <div>
+            <h4 class="font-black text-slate-800">Confidentiality & Data Protection Notice</h4>
+            <p class="text-xs text-slate-600 leading-relaxed mt-1 font-medium">Backup files contain highly sensitive personal databases and credentials. Store download files securely, restrict access to authorized staff, and avoid uploading backup files to public servers or code repositories.</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
