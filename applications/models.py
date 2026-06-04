@@ -357,18 +357,30 @@ class Admission(models.Model):
             
             course_code = self.selected_course.course_code or "GEN"
             
-            # Reset serial each year per course
-            last_admission = Admission.objects.filter(
-                selected_course=self.selected_course,
-                created_at__year=self.created_at.year if self.created_at else datetime.date.today().year
-            ).order_by('-annual_serial').first()
+            # Reset serial each year per course based on Academic Year if available, otherwise calendar year
+            if self.application and self.application.academic_year:
+                last_admission = Admission.objects.filter(
+                    selected_course=self.selected_course,
+                    application__academic_year=self.application.academic_year
+                ).order_by('-annual_serial').first()
+            else:
+                last_admission = Admission.objects.filter(
+                    selected_course=self.selected_course,
+                    created_at__year=self.created_at.year if self.created_at else datetime.date.today().year
+                ).order_by('-annual_serial').first()
             
             if last_admission:
                 self.annual_serial = last_admission.annual_serial + 1
             else:
                 self.annual_serial = 1
                 
-            self.register_number = f"{course_code}/{year_val}/{self.annual_serial}"
+            # Loop/increment to guarantee uniqueness of the register_number under any condition
+            while True:
+                candidate_number = f"{course_code}/{year_val}/{self.annual_serial}"
+                if not Admission.objects.filter(register_number=candidate_number).exists():
+                    self.register_number = candidate_number
+                    break
+                self.annual_serial += 1
             
         super().save(*args, **kwargs)
 
