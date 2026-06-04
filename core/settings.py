@@ -117,16 +117,16 @@ JAZZMIN_SETTINGS = {
         "applications.applicationfield": "fas fa-check-double",
     },
     
-    "custom_links": {
-        "institutes": [
-            {
-                "name": "Backup & System Files",
-                "url": "/institute/backup/",
-                "icon": "fas fa-database",
-                "permissions": ["auth.view_user"]
-            }
-        ]
-    },
+    # "custom_links": {
+    #     "institutes": [
+    #         {
+    #             "name": "Backup & System Files",
+    #             "url": "/institute/backup/",
+    #             "icon": "fas fa-database",
+    #             "permissions": ["auth.view_user"]
+    #         }
+    #     ]
+    # },
     
     # 💎 Display
     "default_icon_parents": "fas fa-chevron-circle-right",
