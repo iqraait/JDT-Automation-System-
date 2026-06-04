@@ -162,7 +162,7 @@
                             <p class="font-black text-slate-700 text-sm leading-tight">{{ item.admission.application.display_name }}</p>
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ item.admission.application.student.email|default:item.admission.application.student.username }}</p>
                         </td>
-                        <td class="px-8 py-5 font-bold font-mono text-slate-600">{{ item.admission.register_number }}</td>
+                        <td class="px-8 py-5 font-bold font-mono text-slate-600">{{ item.admission.registration_id }}</td>
                         <td class="px-8 py-5">
                             <span class="font-bold text-slate-700 leading-tight block">{{ item.admission.assigned_class_year.name }}</span>
                             <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 block">{{ item.admission.assigned_class.name }}</span>
@@ -222,7 +222,7 @@
                         <td class="px-8 py-5">{{ payment.payment_date|date:"d M, Y" }}</td>
                         <td class="px-8 py-5">
                             <span class="font-bold text-slate-800 block">{{ payment.admission.application.display_name }}</span>
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">{{ payment.admission.register_number }}</span>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">{{ payment.admission.registration_id }}</span>
                         </td>
                         <td class="px-8 py-5 font-bold text-slate-600">{{ payment.fee_head.fee_type.name }}</td>
                         <td class="px-8 py-5 font-black text-slate-800 font-mono text-sm">₹{{ payment.amount_paid|floatformat:2 }}</td>
