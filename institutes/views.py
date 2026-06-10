@@ -180,23 +180,29 @@ def admission_list(request):
     # Filters
     form_id = request.GET.get('form_id')
     name = request.GET.get('name')
-    category_id = request.GET.get('category_id')
     admission_year = request.GET.get('year')
+    course_id = request.GET.get('course_id')
+    status_filter = request.GET.get('status')
     
     if form_id:
         applications = applications.filter(id=form_id)
-    
-    if category_id:
-        applications = applications.filter(course__category_id=category_id)
         
     if admission_year:
         applications = applications.filter(academic_year_id=admission_year)
+
+    if course_id:
+        applications = applications.filter(course_id=course_id)
+
+    if status_filter == 'enrolled':
+        applications = applications.filter(admission__isnull=False)
+    elif status_filter == 'pending':
+        applications = applications.filter(admission__isnull=True)
         
     processed_apps = []
     
-    # Get all academic years for filter
-    years = AcademicYear.objects.all()
-    categories = CourseCategory.objects.all()
+    # Get active academic years related to selected institute
+    years = AcademicYear.objects.filter(institute=institute, is_active=True)
+    courses = Course.objects.filter(institute=institute)
     
     for app in applications:
         std_name = get_student_name(app)
@@ -219,9 +225,10 @@ def admission_list(request):
     return render(request, 'institute/admission_list.html', {
         'applications': processed_apps,
         'years': years,
-        'categories': categories,
+        'courses': courses,
         'selected_year': admission_year,
-        'selected_category_id': category_id,
+        'selected_course_id': course_id,
+        'selected_status': status_filter,
         'selected_name': name,
         'selected_form_id': form_id
     })
@@ -662,7 +669,7 @@ def register_manual(request):
         
         return redirect('student_list')
     institutes = [request.user.institute]
-    academic_years = AcademicYear.objects.all()
+    academic_years = AcademicYear.objects.filter(institute=request.user.institute, is_active=True)
     courses = Course.objects.filter(institute=request.user.institute)
     
     return render(request, 'institute/register_manual.html', {
@@ -1135,7 +1142,7 @@ def rank_list_view(request):
     context = {
         "ranked_list": ranked_list,
         "courses": Course.objects.filter(institute=institute),
-        "years": AcademicYear.objects.all()
+        "years": AcademicYear.objects.filter(institute=institute, is_active=True)
     }
 
     return render(request, "institute/rank_list.html", context)
@@ -1444,11 +1451,9 @@ def institute_dashboard(request):
             institute = Institute.objects.first()
         else:
             return redirect('/institute/register/')
-    
     if not institute:
-         return redirect('/')
+        return redirect('/')
 
-    # Support filtering and search
     # Support filtering and search
     query = request.GET.get('q', '')
     course_filter = request.GET.get('course', '')
@@ -1456,8 +1461,8 @@ def institute_dashboard(request):
     status_filter = request.GET.get('status', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+    fee_category_filter = request.GET.get('fee_category', '')
 
-    # Query applications for this institute (both pending-registration and admitted)
     # REQUIREMENT: Only students with Payment Status = Paid should appear
     apps = Application.objects.filter(
         institute=institute, 
@@ -1494,6 +1499,8 @@ def institute_dashboard(request):
         apps = apps.filter(created_at__date__gte=date_from)
     if date_to:
         apps = apps.filter(created_at__date__lte=date_to)
+    if fee_category_filter:
+        apps = apps.filter(selected_fee_type__name=fee_category_filter)
 
     # Performance: Pagination
     paginator = Paginator(apps, 20)
@@ -1508,8 +1515,6 @@ def institute_dashboard(request):
         # Extract Contact, Caste, Gender, etc.
         contact = "-"
         gender = "-"
-        caste = ""
-        quota = ""
         remarks = app.remarks or ""
 
         # Optimized field extraction
@@ -1527,10 +1532,6 @@ def institute_dashboard(request):
                 contact = val
             elif "gender" in lbl:
                 gender = val
-            elif "caste" in lbl:
-                caste = val
-            elif "quota" in lbl:
-                quota = val
             elif "remarks" in lbl or "comment" in lbl:
                 if not remarks:
                     remarks = val
@@ -1540,15 +1541,20 @@ def institute_dashboard(request):
             'student_name': name,
             'contact': contact,
             'gender': gender,
-            'caste': caste,
-            'quota': quota,
+            'fee_category': app.selected_fee_type.name if app.selected_fee_type else "-",
             'remarks': remarks,
             'status': app.status,
             'status_display': app.get_status_display(),
         })
 
     courses = Course.objects.filter(institute=institute)
-    years = AcademicYear.objects.all()
+    years = AcademicYear.objects.filter(institute=institute, is_active=True)
+    
+    from academics.models import ApplicationFeeType
+    fee_categories = ApplicationFeeType.objects.filter(form__course__institute=institute, is_active=True).values_list('name', flat=True).distinct()
+    if not fee_categories:
+        fee_categories = ApplicationFeeType.objects.filter(is_active=True).values_list('name', flat=True).distinct()
+
     # REQUIREMENT: Notice Board visibility for all users
     from academics.models import NoticeBoard
     notices = NoticeBoard.objects.filter(
@@ -1562,9 +1568,11 @@ def institute_dashboard(request):
         'admissions': processed_admissions,
         'courses': courses,
         'years': years,
+        'fee_categories': fee_categories,
         'selected_course': course_filter,
         'selected_year': year_filter,
         'selected_status': status_filter,
+        'selected_fee_category': fee_category_filter,
         'date_from': date_from,
         'date_to': date_to,
         'query': query,
@@ -2007,6 +2015,7 @@ def user_logout(request):
 # STUDENT LIST & EXPORT
 # =========================
 
+
 @login_required
 def student_list_view(request):
     institute = request.user.institute
@@ -2018,6 +2027,8 @@ def student_list_view(request):
     batch_id = request.GET.get('batch_id')
     course_id = request.GET.get('course_id')
     status_filter = request.GET.get('status')
+    class_id = request.GET.get('class_id')
+    class_year_id = request.GET.get('class_year_id')
 
     if form_id:
         admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
@@ -2040,17 +2051,31 @@ def student_list_view(request):
         else:
             admissions = admissions.filter(status=status_filter)
 
+    if class_id:
+        admissions = admissions.filter(assigned_class_id=class_id)
+
+    if class_year_id:
+        admissions = admissions.filter(assigned_class_year_id=class_year_id)
+
     # Context data for filters
-    batches = AcademicYear.objects.all()
+    batches = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
+    
+    # Filter classes and class years by the institute and selected academic year (batch) if provided
+    classes = Class.objects.filter(institute=institute)
+    if batch_id:
+        classes = classes.filter(academic_year_id=batch_id)
+        
+    class_years = ClassYear.objects.filter(class_obj__in=classes, is_active=True)
 
     return render(request, 'institute/student_list.html', {
         'admissions': admissions,
         'batches': batches,
         'courses': courses,
+        'classes': classes,
+        'class_years': class_years,
         'admission_statuses': Admission.ADMISSION_STATUS
     })
-
 @login_required
 def update_student_status(request, admission_id):
     admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
@@ -2071,22 +2096,34 @@ def update_student_status(request, admission_id):
 def export_students_excel(request):
     institute = request.user.institute
     admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course', 'fee_category')
-
     # Apply same filters as list view
     form_id = request.GET.get('form_id')
     name = request.GET.get('name')
     batch_id = request.GET.get('batch_id')
     course_id = request.GET.get('course_id')
+    class_id = request.GET.get('class_id')
+    class_year_id = request.GET.get('class_year_id')
 
     if form_id:
         admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
+    
     if name:
-        admissions = admissions.filter(application__student__first_name__icontains=name)
+        admissions = admissions.filter(
+            Q(application__student__first_name__icontains=name) | 
+            Q(application__student__username__icontains=name)
+        )
+        
     if batch_id:
         admissions = admissions.filter(application__academic_year_id=batch_id)
+        
     if course_id:
         admissions = admissions.filter(application__course_id=course_id)
 
+    if class_id:
+        admissions = admissions.filter(assigned_class_id=class_id)
+
+    if class_year_id:
+        admissions = admissions.filter(assigned_class_year_id=class_year_id)
     wb = Workbook()
     ws = wb.active
     ws.title = "Student Registry"
@@ -2660,7 +2697,7 @@ def fee_reports(request):
     if fee_category_id:
         ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
         
-    batches = AcademicYear.objects.all()
+    batches = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
     classes = Class.objects.filter(institute=institute)
     class_years = ClassYear.objects.filter(is_active=True)

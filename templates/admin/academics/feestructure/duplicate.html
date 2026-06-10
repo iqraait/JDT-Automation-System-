@@ -1,0 +1,59 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+&rsaquo; <a href="{% url 'admin:academics_feestructure_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+&rsaquo; <a href="{% url 'admin:academics_feestructure_change' object.pk %}">{{ object }}</a>
+&rsaquo; {% translate 'Duplicate' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <fieldset class="module aligned">
+                <h2>Duplicate Fee Structure</h2>
+                <div style="padding: 12px 16px; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 8px; margin-bottom: 24px; font-size: 13px; line-height: 1.5;">
+                    <strong>Original Structure:</strong> {{ object }}<br>
+                    This will create a new copy of this structure and automatically copy all related Fee Heads, amounts, start/due dates, and fine configurations.
+                </div>
+                
+                {% if form.non_field_errors %}
+                    <p class="errornote">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </p>
+                {% endif %}
+                
+                {% for field in form %}
+                    <div class="form-row{% if field.errors %} errors{% endif %}">
+                        {{ field.errors }}
+                        <div>
+                            <label class="required" for="{{ field.id_for_label }}">{{ field.label }}:</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="help">{{ field.help_text|safe }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </fieldset>
+            
+            <div class="submit-row">
+                <input type="submit" value="Duplicate / Copy Structure" class="default" name="_save" style="background-color: #2563eb; font-weight: bold; padding: 10px 20px;">
+                <p class="deletelink-box">
+                    <a href="{% url 'admin:academics_feestructure_change' object.pk %}" class="deletelink">Cancel</a>
+                </p>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -12,6 +12,12 @@ def student_signup(request):
         mobile = request.POST.get('mobile')
         password = request.POST.get('password')
 
+        if not username:
+            return render(request, 'student/register.html', {'error': 'Username is required'})
+            
+        if ' ' in username:
+            return render(request, 'student/register.html', {'error': 'Username cannot contain spaces.'})
+
         if User.objects.filter(username=username).exists():
             return render(request, 'student/register.html', {'error': 'Username already exists'})
         

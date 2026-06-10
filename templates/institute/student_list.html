@@ -40,11 +40,9 @@
         </div>
         {% endfor %}
     </div>
-    {% endif %}
-
-    <!-- FILTERS -->
+    {% endif %}    <!-- FILTERS -->
     <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
             <div class="space-y-2">
                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Adm No / Reg ID</label>
                 <input type="text" name="form_id" value="{{ request.GET.form_id }}" placeholder="e.g. 1024" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
@@ -61,6 +59,26 @@
                     <option value="">All Years</option>
                     {% for b in batches %}
                         <option value="{{ b.id }}" {% if request.GET.batch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class</label>
+                <select name="class_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                    <option value="">All Classes</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if request.GET.class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class Year</label>
+                <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                    <option value="">All Class Years</option>
+                    {% for cy in class_years %}
+                        <option value="{{ cy.id }}" {% if request.GET.class_year_id == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy }}</option>
                     {% endfor %}
                 </select>
             </div>

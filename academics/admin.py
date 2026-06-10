@@ -193,6 +193,94 @@ class FeeStructureAdmin(admin.ModelAdmin):
     list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
     inlines = [FeeHeadInline]
 
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:object_id>/duplicate/', self.admin_site.admin_view(self.duplicate_view), name='academics_feestructure_duplicate'),
+        ]
+        return custom_urls + urls
+
+    def duplicate_view(self, request, object_id):
+        from django import forms
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            return self._get_obj_does_not_exist_redirect(request, self.model._meta, object_id)
+
+        class DuplicateForm(forms.Form):
+            academic_year = forms.ModelChoiceField(queryset=AcademicYear.objects.filter(is_active=True))
+            institute = forms.ModelChoiceField(queryset=Institute.objects.all())
+            course = forms.ModelChoiceField(queryset=Course.objects.all())
+            class_obj = forms.ModelChoiceField(queryset=Class.objects.all(), label="Class")
+            class_year = forms.ModelChoiceField(queryset=ClassYear.objects.all())
+            fee_category = forms.ModelChoiceField(queryset=FeeCategoryMaster.objects.all())
+
+        if request.method == 'POST':
+            form = DuplicateForm(request.POST)
+            if form.is_valid():
+                academic_year = form.cleaned_data['academic_year']
+                institute = form.cleaned_data['institute']
+                course = form.cleaned_data['course']
+                class_obj = form.cleaned_data['class_obj']
+                class_year = form.cleaned_data['class_year']
+                fee_category = form.cleaned_data['fee_category']
+
+                # Check unique_together constraint
+                exists = FeeStructure.objects.filter(
+                    academic_year=academic_year,
+                    institute=institute,
+                    course=course,
+                    class_obj=class_obj,
+                    class_year=class_year,
+                    fee_category=fee_category
+                ).exists()
+
+                if exists:
+                    form.add_error(None, "A fee structure with this combination already exists.")
+                else:
+                    new_struct = FeeStructure.objects.create(
+                        academic_year=academic_year,
+                        institute=institute,
+                        course=course,
+                        class_obj=class_obj,
+                        class_year=class_year,
+                        fee_category=fee_category
+                    )
+                    # Copy FeeHead objects
+                    for head in obj.heads.all():
+                        FeeHead.objects.create(
+                            fee_structure=new_struct,
+                            fee_type=head.fee_type,
+                            amount=head.amount,
+                            start_date=head.start_date,
+                            due_date=head.due_date,
+                            fine_amount=head.fine_amount,
+                            is_active=head.is_active
+                        )
+                    messages.success(request, f"Fee structure duplicated successfully.")
+                    return redirect(f'/admin/academics/feestructure/{new_struct.id}/change/')
+        else:
+            form = DuplicateForm(initial={
+                'academic_year': obj.academic_year,
+                'institute': obj.institute,
+                'course': obj.course,
+                'class_obj': obj.class_obj,
+                'class_year': obj.class_year,
+                'fee_category': obj.fee_category,
+            })
+
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta,
+            'form': form,
+            'object': obj,
+            'title': f'Duplicate {obj}',
+        }
+        return render(request, 'admin/academics/feestructure/duplicate.html', context)
+
 @admin.register(StudentFeePayment)
 class StudentFeePaymentAdmin(admin.ModelAdmin):
     list_display = ['admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no']

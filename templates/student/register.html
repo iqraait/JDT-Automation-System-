@@ -62,6 +62,9 @@
                             </svg>
                         </div>
                         <input name="username" type="text" placeholder="e.g. jdt_student101" required
+                            pattern="^\S+$"
+                            oninvalid="this.setCustomValidity('Username cannot contain spaces.')"
+                            oninput="this.setCustomValidity('')"
                             class="w-full bg-slate-100 border-none px-12 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white transition-all outline-none font-medium text-slate-700">
                     </div>
                 </div>

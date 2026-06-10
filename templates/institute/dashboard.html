@@ -102,7 +102,7 @@
 
     <!-- FILTER SECTION -->
     <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-7 gap-6">
             <div class="space-y-2">
                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Course Filter</label>
                 <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
@@ -143,6 +143,16 @@
             </div>
 
             <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Fee Category</label>
+                <select name="fee_category" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+                    <option value="">All Categories</option>
+                    {% for cat in fee_categories %}
+                    <option value="{{ cat }}" {% if selected_fee_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Date From</label>
                 <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
             </div>
@@ -157,7 +167,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     Apply
                 </button>
-                {% if selected_year or selected_course or selected_status or query or date_from or date_to %}
+                {% if selected_year or selected_course or selected_status or selected_fee_category or query or date_from or date_to %}
                 <a href="/institute/dashboard/" class="p-3.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl transition-all" title="Clear Filters">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </a>
@@ -185,7 +195,7 @@
                         <th class="px-8 py-6 text-left">#</th>
                         <th class="px-8 py-6 text-left">Applicant Name</th>
                         <th class="px-8 py-6 text-left">Contact</th>
-                        <th class="px-8 py-6 text-center">Caste/Quota</th>
+                        <th class="px-8 py-6 text-center">Fee Category</th>
                         <th class="px-8 py-6 text-center">Gender</th>
                         <th class="px-8 py-6 text-center">Status</th>
                         <th class="px-8 py-6 text-center">Remarks</th>
@@ -208,18 +218,12 @@
                             <td class="px-8 py-7">
                                 <span class="text-sm font-bold text-slate-600">{{ student.contact|default:"-" }}</span>
                             </td>
-                            <td class="px-8 py-7">
-                                <div class="flex flex-col items-center gap-1">
-                                    {% if student.caste %}
-                                    <span class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black rounded-lg border border-slate-200 uppercase tracking-widest">{{ student.caste }}</span>
-                                    {% endif %}
-                                    {% if student.quota %}
-                                    <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg border border-blue-100 uppercase tracking-widest">{{ student.quota }}</span>
-                                    {% endif %}
-                                    {% if not student.caste and not student.quota %}
-                                    <span class="text-slate-300">-</span>
-                                    {% endif %}
-                                </div>
+                            <td class="px-8 py-7 text-center">
+                                {% if student.fee_category and student.fee_category != "-" %}
+                                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg border border-blue-100 uppercase tracking-widest">{{ student.fee_category }}</span>
+                                {% else %}
+                                <span class="text-slate-300">-</span>
+                                {% endif %}
                             </td>
                             <td class="px-8 py-7 text-center">
                                 <span class="text-xs font-black text-slate-500 uppercase tracking-widest">{{ student.gender|default:"-" }}</span>
@@ -285,7 +289,7 @@
             </p>
             <div class="flex items-center gap-2">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
                        class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </a>
@@ -299,13 +303,13 @@
                     {% if page_obj.number == i %}
                         <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-100">{{ i }}</span>
                     {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                        <a href="?page={{ i }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                        <a href="?page={{ i }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
                            class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-600 font-semibold">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+                    <a href="?page={{ page_obj.next_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
                        class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </a>

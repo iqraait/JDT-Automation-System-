@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    {% if change and not is_popup %}
+    <li>
+        <a href="duplicate/" class="viewsitelink" style="background-color: #2563eb; color: white !important; font-weight: bold; border-radius: 4px; padding: 4px 10px;">
+            Duplicate Fee Structure
+        </a>
+    </li>
+    {% endif %}
+{% endblock %}

@@ -570,7 +570,7 @@ def load_academic_years(request):
         is_active=True
     ).values_list('academic_year_id', flat=True).distinct()
     
-    years = AcademicYear.objects.filter(id__in=year_ids).values('id', 'name')
+    years = AcademicYear.objects.filter(id__in=year_ids, is_active=True).values('id', 'name')
     return JsonResponse(list(years), safe=False)
 
 
