@@ -1503,7 +1503,7 @@ def institute_dashboard(request):
         apps = apps.filter(selected_fee_type__name=fee_category_filter)
 
     # Performance: Pagination
-    paginator = Paginator(apps, 20)
+    paginator = Paginator(apps, 100)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
