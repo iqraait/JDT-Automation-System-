@@ -389,7 +389,8 @@
         {% if payment %}
         <p class="text-center text-[12px] text-slate-400 font-bold uppercase mt-4 tracking-widest">
             Payment: {{ payment.get_status_display|upper }} &nbsp;•&nbsp; 
-            ID: {{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }} 
+            ID: {{ payment.gateway_transaction_id|default:payment.merchant_txn_no|default:"-" }} &nbsp;•&nbsp;
+            Amount Paid: ₹{{ payment.amount }}
             {% if payment.gateway_response.vpa or payment.gateway_response.upi_id or payment.gateway_response.customer_vpa %}
             &nbsp;•&nbsp; UPI: {{ payment.gateway_response.vpa|default:payment.gateway_response.upi_id|default:payment.gateway_response.customer_vpa }}
             {% endif %}

@@ -127,6 +127,7 @@ PAYMENT_MODE_CHOICES = [
     ('CARD', 'Card'),
     ('NB', 'NetBanking'),
     ('UPI', 'UPI'),
+    ('CASH', 'Cash'),
 ]
 
 

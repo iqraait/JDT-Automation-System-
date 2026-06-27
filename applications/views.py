@@ -400,41 +400,76 @@ def payment_page(request, app_id):
 
 @csrf_exempt
 def ccavenue_callback(request):
-    from .payment_handlers import CCAvenueHandler
-    # We don't have app_id in URL, but we have order_id (which is payment.id) in encResp
-    # Need a dummy config to start decryption or get it from first active config
-    from .models import PaymentConfig
-    config = PaymentConfig.objects.filter(gateway_type='ccavenue', is_active=True).first()
+    from .payment_handlers import CCAvenueHandler, cc_decrypt
+    from .models import PaymentConfig, Payment
     
-    if not config:
+    configs = PaymentConfig.objects.filter(gateway_type='ccavenue', is_active=True)
+    if not configs.exists():
         messages.error(request, "Payment configuration not found.")
         return redirect('/my-applications/')
         
-    handler = CCAvenueHandler(config)
     data = request.POST if request.method == 'POST' else request.GET
+    enc_resp = data.get('encResp') or data.get('encresp')
+    
+    if not enc_resp:
+        messages.error(request, "No response data received from payment gateway.")
+        return redirect('/my-applications/')
+        
+    enc_resp = enc_resp.strip()
+    
+    decrypted_data = None
+    successful_config = None
+    
+    # Try decrypting with each active CCAvenue config's working key
+    for config in configs:
+        if not config.working_key:
+            continue
+        try:
+            dec_resp = cc_decrypt(enc_resp, config.working_key)
+            resp_dict = {}
+            for item in dec_resp.split("&"):
+                if "=" in item:
+                    parts = item.split("=", 1)
+                    resp_dict[parts[0]] = parts[1]
+            
+            if resp_dict.get('order_id'):
+                decrypted_data = resp_dict
+                successful_config = config
+                break
+        except Exception:
+            continue
+            
+    if not decrypted_data or not successful_config:
+        messages.error(request, "Payment verification failed (decryption error).")
+        return redirect('/my-applications/')
+        
+    handler = CCAvenueHandler(successful_config)
     result = handler.verify_payment(data)
     
     # Tracking
-    raw_response = result.get('raw', {})
+    raw_response = result.get('raw') or decrypted_data
     order_id = raw_response.get('order_id')
     
     if order_id:
-        payment = Payment.objects.get(id=order_id)
-        payment.gateway_response = raw_response
-        payment.gateway_transaction_id = result.get('txn_id')
-        
-        if result['status'] == 'success':
-            payment.status = 'success'
-            payment.save()
+        try:
+            payment = Payment.objects.get(id=order_id)
+            payment.gateway_response = raw_response
+            payment.gateway_transaction_id = result.get('txn_id')
             
-            application = payment.application
-            application.status = 'submitted'
-            application.save()
-            messages.success(request, "Payment successful!")
-        else:
-            payment.status = 'failed'
-            payment.save()
-            messages.error(request, "Payment failed.")
+            if result['status'] == 'success':
+                payment.status = 'success'
+                payment.save()
+                
+                application = payment.application
+                application.status = 'submitted'
+                application.save()
+                messages.success(request, "Payment successful!")
+            else:
+                payment.status = 'failed'
+                payment.save()
+                messages.error(request, "Payment failed.")
+        except (Payment.DoesNotExist, ValueError, TypeError) as e:
+            messages.error(request, f"Payment record not found for Order ID: {order_id}")
             
     return redirect('/my-applications/')
 

@@ -91,11 +91,12 @@ class CCAvenueHandler(BasePaymentHandler):
         if hasattr(response_data, 'dict'):
             response_data = response_data.dict()
             
-        enc_resp = response_data.get('encResp')
+        enc_resp = response_data.get('encResp') or response_data.get('encresp')
         if not enc_resp:
             logger.error("CCAvenue verify_payment: No encResp in response data")
             return {"status": "failed", "message": "No response data"}
             
+        enc_resp = enc_resp.strip()
         try:
             dec_resp = cc_decrypt(enc_resp, self.config.working_key)
             resp_dict = {}
@@ -108,7 +109,7 @@ class CCAvenueHandler(BasePaymentHandler):
             return {"status": "failed", "message": f"Decryption failed: {str(e)}"}
         
         status = resp_dict.get('order_status')
-        if status == 'Success':
+        if status and status.strip().lower() == 'success':
             return {
                 "status": "success", 
                 "txn_id": resp_dict.get('tracking_id'), 
