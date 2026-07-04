@@ -15,10 +15,20 @@
             <h1 class="text-4xl font-black text-slate-800 tracking-tight">Fee <span class="text-blue-600">Reports</span> & Audits</h1>
             <p class="text-slate-500 mt-2 font-medium">Audit dynamic demand charts, outstanding balance rosters, and real-time receipts.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <a href="{% url 'student_list' %}" class="px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all shadow-sm flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 Student Inventory
+            </a>
+            <a href="{% url 'export_fee_reports_excel' %}?report_type=entire&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+               class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-md flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export Entire (Excel)
+            </a>
+            <a href="{% url 'export_fee_reports_pdf' %}?report_type=entire&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+               class="px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-md flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export Entire (PDF)
             </a>
         </div>
     </div>
@@ -58,7 +68,7 @@
 
     <!-- ADVANCED FILTER MATRIX -->
     <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             
             <!-- Academic Session -->
             <div class="space-y-2">
@@ -118,13 +128,25 @@
             <!-- Fee Type filter -->
             <div class="space-y-2">
                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Fee Type</label>
+                <select name="fee_type_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700">
+                    <option value="">All Types</option>
+                    {% for ft in fee_types %}
+                    <option value="{{ ft.id }}" {% if selected_fee_type == ft.id|stringformat:"s" %}selected{% endif %}>{{ ft.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date From -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-500">
+            </div>
+
+            <!-- Date To & Submit -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Date To</label>
                 <div class="flex gap-2">
-                    <select name="fee_type_id" class="flex-1 bg-slate-50 border border-slate-200 px-3 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-[10px] text-slate-700">
-                        <option value="">All Types</option>
-                        {% for ft in fee_types %}
-                        <option value="{{ ft.id }}" {% if selected_fee_type == ft.id|stringformat:"s" %}selected{% endif %}>{{ ft.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="flex-1 bg-slate-50 border border-slate-200 px-3 py-3 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-500">
                     <button type="submit" class="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-100 transition-all flex-shrink-0 flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     </button>
@@ -136,9 +158,19 @@
 
     <!-- STUDENT OUTSTANDING DEMANDS ROSTER -->
     <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden animate-fade-in">
-        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
             <h3 class="text-xl font-bold text-slate-800">Outstanding Balance Roster</h3>
-            <span class="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-widest">Active Debts</span>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-widest mr-2">Active Debts</span>
+                <a href="{% url 'export_fee_reports_excel' %}?report_type=roster&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                   class="px-4 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-200 transition-all uppercase tracking-widest flex items-center gap-1">
+                    Excel
+                </a>
+                <a href="{% url 'export_fee_reports_pdf' %}?report_type=roster&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                   class="px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-[10px] font-black rounded-lg border border-red-200 transition-all uppercase tracking-widest flex items-center gap-1">
+                    PDF
+                </a>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs font-medium text-slate-500">
@@ -197,9 +229,19 @@
 
     <!-- DAILY COLLECTION AUDIT TRAIL -->
     <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
             <h3 class="text-xl font-bold text-slate-800">Daily Collection Audit Log</h3>
-            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Auditing (Last 100)</span>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mr-2">Auditing</span>
+                <a href="{% url 'export_fee_reports_excel' %}?report_type=audit&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                   class="px-4 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-200 transition-all uppercase tracking-widest flex items-center gap-1">
+                    Excel
+                </a>
+                <a href="{% url 'export_fee_reports_pdf' %}?report_type=audit&academic_year_id={{ selected_year }}&course_id={{ selected_course }}&class_id={{ selected_class }}&class_year_id={{ selected_class_year }}&fee_category_id={{ selected_fee_category }}&fee_type_id={{ selected_fee_type }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                   class="px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-[10px] font-black rounded-lg border border-red-200 transition-all uppercase tracking-widest flex items-center gap-1">
+                    PDF
+                </a>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs font-medium text-slate-500">

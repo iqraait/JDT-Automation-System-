@@ -199,7 +199,7 @@
             <div>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application Form ID</p>
                 <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">#{{ app.id|stringformat:"05d" }}</p>
-                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Generated on: {{ print_date }}</p>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Applied on: {{ app.created_at|date:"d/m/Y H:i" }}</p>
             </div>
             <div class="text-right">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Course Applied For</p>

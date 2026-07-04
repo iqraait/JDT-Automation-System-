@@ -189,9 +189,14 @@ class FeeTypeAdmin(admin.ModelAdmin):
 
 @admin.register(FeeStructure)
 class FeeStructureAdmin(admin.ModelAdmin):
-    list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
+    list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category', 'duplicate_link']
     list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
     inlines = [FeeHeadInline]
+
+    def duplicate_link(self, obj):
+        from django.utils.html import format_html
+        return format_html('<a class="button" href="{}/duplicate/" style="background-color: #2563eb; color: white !important; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-decoration: none;">Duplicate</a>', obj.id)
+    duplicate_link.short_description = "Copy Structure"
 
     def get_urls(self):
         from django.urls import path

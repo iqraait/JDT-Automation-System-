@@ -99,7 +99,7 @@ def generate_application_pdf(application, buffer):
         [
             Paragraph(f"Course Applied for: <font color='blue'><b>{application.course.name.upper() if application.course else ''}</b></font>", field_value_style), 
             "", 
-            Paragraph(f"<font size='8' color='grey'>Generated on: {current_date_str}</font>", field_value_style)
+            Paragraph(f"<font size='8' color='grey'>Applied on: {application.created_at.strftime('%d/%m/%Y %H:%M')}</font>", field_value_style)
         ]
     ]
     info_table = Table(app_info, colWidths=[2.5*inch, 2.3*inch, 1.5*inch])

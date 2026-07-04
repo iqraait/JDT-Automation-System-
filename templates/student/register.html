@@ -66,6 +66,7 @@
                             oninvalid="this.setCustomValidity('Username cannot contain spaces.')"
                             oninput="this.setCustomValidity('')"
                             class="w-full bg-slate-100 border-none px-12 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:bg-white transition-all outline-none font-medium text-slate-700">
+                        <p id="username-error-msg" class="text-xs text-red-500 font-bold mt-1.5 pl-1 hidden">Username cannot contain spaces.</p>
                     </div>
                 </div>
 
@@ -175,4 +176,22 @@
         animation: shake 0.3s ease-in-out 0s 2;
     }
 </style>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const usernameInput = document.querySelector('input[name="username"]');
+        const errorMsg = document.getElementById('username-error-msg');
+        
+        if (usernameInput && errorMsg) {
+            usernameInput.addEventListener('input', function() {
+                if (/\s/.test(usernameInput.value)) {
+                    errorMsg.classList.remove('hidden');
+                    usernameInput.setCustomValidity('Username cannot contain spaces.');
+                } else {
+                    errorMsg.classList.add('hidden');
+                    usernameInput.setCustomValidity('');
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

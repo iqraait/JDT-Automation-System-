@@ -1462,6 +1462,7 @@ def institute_dashboard(request):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     fee_category_filter = request.GET.get('fee_category', '')
+    quota_filter = request.GET.get('quota', '')
 
     # REQUIREMENT: Only students with Payment Status = Paid should appear
     apps = Application.objects.filter(
@@ -1501,6 +1502,11 @@ def institute_dashboard(request):
         apps = apps.filter(created_at__date__lte=date_to)
     if fee_category_filter:
         apps = apps.filter(selected_fee_type__name=fee_category_filter)
+    if quota_filter:
+        apps = apps.filter(
+            field_values__field_label__icontains='quota',
+            field_values__value=quota_filter
+        )
 
     # Performance: Pagination
     paginator = Paginator(apps, 100)
@@ -1515,6 +1521,7 @@ def institute_dashboard(request):
         # Extract Contact, Caste, Gender, etc.
         contact = "-"
         gender = "-"
+        quota = "-"
         remarks = app.remarks or ""
 
         # Optimized field extraction
@@ -1532,6 +1539,8 @@ def institute_dashboard(request):
                 contact = val
             elif "gender" in lbl:
                 gender = val
+            elif "quota" in lbl:
+                quota = val
             elif "remarks" in lbl or "comment" in lbl:
                 if not remarks:
                     remarks = val
@@ -1541,6 +1550,7 @@ def institute_dashboard(request):
             'student_name': name,
             'contact': contact,
             'gender': gender,
+            'quota': quota,
             'fee_category': app.selected_fee_type.name if app.selected_fee_type else "-",
             'remarks': remarks,
             'status': app.status,
@@ -1554,6 +1564,13 @@ def institute_dashboard(request):
     fee_categories = ApplicationFeeType.objects.filter(form__course__institute=institute, is_active=True).values_list('name', flat=True).distinct()
     if not fee_categories:
         fee_categories = ApplicationFeeType.objects.filter(is_active=True).values_list('name', flat=True).distinct()
+
+    # Get distinct quotas for filter dropdown
+    distinct_quotas = ApplicationFieldValue.objects.filter(
+        application__institute=institute,
+        field_label__icontains='quota'
+    ).exclude(value__in=[None, '', 'None', '-']).values_list('value', flat=True).distinct()
+    quotas = sorted(list(set(q.strip() for q in distinct_quotas if q and q.strip())))
 
     # REQUIREMENT: Notice Board visibility for all users
     from academics.models import NoticeBoard
@@ -1569,10 +1586,12 @@ def institute_dashboard(request):
         'courses': courses,
         'years': years,
         'fee_categories': fee_categories,
+        'quotas': quotas,
         'selected_course': course_filter,
         'selected_year': year_filter,
         'selected_status': status_filter,
         'selected_fee_category': fee_category_filter,
+        'selected_quota': quota_filter,
         'date_from': date_from,
         'date_to': date_to,
         'query': query,
@@ -2618,6 +2637,8 @@ def fee_reports(request):
     class_year_id = request.GET.get('class_year_id')
     fee_category_id = request.GET.get('fee_category_id')
     fee_type_id = request.GET.get('fee_type_id')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
     
     admissions_qs = Admission.objects.filter(application__institute=institute)
     if academic_year_id:
@@ -2630,6 +2651,10 @@ def fee_reports(request):
         admissions_qs = admissions_qs.filter(assigned_class_year_id=class_year_id)
     if fee_category_id:
         admissions_qs = admissions_qs.filter(assigned_fee_category_id=fee_category_id)
+    if date_from:
+        admissions_qs = admissions_qs.filter(date_of_join__gte=date_from)
+    if date_to:
+        admissions_qs = admissions_qs.filter(date_of_join__lte=date_to)
         
     admissions = list(admissions_qs.select_related('application__student', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
     
@@ -2696,6 +2721,10 @@ def fee_reports(request):
         ledger_payments = ledger_payments.filter(fee_head__fee_type_id=fee_type_id)
     if fee_category_id:
         ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
+    if date_from:
+        ledger_payments = ledger_payments.filter(payment_date__gte=date_from)
+    if date_to:
+        ledger_payments = ledger_payments.filter(payment_date__lte=date_to)
         
     batches = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
@@ -2721,7 +2750,9 @@ def fee_reports(request):
         'selected_class': class_id,
         'selected_class_year': class_year_id,
         'selected_fee_category': fee_category_id,
-        'selected_fee_type': fee_type_id
+        'selected_fee_type': fee_type_id,
+        'date_from': date_from,
+        'date_to': date_to
     })
 
 
@@ -2838,4 +2869,410 @@ def download_backup_view(request):
     except Exception as e:
         messages.error(request, f"Failed to generate backup: {str(e)}")
         return redirect('system_backup')
+
+
+# =============================================================================
+# EXPORT FEE REPORTS AND AUDITS
+# =============================================================================
+@login_required
+def export_fee_reports_excel(request):
+    institute = request.user.institute
+    report_type = request.GET.get('report_type', 'entire')
+    
+    academic_year_id = request.GET.get('academic_year_id')
+    course_id = request.GET.get('course_id')
+    class_id = request.GET.get('class_id')
+    class_year_id = request.GET.get('class_year_id')
+    fee_category_id = request.GET.get('fee_category_id')
+    fee_type_id = request.GET.get('fee_type_id')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Filter admissions (Roster)
+    admissions_qs = Admission.objects.filter(application__institute=institute)
+    if academic_year_id:
+        admissions_qs = admissions_qs.filter(application__academic_year_id=academic_year_id)
+    if course_id:
+        admissions_qs = admissions_qs.filter(selected_course_id=course_id)
+    if class_id:
+        admissions_qs = admissions_qs.filter(assigned_class_id=class_id)
+    if class_year_id:
+        admissions_qs = admissions_qs.filter(assigned_class_year_id=class_year_id)
+    if fee_category_id:
+        admissions_qs = admissions_qs.filter(assigned_fee_category_id=fee_category_id)
+    if date_from:
+        admissions_qs = admissions_qs.filter(date_of_join__gte=date_from)
+    if date_to:
+        admissions_qs = admissions_qs.filter(date_of_join__lte=date_to)
+        
+    admissions = admissions_qs.select_related('application__student', 'assigned_class', 'assigned_class_year', 'assigned_fee_category')
+    
+    # Filter payments (Audit Log)
+    ledger_payments = StudentFeePayment.objects.filter(admission__application__institute=institute).select_related('admission__application__student', 'fee_head__fee_type').order_by('-created_at')
+    if fee_type_id:
+        ledger_payments = ledger_payments.filter(fee_head__fee_type_id=fee_type_id)
+    if fee_category_id:
+        ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
+    if date_from:
+        ledger_payments = ledger_payments.filter(payment_date__gte=date_from)
+    if date_to:
+        ledger_payments = ledger_payments.filter(payment_date__lte=date_to)
+
+    wb = Workbook()
+    ws = wb.active
+    
+    if report_type == 'audit':
+        ws.title = "Collection Audit Log"
+        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Head', 'Amount Paid', 'Penalty Paid', 'Mode', 'Reference No']
+        ws.append(headers)
+        
+        for p in ledger_payments:
+            ws.append([
+                f"#{p.id}",
+                p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '-',
+                p.admission.application.display_name,
+                p.admission.registration_id or '-',
+                p.fee_head.fee_type.name,
+                float(p.amount_paid),
+                float(p.fine_paid),
+                p.get_payment_mode_display(),
+                p.reference_no or '-'
+            ])
+            
+    else:
+        # Entire Fee Report or Outstanding Balance Roster
+        if report_type == 'roster':
+            ws.title = "Outstanding Balance Roster"
+        else:
+            ws.title = "Entire Fee Report"
+            
+        headers = ['Register No', 'Student Name', 'Term & Class', 'Fee Category', 'Net Demand', 'Paid Fees', 'Fines Collected', 'Pending Balance']
+        ws.append(headers)
+        
+        for adm in admissions:
+            active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
+            if active_class and adm.assigned_class_year and adm.assigned_fee_category:
+                structure = FeeStructure.objects.filter(
+                    academic_year=adm.application.academic_year,
+                    institute=institute,
+                    course=adm.selected_course,
+                    class_obj=active_class,
+                    class_year=adm.assigned_class_year,
+                    fee_category=adm.assigned_fee_category
+                ).first()
+                
+                if structure:
+                    heads = structure.heads.filter(is_active=True)
+                    if fee_type_id:
+                        heads = heads.filter(fee_type_id=fee_type_id)
+                        
+                    std_demand = 0.0
+                    std_collected = 0.0
+                    std_fines = 0.0
+                    
+                    for head in heads:
+                        if head.fee_type.is_discountable:
+                            discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                            discount_pct = discount_pct or 0
+                        else:
+                            discount_pct = 0
+                            
+                        discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                        std_demand += discounted_amount
+                        
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                        std_collected += sum(float(p.amount_paid) for p in payments)
+                        std_fines += sum(float(p.fine_paid) for p in payments)
+                        
+                    pending_fee = std_demand - std_collected
+                    pending_fee = max(0.0, pending_fee)
+                    
+                    if report_type == 'roster' and pending_fee <= 0:
+                        continue # Skip fully paid students for outstanding roster
+                        
+                    class_term_str = f"{adm.assigned_class_year.name} - {adm.assigned_class.name}"
+                    ws.append([
+                        adm.registration_id or '-',
+                        adm.application.display_name,
+                        class_term_str,
+                        adm.assigned_fee_category.name,
+                        std_demand,
+                        std_collected,
+                        std_fines,
+                        pending_fee
+                    ])
+                    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Fee_Report_{report_type}_{datetime.datetime.now().strftime("%Y%m%d")}.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def export_fee_reports_pdf(request):
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    
+    institute = request.user.institute
+    report_type = request.GET.get('report_type', 'entire')
+    
+    academic_year_id = request.GET.get('academic_year_id')
+    course_id = request.GET.get('course_id')
+    class_id = request.GET.get('class_id')
+    class_year_id = request.GET.get('class_year_id')
+    fee_category_id = request.GET.get('fee_category_id')
+    fee_type_id = request.GET.get('fee_type_id')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Filter admissions (Roster)
+    admissions_qs = Admission.objects.filter(application__institute=institute)
+    if academic_year_id:
+        admissions_qs = admissions_qs.filter(application__academic_year_id=academic_year_id)
+    if course_id:
+        admissions_qs = admissions_qs.filter(selected_course_id=course_id)
+    if class_id:
+        admissions_qs = admissions_qs.filter(assigned_class_id=class_id)
+    if class_year_id:
+        admissions_qs = admissions_qs.filter(assigned_class_year_id=class_year_id)
+    if fee_category_id:
+        admissions_qs = admissions_qs.filter(assigned_fee_category_id=fee_category_id)
+    if date_from:
+        admissions_qs = admissions_qs.filter(date_of_join__gte=date_from)
+    if date_to:
+        admissions_qs = admissions_qs.filter(date_of_join__lte=date_to)
+        
+    admissions = admissions_qs.select_related('application__student', 'assigned_class', 'assigned_class_year', 'assigned_fee_category')
+    
+    # Filter payments (Audit Log)
+    ledger_payments = StudentFeePayment.objects.filter(admission__application__institute=institute).select_related('admission__application__student', 'fee_head__fee_type').order_by('-created_at')
+    if fee_type_id:
+        ledger_payments = ledger_payments.filter(fee_head__fee_type_id=fee_type_id)
+    if fee_category_id:
+        ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
+    if date_from:
+        ledger_payments = ledger_payments.filter(payment_date__gte=date_from)
+    if date_to:
+        ledger_payments = ledger_payments.filter(payment_date__lte=date_to)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    elements = []
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('ReportTitle', parent=styles['Normal'], fontSize=16, fontName='Helvetica-Bold', leading=20, alignment=1, spaceAfter=15)
+    header_style = ParagraphStyle('TableHeader', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold', textColor=colors.whitesmoke)
+    cell_style = ParagraphStyle('TableCell', parent=styles['Normal'], fontSize=8, fontName='Helvetica', leading=10)
+    
+    # Add Title
+    title_text = "ENTIRE FEE REPORT"
+    if report_type == 'roster':
+        title_text = "OUTSTANDING BALANCE ROSTER"
+    elif report_type == 'audit':
+        title_text = "DAILY COLLECTION AUDIT LOG"
+        
+    elements.append(Paragraph(f"{institute.name.upper()}<br/><font size='12'>{title_text}</font>", title_style))
+    elements.append(Spacer(1, 10))
+    
+    if report_type == 'audit':
+        headers = [
+            Paragraph("Receipt ID", header_style),
+            Paragraph("Date", header_style),
+            Paragraph("Candidate Name", header_style),
+            Paragraph("Register No", header_style),
+            Paragraph("Demanded Head", header_style),
+            Paragraph("Amount Paid", header_style),
+            Paragraph("Penalty Paid", header_style),
+            Paragraph("Mode", header_style),
+            Paragraph("Reference No", header_style)
+        ]
+        
+        data = [headers]
+        for p in ledger_payments:
+            data.append([
+                Paragraph(f"#{p.id}", cell_style),
+                Paragraph(p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '-', cell_style),
+                Paragraph(p.admission.application.display_name, cell_style),
+                Paragraph(p.admission.registration_id or '-', cell_style),
+                Paragraph(p.fee_head.fee_type.name, cell_style),
+                Paragraph(f"₹{p.amount_paid:.2f}", cell_style),
+                Paragraph(f"₹{p.fine_paid:.2f}", cell_style),
+                Paragraph(p.get_payment_mode_display(), cell_style),
+                Paragraph(p.reference_no or '-', cell_style)
+            ])
+            
+        t = Table(data, colWidths=[60, 65, 120, 80, 100, 75, 75, 65, 100])
+    else:
+        headers = [
+            Paragraph("Register No", header_style),
+            Paragraph("Student Name", header_style),
+            Paragraph("Term & Class", header_style),
+            Paragraph("Fee Category", header_style),
+            Paragraph("Net Demand", header_style),
+            Paragraph("Paid Fees", header_style),
+            Paragraph("Fines Collected", header_style),
+            Paragraph("Pending Balance", header_style)
+        ]
+        
+        data = [headers]
+        for adm in admissions:
+            active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
+            if active_class and adm.assigned_class_year and adm.assigned_fee_category:
+                structure = FeeStructure.objects.filter(
+                    academic_year=adm.application.academic_year,
+                    institute=institute,
+                    course=adm.selected_course,
+                    class_obj=active_class,
+                    class_year=adm.assigned_class_year,
+                    fee_category=adm.assigned_fee_category
+                ).first()
+                
+                if structure:
+                    heads = structure.heads.filter(is_active=True)
+                    if fee_type_id:
+                        heads = heads.filter(fee_type_id=fee_type_id)
+                        
+                    std_demand = 0.0
+                    std_collected = 0.0
+                    std_fines = 0.0
+                    
+                    for head in heads:
+                        if head.fee_type.is_discountable:
+                            discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                            discount_pct = discount_pct or 0
+                        else:
+                            discount_pct = 0
+                            
+                        discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                        std_demand += discounted_amount
+                        
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                        std_collected += sum(float(p.amount_paid) for p in payments)
+                        std_fines += sum(float(p.fine_paid) for p in payments)
+                        
+                    pending_fee = std_demand - std_collected
+                    pending_fee = max(0.0, pending_fee)
+                    
+                    if report_type == 'roster' and pending_fee <= 0:
+                        continue
+                        
+                    class_term_str = f"{adm.assigned_class_year.name} - {adm.assigned_class.name}"
+                    data.append([
+                        Paragraph(adm.registration_id or '-', cell_style),
+                        Paragraph(adm.application.display_name, cell_style),
+                        Paragraph(class_term_str, cell_style),
+                        Paragraph(adm.assigned_fee_category.name, cell_style),
+                        Paragraph(f"₹{std_demand:.2f}", cell_style),
+                        Paragraph(f"₹{std_collected:.2f}", cell_style),
+                        Paragraph(f"₹{std_fines:.2f}", cell_style),
+                        Paragraph(f"₹{pending_fee:.2f}", cell_style)
+                    ])
+                    
+        t = Table(data, colWidths=[90, 140, 130, 110, 65, 65, 65, 75])
+        
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t)
+    
+    doc.build(elements)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Fee_Report_{report_type}_{datetime.datetime.now().strftime("%Y%m%d")}.pdf"'
+    return response
+
+
+@login_required
+def export_payments_pdf(request):
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    
+    institute = getattr(request.user, 'institute', None)
+    if not institute:
+        return HttpResponse("Unauthorized", status=401)
+        
+    payments = Payment.objects.filter(application__institute=institute).select_related('application__student')
+    
+    search_query = request.GET.get('q', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    status_filter = request.GET.get('status', 'all')
+    
+    if search_query:
+        payments = payments.filter(
+            Q(application__student__first_name__icontains=search_query) |
+            Q(application__student__username__icontains=search_query) |
+            Q(gateway_transaction_id__icontains=search_query) |
+            Q(id__icontains=search_query)
+        ).distinct()
+
+    if date_from:
+        payments = payments.filter(created_at__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(created_at__date__lte=date_to)
+    if status_filter and status_filter != 'all':
+        payments = payments.filter(status=status_filter)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    elements = []
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('ReportTitle', parent=styles['Normal'], fontSize=16, fontName='Helvetica-Bold', leading=20, alignment=1, spaceAfter=15)
+    header_style = ParagraphStyle('TableHeader', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold', textColor=colors.whitesmoke)
+    cell_style = ParagraphStyle('TableCell', parent=styles['Normal'], fontSize=8, fontName='Helvetica', leading=10)
+    
+    elements.append(Paragraph(f"{institute.name.upper()}<br/><font size='12'>PAYMENT TRANSACTION REPORT</font>", title_style))
+    elements.append(Spacer(1, 10))
+    
+    headers = [
+        Paragraph("ID", header_style),
+        Paragraph("Student Name", header_style),
+        Paragraph("Mobile No.", header_style),
+        Paragraph("Payment Status", header_style),
+        Paragraph("Amount", header_style),
+        Paragraph("Payment Mode", header_style),
+        Paragraph("Gateway Transaction ID", header_style),
+        Paragraph("Created At", header_style)
+    ]
+    
+    data = [headers]
+    for p in payments:
+        student_name = p.application.display_name
+        student_mobile = p.application.student_mobile
+        created_at_str = p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else ''
+        status_display = dict(Payment._meta.get_field('status').choices).get(p.status, p.status).title()
+        
+        data.append([
+            Paragraph(f"#{p.id}", cell_style),
+            Paragraph(student_name, cell_style),
+            Paragraph(student_mobile or '-', cell_style),
+            Paragraph(status_display, cell_style),
+            Paragraph(f"₹{p.amount:.2f}", cell_style),
+            Paragraph(p.payment_mode or '-', cell_style),
+            Paragraph(p.gateway_transaction_id or '-', cell_style),
+            Paragraph(created_at_str, cell_style)
+        ])
+        
+    t = Table(data, colWidths=[50, 140, 90, 80, 70, 70, 130, 110])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t)
+    
+    doc.build(elements)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Payment_Details_{institute.name}.pdf"'
+    return response
 
