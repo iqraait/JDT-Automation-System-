@@ -53,6 +53,7 @@ urlpatterns = [
     path('fee-reports/export-excel/', export_fee_reports_excel, name='export_fee_reports_excel'),
     path('fee-reports/export-pdf/', export_fee_reports_pdf, name='export_fee_reports_pdf'),
     path('payment-list/export-pdf/', export_payments_pdf, name='export_payments_pdf'),
+    path('activity-logs/', activity_logs_view, name='activity_logs'),
     
     # ✅ SYSTEM BACKUP
     path('backup/', system_backup_view, name='system_backup'),

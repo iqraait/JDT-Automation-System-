@@ -195,7 +195,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
 
     def duplicate_link(self, obj):
         from django.utils.html import format_html
-        return format_html('<a class="button" href="{}/duplicate/" style="background-color: #2563eb; color: white !important; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-decoration: none;">Duplicate</a>', obj.id)
+        return format_html('<a class="button" href="/admin/academics/feestructure/{}/duplicate/" style="background-color: #2563eb; color: white !important; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-decoration: none;">Duplicate</a>', obj.id)
     duplicate_link.short_description = "Copy Structure"
 
     def get_urls(self):
@@ -210,11 +210,12 @@ class FeeStructureAdmin(admin.ModelAdmin):
         from django import forms
         from django.shortcuts import render, redirect
         from django.contrib import messages
+        from institutes.models import AcademicYear, Institute, log_activity
         
         obj = self.get_object(request, object_id)
         if obj is None:
             return self._get_obj_does_not_exist_redirect(request, self.model._meta, object_id)
-
+ 
         class DuplicateForm(forms.Form):
             academic_year = forms.ModelChoiceField(queryset=AcademicYear.objects.filter(is_active=True))
             institute = forms.ModelChoiceField(queryset=Institute.objects.all())
@@ -222,7 +223,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
             class_obj = forms.ModelChoiceField(queryset=Class.objects.all(), label="Class")
             class_year = forms.ModelChoiceField(queryset=ClassYear.objects.all())
             fee_category = forms.ModelChoiceField(queryset=FeeCategoryMaster.objects.all())
-
+ 
         if request.method == 'POST':
             form = DuplicateForm(request.POST)
             if form.is_valid():
@@ -232,7 +233,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
                 class_obj = form.cleaned_data['class_obj']
                 class_year = form.cleaned_data['class_year']
                 fee_category = form.cleaned_data['fee_category']
-
+ 
                 # Check unique_together constraint
                 exists = FeeStructure.objects.filter(
                     academic_year=academic_year,
@@ -242,7 +243,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
                     class_year=class_year,
                     fee_category=fee_category
                 ).exists()
-
+ 
                 if exists:
                     form.add_error(None, "A fee structure with this combination already exists.")
                 else:
@@ -265,6 +266,14 @@ class FeeStructureAdmin(admin.ModelAdmin):
                             fine_amount=head.fine_amount,
                             is_active=head.is_active
                         )
+                    
+                    log_activity(
+                        user=request.user,
+                        module="Academic Settings",
+                        activity=f"Duplicated fee structure (ID: {obj.id}) to new structure (ID: {new_struct.id})",
+                        institute=new_struct.institute
+                    )
+                    
                     messages.success(request, f"Fee structure duplicated successfully.")
                     return redirect(f'/admin/academics/feestructure/{new_struct.id}/change/')
         else:

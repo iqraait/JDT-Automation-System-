@@ -1883,6 +1883,13 @@ def update_student_status(request, admission_id):
             
             # Trigger Email if status changed
             if old_status != status:
+                from .models import log_activity
+                log_activity(
+                    user=request.user,
+                    module="Admissions",
+                    activity=f"Updated status of student {admission.application.display_name} from {old_status} to {status} (Reason: {reason or 'none'})",
+                    institute=admission.application.institute
+                )
                 send_admission_status_email(admission, status)
                 
             return JsonResponse({'status': 'success', 'message': 'Status updated successfully'})
@@ -2103,10 +2110,21 @@ def update_student_status(request, admission_id):
     reason = request.GET.get('reason', '')
 
     if new_status in dict(Admission.ADMISSION_STATUS):
+        old_status = admission.status
         admission.status = new_status
         if reason:
             admission.status_reason = reason
         admission.save()
+        
+        if old_status != new_status:
+            from .models import log_activity
+            log_activity(
+                user=request.user,
+                module="Admissions",
+                activity=f"Updated status of student {admission.application.display_name} from {old_status} to {new_status} (Reason: {reason or 'none'})",
+                institute=admission.application.institute
+            )
+            
         messages.success(request, f"Status updated for {admission.application.student.first_name or admission.application.student.username}")
     
     return redirect('student_list')
@@ -2242,17 +2260,33 @@ def manage_notices(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add':
+            title = request.POST.get('title')
             NoticeBoard.objects.create(
                 institute=institute,
-                title=request.POST.get('title'),
+                title=title,
                 content=request.POST.get('content'),
                 course_id=request.POST.get('course') or None,
                 assigned_class_id=request.POST.get('assigned_class') or None,
                 file_attachment=request.FILES.get('file')
             )
+            from .models import log_activity
+            log_activity(
+                user=request.user,
+                module="Academic Announcements",
+                activity=f"Created notice: '{title}'",
+                institute=institute
+            )
             messages.success(request, "Notice posted successfully.")
         elif action == 'delete':
-            NoticeBoard.objects.filter(id=request.POST.get('notice_id'), institute=institute).delete()
+            notice_id = request.POST.get('notice_id')
+            NoticeBoard.objects.filter(id=notice_id, institute=institute).delete()
+            from .models import log_activity
+            log_activity(
+                user=request.user,
+                module="Academic Announcements",
+                activity=f"Deleted notice ID: {notice_id}",
+                institute=institute
+            )
             messages.success(request, "Notice deleted.")
         return redirect('manage_notices')
 
@@ -2288,6 +2322,13 @@ def manage_timetables(request):
             timetable, created = Timetable.objects.get_or_create(assigned_class=assigned_class)
             timetable.image_file = image
             timetable.save()
+            from .models import log_activity
+            log_activity(
+                user=request.user,
+                module="Academic Announcements",
+                activity=f"Uploaded timetable for class: {assigned_class.name}",
+                institute=institute
+            )
             messages.success(request, f"Timetable updated for {assigned_class.name}")
         return redirect('manage_timetables')
         
@@ -2349,6 +2390,13 @@ def enter_academic_results(request):
                         }
                     )
         messages.success(request, "Academic results saved successfully.")
+        from .models import log_activity
+        log_activity(
+            user=request.user,
+            module="Academics",
+            activity=f"Saved academic results for class: {selected_class.name if selected_class else 'n/a'}, subject ID: {subject_id}, period ID: {period_id}",
+            institute=institute
+        )
         return redirect(f"{request.path}?class_id={selected_class.id}&period_id={period_id}&subject_id={subject_id}")
 
     return render(request, 'institute/enter_results.html', {
@@ -2620,6 +2668,15 @@ def collect_student_fee(request, admission_id, head_id):
                 remarks=remarks,
                 payment_date=datetime.date.today()
             )
+            
+            from .models import log_activity
+            log_activity(
+                user=request.user,
+                module="Fee Management",
+                activity=f"Collected ₹{amt_val:.2f} (Fine: ₹{fine_val:.2f}) for student {admission.application.display_name} (Fee Head: {head.fee_type.name})",
+                institute=admission.application.institute
+            )
+            
             messages.success(request, f"Payment of ₹{amt_val + fine_val} recorded successfully!")
         except Exception as e:
             messages.error(request, f"Error processing payment: {str(e)}")
@@ -2627,16 +2684,22 @@ def collect_student_fee(request, admission_id, head_id):
     return redirect('manage_student_fees', admission_id=admission_id)
 
 
+def clean_id_param(val):
+    if not val or val in ['None', 'null', 'undefined', '']:
+        return None
+    return val
+
+
 @login_required
 def fee_reports(request):
     institute = request.user.institute
     
-    academic_year_id = request.GET.get('academic_year_id')
-    course_id = request.GET.get('course_id')
-    class_id = request.GET.get('class_id')
-    class_year_id = request.GET.get('class_year_id')
-    fee_category_id = request.GET.get('fee_category_id')
-    fee_type_id = request.GET.get('fee_type_id')
+    academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
+    course_id = clean_id_param(request.GET.get('course_id'))
+    class_id = clean_id_param(request.GET.get('class_id'))
+    class_year_id = clean_id_param(request.GET.get('class_year_id'))
+    fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
+    fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
@@ -2829,6 +2892,13 @@ def collect_multiple_fees(request, admission_id):
                             success_count += 1
                             
             if success_count > 0:
+                from .models import log_activity
+                log_activity(
+                    user=request.user,
+                    module="Fee Management",
+                    activity=f"Bulk collected ₹{total_collected:.2f} for {success_count} fee heads of student {admission.application.display_name}",
+                    institute=admission.application.institute
+                )
                 messages.success(request, f"Successfully collected ₹{total_collected:.2f} for {success_count} fee heads!")
             else:
                 messages.warning(request, "Selected fee heads have already been fully paid.")
@@ -2865,6 +2935,14 @@ def download_backup_view(request):
         response = HttpResponse(buffer.getvalue(), content_type='application/zip')
         filename = f"jdt_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
         response['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        from .models import log_activity
+        log_activity(
+            user=request.user,
+            module="System Backup",
+            activity=f"Downloaded system ZIP backup: {filename}",
+            institute=None
+        )
         return response
     except Exception as e:
         messages.error(request, f"Failed to generate backup: {str(e)}")
@@ -2879,12 +2957,12 @@ def export_fee_reports_excel(request):
     institute = request.user.institute
     report_type = request.GET.get('report_type', 'entire')
     
-    academic_year_id = request.GET.get('academic_year_id')
-    course_id = request.GET.get('course_id')
-    class_id = request.GET.get('class_id')
-    class_year_id = request.GET.get('class_year_id')
-    fee_category_id = request.GET.get('fee_category_id')
-    fee_type_id = request.GET.get('fee_type_id')
+    academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
+    course_id = clean_id_param(request.GET.get('course_id'))
+    class_id = clean_id_param(request.GET.get('class_id'))
+    class_year_id = clean_id_param(request.GET.get('class_year_id'))
+    fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
+    fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
@@ -3018,12 +3096,12 @@ def export_fee_reports_pdf(request):
     institute = request.user.institute
     report_type = request.GET.get('report_type', 'entire')
     
-    academic_year_id = request.GET.get('academic_year_id')
-    course_id = request.GET.get('course_id')
-    class_id = request.GET.get('class_id')
-    class_year_id = request.GET.get('class_year_id')
-    fee_category_id = request.GET.get('fee_category_id')
-    fee_type_id = request.GET.get('fee_type_id')
+    academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
+    course_id = clean_id_param(request.GET.get('course_id'))
+    class_id = clean_id_param(request.GET.get('class_id'))
+    class_year_id = clean_id_param(request.GET.get('class_year_id'))
+    fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
+    fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
@@ -3275,4 +3353,53 @@ def export_payments_pdf(request):
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="Payment_Details_{institute.name}.pdf"'
     return response
+
+
+@login_required
+def activity_logs_view(request):
+    if request.user.role != 'institute' and not request.user.is_staff and not request.user.is_superuser:
+        return redirect('/')
+        
+    institute = getattr(request.user, 'institute', None)
+    if not institute and (request.user.is_staff or request.user.is_superuser):
+        institute = Institute.objects.first()
+
+    if not institute:
+        messages.error(request, "No Institute context found.")
+        return redirect('/')
+
+    selected_user_id = request.GET.get('user_id')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    from .models import UserActivityLog
+    logs_qs = UserActivityLog.objects.filter(institute=institute).select_related('user').order_by('-created_at')
+    
+    if selected_user_id:
+        logs_qs = logs_qs.filter(user_id=selected_user_id)
+    if date_from:
+        logs_qs = logs_qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        logs_qs = logs_qs.filter(created_at__date__lte=date_to)
+        
+    from django.core.paginator import Paginator
+    paginator = Paginator(logs_qs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    users = User.objects.filter(activity_logs__institute=institute).distinct()
+    
+    if not users.exists():
+        from django.db.models import Q
+        users = User.objects.filter(Q(role='institute') | Q(is_staff=True) | Q(is_superuser=True))
+        
+    return render(request, 'institute/activity_logs.html', {
+        'page_obj': page_obj,
+        'users': users,
+        'selected_user_id': selected_user_id,
+        'date_from': date_from,
+        'date_to': date_to,
+    })
 

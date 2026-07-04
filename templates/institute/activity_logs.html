@@ -1,0 +1,153 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block sidebar_title %}{{ request.user.institute_profile.name|default:"JDT Admin" }}{% endblock %}
+{% block header_title %}System Activity Logs{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
+    
+    <!-- HEADER AND METRICS -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+        <div>
+            <h1 class="text-4xl font-black text-slate-800 tracking-tight">Activity <span class="text-blue-600">Logs</span></h1>
+            <p class="text-slate-500 mt-2 font-medium">Audit real-time administrative and financial activities performed by staff and IT users.</p>
+        </div>
+    </div>
+
+    <!-- ADVANCED FILTERS -->
+    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+            <!-- User Filter -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Performed By</label>
+                <select name="user_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-700 cursor-pointer">
+                    <option value="">All Users</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if selected_user_id == u.id|stringformat:"s" %}selected{% endif %}>
+                        {{ u.username }}{% if u.first_name %} ({{ u.first_name }} {{ u.last_name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date From -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-500">
+            </div>
+
+            <!-- Date To -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl focus:border-blue-600 transition-all outline-none font-bold text-xs text-slate-500">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    Filter
+                </button>
+                {% if selected_user_id or date_from or date_to %}
+                <a href="?" class="bg-slate-100 hover:bg-slate-200 text-slate-500 px-6 py-3.5 rounded-xl font-black uppercase tracking-widest transition-all flex items-center justify-center" title="Clear Filters">
+                    Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- LOGS DATA TABLE -->
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">User Details</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Module</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Activity details</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for log in page_obj %}
+                    <tr class="hover:bg-slate-50/30 transition-all">
+                        <!-- User Details -->
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-xs">
+                                    {{ log.user.username|first|upper }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-black text-slate-800 text-sm leading-tight">{{ log.user.username }}</span>
+                                    {% if log.user.first_name %}
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ log.user.first_name }} {{ log.user.last_name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Module Badge -->
+                        <td class="px-8 py-6 text-center">
+                            {% if log.module == "Fee Management" %}
+                            <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg border border-blue-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% elif log.module == "Admissions" %}
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-lg border border-amber-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% elif log.module == "System Backup" %}
+                            <span class="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg border border-emerald-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% elif log.module == "Academics" %}
+                            <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg border border-indigo-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% elif log.module == "Academic Announcements" %}
+                            <span class="px-3 py-1 bg-purple-50 text-purple-600 text-[10px] font-black rounded-lg border border-purple-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% else %}
+                            <span class="px-3 py-1 bg-slate-50 text-slate-600 text-[10px] font-black rounded-lg border border-slate-100 uppercase tracking-widest">{{ log.module }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Activity Text -->
+                        <td class="px-8 py-6">
+                            <span class="text-sm font-semibold text-slate-600">{{ log.activity }}</span>
+                        </td>
+
+                        <!-- Date Time -->
+                        <td class="px-8 py-6 text-right">
+                            <span class="text-xs font-bold text-slate-400 font-mono">{{ log.created_at|date:"d/m/Y H:i:s" }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-8 py-20 text-center text-slate-400 italic">No system activities recorded for the selected filter parameters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} Logs
+            </span>
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if selected_user_id %}&user_id={{ selected_user_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                   class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all flex items-center gap-1 shadow-sm">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if selected_user_id %}&user_id={{ selected_user_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                   class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all flex items-center gap-1 shadow-sm">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
