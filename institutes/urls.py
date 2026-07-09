@@ -19,6 +19,8 @@ urlpatterns = [
     path('admission/register-manual/', register_manual, name='register_manual'),
     path('admission/load-subcategories/', load_subcategories, name='load_subcategories'),
     path('admission/load-classes/', load_classes, name='load_classes'),
+    path('admission/load-class-years/', load_class_years, name='load_class_years'),
+    path('admission/load-fee-categories/', load_fee_categories, name='load_fee_categories'),
     path('load-form-fields/', load_form_fields, name='load_form_fields'),
     path('load-exam-subjects/', load_exam_subjects, name='load_exam_subjects'),
 

@@ -120,7 +120,7 @@
                                 class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
                                 <option value="">-- Choose Category --</option>
                                 {% for cat in fee_categories %}
-                                <option value="{{ cat.id }}" data-total="{{ cat.total_fee }}" data-breakdown='{{ cat.breakdown|safe }}'>{{ cat.name }} (Total: {{ cat.total_fee }})</option>
+                                <option value="{{ cat.id }}" data-total="{{ cat.total_fee }}" data-breakdown='{{ cat.breakdown|safe }}'>{{ cat.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -137,12 +137,21 @@
                 </div>
 
                 <!-- NEW: CLASS SELECTION -->
-                <div id="classSection" class="animate-fade-in pt-8 border-t border-slate-100">
-                    <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class</label>
-                    <select name="assigned_class_id" id="assigned_class_id"
-                        class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
-                        <option value="">-- Select Class --</option>
-                    </select>
+                <div id="classSection" class="animate-fade-in pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class</label>
+                        <select name="assigned_class_id" id="assigned_class_id" onchange="loadManualClassYears()"
+                            class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            <option value="">-- Select Class --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Assign Student to Class Year / Semester</label>
+                        <select name="assigned_class_year_id" id="assigned_class_year_id"
+                            class="w-full bg-slate-50 border-2 border-slate-300 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            <option value="">-- Select Class Year --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -229,15 +238,15 @@
                  <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </div>
-                <h3 class="text-2xl font-bold text-slate-800">Guardian Information</h3>
+                <h3 class="text-2xl font-bold text-slate-800">Guardian Information (Optional)</h3>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Care Of</label><input type="text" name="care_of" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
-                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Guardian Name <span class="text-red-500">*</span></label><input type="text" name="guardian_name" required class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
-                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Mobile <span class="text-red-500">*</span></label><input type="text" name="guardian_mobile" required class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
-                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Relationship <span class="text-red-500">*</span></label><input type="text" name="relationship" required placeholder="Father, Mother, etc" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
-                <div class="md:col-span-2"><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Full Address <span class="text-red-500">*</span></label><textarea name="guardian_address" required rows="2" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></textarea></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Guardian Name</label><input type="text" name="guardian_name" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Mobile</label><input type="text" name="guardian_mobile" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Relationship</label><input type="text" name="relationship" placeholder="Father, Mother, etc" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-bold text-slate-600 mb-3 ml-1">Full Address</label><textarea name="guardian_address" rows="2" class="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></textarea></div>
             </div>
         </div>
 
@@ -389,10 +398,27 @@
         .then(res => res.json())
         .then(data => {
             subCategories = data;
-            document.getElementById('fee_cat_id').selectedIndex = 0;
-            document.getElementById('feeCalculationBox').classList.add('hidden');
-            document.getElementById('periodSection').classList.add('hidden');
-            loadManualClasses();
+            
+            // Load dynamic Fee Categories
+            fetch(`/institute/admission/load-fee-categories/?course_id=${courseId}`)
+            .then(res => res.json())
+            .then(feeData => {
+                const feeSelect = document.getElementById('fee_cat_id');
+                feeSelect.innerHTML = '<option value="">-- Choose Category --</option>';
+                feeData.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.id;
+                    opt.dataset.total = f.total_fee;
+                    opt.dataset.breakdown = JSON.stringify(f.breakdown);
+                    opt.innerText = f.name;
+                    feeSelect.appendChild(opt);
+                });
+                
+                document.getElementById('fee_cat_id').selectedIndex = 0;
+                document.getElementById('feeCalculationBox').classList.add('hidden');
+                document.getElementById('periodSection').classList.add('hidden');
+                loadManualClasses();
+            });
         });
     }
 
@@ -495,12 +521,33 @@
         .then(res => res.json())
         .then(data => {
             classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+            document.getElementById('assigned_class_year_id').innerHTML = '<option value="">-- Select Class Year --</option>';
             data.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.id; opt.innerText = c.name;
                 classSelect.appendChild(opt);
             });
         });
+    }
+
+    function loadManualClassYears() {
+        const classId = document.getElementById('assigned_class_id').value;
+        const classYearSelect = document.getElementById('assigned_class_year_id');
+        if (!classId) {
+            classYearSelect.innerHTML = '<option value="">-- Select Class Year --</option>';
+            return;
+        }
+        fetch(`/institute/admission/load-class-years/?class_id=${classId}`)
+            .then(res => res.json())
+            .then(data => {
+                classYearSelect.innerHTML = '<option value="">-- Select Class Year --</option>';
+                data.forEach(cy => {
+                    const opt = document.createElement('option');
+                    opt.value = cy.id;
+                    opt.innerText = cy.name;
+                    classYearSelect.appendChild(opt);
+                });
+            });
     }
 
     function updateExcelFileName(input) {

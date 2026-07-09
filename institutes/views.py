@@ -264,11 +264,11 @@ def register_student(request, app_id):
             course = get_object_or_404(Course, id=selected_course_id)
         
         # Guardian
-        care_of = request.POST.get('care_of')
-        guardian_name = request.POST.get('guardian_name')
-        guardian_mobile = request.POST.get('guardian_mobile')
-        relationship = request.POST.get('relationship')
-        guardian_address = request.POST.get('guardian_address')
+        care_of = request.POST.get('care_of', '') or ''
+        guardian_name = request.POST.get('guardian_name', '') or ''
+        guardian_mobile = request.POST.get('guardian_mobile', '') or ''
+        relationship = request.POST.get('relationship', '') or ''
+        guardian_address = request.POST.get('guardian_address', '') or ''
         
         if Admission.objects.filter(registration_id=registration_id).exists():
             messages.error(request, "Registration ID already exists.")
@@ -277,12 +277,20 @@ def register_student(request, app_id):
         # Fix: Convert date string to date object
         doj_obj = datetime.datetime.strptime(date_of_join, '%Y-%m-%d').date() if date_of_join else datetime.date.today()
 
+        fee_cat_master = None
+        app_fee_cat = None
+        if fee_cat_id:
+            fee_cat_master = FeeCategoryMaster.objects.filter(id=fee_cat_id).first()
+            if fee_cat_master:
+                app_fee_cat = FeeCategory.objects.filter(course=course, name__iexact=fee_cat_master.name).first()
+
         adm = Admission.objects.create(
             application=app,
             registration_id=registration_id,
             date_of_join=doj_obj,
             selected_course=course,
-            fee_category_id=fee_cat_id if fee_cat_id else None,
+            fee_category=app_fee_cat,
+            assigned_fee_category=fee_cat_master,
             joining_period_id=joining_period_id if joining_period_id else None,
             calculated_fee=calculated_fee if calculated_fee else 0.00,
             discount_amount=discount_amount if discount_amount else 0.00,
@@ -293,7 +301,8 @@ def register_student(request, app_id):
             guardian_mobile=guardian_mobile,
             relationship=relationship,
             guardian_address=guardian_address,
-            assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None
+            assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None,
+            assigned_class_year_id=request.POST.get('assigned_class_year_id') if request.POST.get('assigned_class_year_id') else None
         )
 
         # 2. Save Dynamic Form Fields
@@ -360,7 +369,7 @@ def register_student(request, app_id):
                         )
         
         
-        messages.success(request, f"Student {app.student.first_name} has been successfully registered! Admission No: {adm.register_number}")
+        messages.success(request, "this student is registered successfully")
         
         # SEND NOTIFICATION EMAIL
         send_admission_email(adm)
@@ -379,22 +388,16 @@ def register_student(request, app_id):
                 student_mobile = v.value
                 break
     
-    # Auto-generate Registration ID
-    course_code = course.course_code or "GEN"
-    last_adm = Admission.objects.filter(registration_id__startswith=course_code).order_by('-id').first()
-    if last_adm:
-        import re
-        nums = re.findall(r'\d+', last_adm.registration_id)
-        registration_id = f"{course_code}{int(nums[-1])+1:05d}" if nums else f"{course_code}00001"
-    else:
-        registration_id = f"{course_code}00001"
+    # Registration ID should be blank so they enter it manually
+    registration_id = ""
         
-    fee_categories = FeeCategory.objects.filter(course=course)
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     fee_cats_json = []
     for cat in fee_categories:
+        app_fee_cat = FeeCategory.objects.filter(course=course, name__iexact=cat.name).first()
         fee_cats_json.append({
-            'id': cat.id, 'name': cat.name, 'total': float(cat.total_fee), 
-            'breakdown': cat.breakdown, 'type': cat.category_type
+            'id': cat.id, 'name': cat.name, 'total': float(app_fee_cat.total_fee) if app_fee_cat else 0.0, 
+            'breakdown': app_fee_cat.breakdown if app_fee_cat else [], 'type': 'semester'
         })
     
     # Fetch Dynamic Fields for the specific course form
@@ -481,6 +484,35 @@ def load_classes(request):
     #     classes = classes.filter(period_id=period_id)
         
     data = [{'id': c.id, 'name': c.name} for c in classes]
+    return JsonResponse(data, safe=False)
+
+
+# ✅ AJAX: LOAD CLASS YEARS
+def load_class_years(request):
+    class_id = request.GET.get('class_id')
+    if not class_id:
+        return JsonResponse([], safe=False)
+    class_years = ClassYear.objects.filter(class_obj_id=class_id, is_active=True)
+    data = [{'id': cy.id, 'name': cy.name} for cy in class_years]
+    return JsonResponse(data, safe=False)
+
+
+# ✅ AJAX: LOAD FEE CATEGORIES
+def load_fee_categories(request):
+    course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse([], safe=False)
+    course = get_object_or_404(Course, id=course_id)
+    masters = FeeCategoryMaster.objects.filter(is_active=True)
+    data = []
+    for m in masters:
+        app_cat = FeeCategory.objects.filter(course=course, name__iexact=m.name).first()
+        data.append({
+            'id': m.id,
+            'name': m.name,
+            'total_fee': float(app_cat.total_fee) if app_cat else 0.0,
+            'breakdown': app_cat.breakdown if app_cat else []
+        })
     return JsonResponse(data, safe=False)
 
 
@@ -633,23 +665,32 @@ def register_manual(request):
         discount_reason = request.POST.get('discount_reason')
         final_fee = request.POST.get('final_fee')
         
-        care_of = request.POST.get('care_of')
-        guardian_name = request.POST.get('guardian_name')
-        guardian_mobile = request.POST.get('guardian_mobile')
-        relationship = request.POST.get('relationship')
-        guardian_address = request.POST.get('guardian_address')
+        care_of = request.POST.get('care_of', '') or ''
+        guardian_name = request.POST.get('guardian_name', '') or ''
+        guardian_mobile = request.POST.get('guardian_mobile', '') or ''
+        relationship = request.POST.get('relationship', '') or ''
+        guardian_address = request.POST.get('guardian_address', '') or ''
 
         # Fix: Convert date string to date object
         doj_obj = datetime.datetime.strptime(date_of_join, '%Y-%m-%d').date() if date_of_join else datetime.date.today()
+
+        fee_cat_master = None
+        app_fee_cat = None
+        if fee_cat_id:
+            fee_cat_master = FeeCategoryMaster.objects.filter(id=fee_cat_id).first()
+            if fee_cat_master:
+                app_fee_cat = FeeCategory.objects.filter(course_id=course_id, name__iexact=fee_cat_master.name).first()
 
         adm = Admission.objects.create(
             application=application,
             registration_id=registration_id,
             date_of_join=doj_obj,
             selected_course_id=course_id,
-            fee_category_id=fee_cat_id if fee_cat_id else None,
+            fee_category=app_fee_cat,
+            assigned_fee_category=fee_cat_master,
             joining_period_id=joining_period_id if joining_period_id else None,
             assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None,
+            assigned_class_year_id=request.POST.get('assigned_class_year_id') if request.POST.get('assigned_class_year_id') else None,
             calculated_fee=calculated_fee if calculated_fee else 0.00,
             discount_amount=discount_amount if discount_amount else 0.00,
             discount_reason=discount_reason,
@@ -662,7 +703,7 @@ def register_manual(request):
         )
         
         
-        messages.success(request, f"Manual admission completed for {student_name}! Admission No: {adm.register_number}")
+        messages.success(request, "this student is registered successfully")
         
         # SEND NOTIFICATION EMAIL
         send_admission_email(adm)
@@ -672,11 +713,20 @@ def register_manual(request):
     academic_years = AcademicYear.objects.filter(institute=request.user.institute, is_active=True)
     courses = Course.objects.filter(institute=request.user.institute)
     
+    fee_cats = []
+    for cat in FeeCategoryMaster.objects.filter(is_active=True):
+        fee_cats.append({
+            'id': cat.id,
+            'name': cat.name,
+            'total_fee': 0.0,
+            'breakdown': '[]'
+        })
+
     return render(request, 'institute/register_manual.html', {
         'institutes': institutes,
         'academic_years': academic_years,
         'courses': courses,
-        'fee_categories': FeeCategory.objects.filter(course__institute=request.user.institute),
+        'fee_categories': fee_cats,
         # For manual registration, we might need to load form fields via AJAX (already handled in template)
     })
 
@@ -1175,8 +1225,11 @@ def get_student_name(application):
 
     return application.student.username
 
+@login_required
 def export_rank_excel(request):
-    institute = request.user.institute
+    institute = getattr(request.user, 'institute', None)
+    if not institute:
+        return HttpResponse("Unauthorized", status=401)
     course_id = request.GET.get('course')
     year_id = request.GET.get('year')
 
@@ -1193,107 +1246,113 @@ def export_rank_excel(request):
     unique_subjects = []
 
     for app in applications:
-        total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
-        
-        # Extract student details and subjects
-        mobile = "-"
-        gender = "-"
-        exam_name = "-"
-        quota = "-"
-        choice1 = "-"
-        choice2 = "-"
-        choice3 = "-"
-        subjects_data = {} # {name: {marks, max, pass}}
-        
-        # We need subjects_config for pass marks
-        # First find exam_id
-        exam_id = None
-        for v in app.field_values.all():
-            label = (v.field.label if v.field else v.field_label or "").lower()
-            if ("exam" in label or "qualifying" in label) and "marks" not in label:
-                val = str(v.value).strip()
-                if val.isdigit(): exam_id = int(val)
-                elif val.lower().startswith('id:') and val[3:].strip().isdigit(): exam_id = int(val[3:].strip())
-                else:
-                    from academics.models import QualifyingExam
-                    ex_obj = QualifyingExam.objects.filter(name__iexact=val).first()
-                    if ex_obj: exam_id = ex_obj.id
-                if exam_id: break
-
-        subjects_config = {}
-        if exam_id:
-            from academics.models import ExamSubject
-            for s in ExamSubject.objects.filter(exam_id=exam_id):
-                subjects_config[s.name.lower().strip()] = {
-                    "max": s.max_marks,
-                    "pass": s.pass_mark,
-                    "full_name": s.name
-                }
-
-        for v in app.field_values.all():
-            lbl = (v.field.label if v.field else v.field_label or "").lower()
-            val = str(v.value or "").strip()
+        try:
+            total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
             
-            if "mobile" in lbl or "phone" in lbl or "contact" in lbl:
-                mobile = val
-            elif "gender" in lbl:
-                gender = val
-            elif "quota" in lbl:
-                quota = val
-            elif "choice 1" in lbl or "choice1" in lbl:
-                choice1 = val
-            elif "choice 2" in lbl or "choice2" in lbl:
-                choice2 = val
-            elif "choice 3" in lbl or "choice3" in lbl:
-                choice3 = val
-            elif ("exam" in lbl or "qualifying" in lbl) and "marks" not in lbl:
-                if exam_id:
-                    from academics.models import QualifyingExam
-                    ex = QualifyingExam.objects.filter(id=exam_id).first()
-                    exam_name = ex.name if ex else val
-                else:
-                    exam_name = val
+            # Extract student details and subjects
+            mobile = "-"
+            gender = "-"
+            exam_name = "-"
+            quota = "-"
+            choice1 = "-"
+            choice2 = "-"
+            choice3 = "-"
+            subjects_data = {} # {name: {marks, max, pass}}
             
-            if ":" in val:
-                try:
-                    parts = val.split(":")
-                    if len(parts) >= 2:
-                        s_name_raw = parts[0].strip()
-                        s_marks = parts[1].strip()
-                        
-                        config = subjects_config.get(s_name_raw.lower(), {"max": 100, "pass": 35, "full_name": s_name_raw})
-                        s_max = parts[2].strip() if len(parts) > 2 else str(config["max"])
-                        s_pass = str(config["pass"])
-                        
-                        s_display_name = config["full_name"]
-                        subjects_data[s_display_name] = {
-                            "marks": s_marks,
-                            "max": s_max,
-                            "pass": s_pass
-                        }
-                        if s_display_name not in unique_subjects:
-                            unique_subjects.append(s_display_name)
-                except: pass
+            # We need subjects_config for pass marks
+            # First find exam_id
+            exam_id = None
+            for v in app.field_values.all():
+                label = (v.field.label if v.field else v.field_label or "").lower()
+                if ("exam" in label or "qualifying" in label) and "marks" not in label:
+                    val = str(v.value).strip()
+                    if val.isdigit(): exam_id = int(val)
+                    elif val.lower().startswith('id:') and val[3:].strip().isdigit(): exam_id = int(val[3:].strip())
+                    else:
+                        from academics.models import QualifyingExam
+                        ex_obj = QualifyingExam.objects.filter(name__iexact=val).first()
+                        if ex_obj: exam_id = ex_obj.id
+                    if exam_id: break
 
-        ranked_list.append({
-            "name": get_student_name(app),
-            "mobile": mobile,
-            "gender": gender,
-            "exam_name": exam_name,
-            "subjects": subjects_data,
-            "total": total,
-            "max_total": max_total,
-            "percentage": percentage,
-            "main_mark": main_mark,
-            "sub_mark": sub_mark,
-            # Extra fields
-            "date": app.created_at.strftime('%Y-%m-%d') if app.created_at else "-",
-            "form_id": app.id,
-            "quota": quota,
-            "choice1": choice1,
-            "choice2": choice2,
-            "choice3": choice3
-        })
+            subjects_config = {}
+            if exam_id:
+                from academics.models import ExamSubject
+                for s in ExamSubject.objects.filter(exam_id=exam_id):
+                    subjects_config[(s.name or "").lower().strip()] = {
+                        "max": s.max_marks,
+                        "pass": s.pass_mark,
+                        "full_name": s.name
+                    }
+
+            for v in app.field_values.all():
+                lbl = (v.field.label if v.field else v.field_label or "").lower()
+                val = str(v.value or "").strip()
+                
+                if "mobile" in lbl or "phone" in lbl or "contact" in lbl:
+                    mobile = val
+                elif "gender" in lbl:
+                    gender = val
+                elif "quota" in lbl:
+                    quota = val
+                elif "choice 1" in lbl or "choice1" in lbl:
+                    choice1 = val
+                elif "choice 2" in lbl or "choice2" in lbl:
+                    choice2 = val
+                elif "choice 3" in lbl or "choice3" in lbl:
+                    choice3 = val
+                elif ("exam" in lbl or "qualifying" in lbl) and "marks" not in lbl:
+                    if exam_id:
+                        from academics.models import QualifyingExam
+                        ex = QualifyingExam.objects.filter(id=exam_id).first()
+                        exam_name = ex.name if ex else val
+                    else:
+                        exam_name = val
+                
+                if ":" in val:
+                    try:
+                        parts = val.split(":")
+                        if len(parts) >= 2:
+                            s_name_raw = parts[0].strip()
+                            s_marks = parts[1].strip()
+                            
+                            config = subjects_config.get(s_name_raw.lower(), {"max": 100, "pass": 35, "full_name": s_name_raw})
+                            s_max = parts[2].strip() if len(parts) > 2 else str(config["max"])
+                            s_pass = str(config["pass"])
+                            
+                            s_display_name = config["full_name"]
+                            subjects_data[s_display_name] = {
+                                "marks": s_marks,
+                                "max": s_max,
+                                "pass": s_pass
+                            }
+                            if s_display_name not in unique_subjects:
+                                unique_subjects.append(s_display_name)
+                    except: pass
+
+            ranked_list.append({
+                "name": get_student_name(app),
+                "mobile": mobile,
+                "gender": gender,
+                "exam_name": exam_name,
+                "subjects": subjects_data,
+                "total": total,
+                "max_total": max_total,
+                "percentage": percentage,
+                "main_mark": main_mark,
+                "sub_mark": sub_mark,
+                # Extra fields
+                "date": app.created_at.strftime('%Y-%m-%d') if app.created_at else "-",
+                "form_id": app.id,
+                "quota": quota,
+                "choice1": choice1,
+                "choice2": choice2,
+                "choice3": choice3
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error exporting application {app.id} to excel: {str(e)}", exc_info=True)
+            continue
 
     # SORT DESCENDING
     ranked_list.sort(
@@ -1348,7 +1407,11 @@ def export_rank_excel(request):
     )
     response['Content-Disposition'] = 'attachment; filename=rank_list.xlsx'
 
-    wb.save(response)
+    from io import BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    response.content = output.read()
 
     return response
 
