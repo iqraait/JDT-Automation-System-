@@ -1158,11 +1158,17 @@ def rank_list_view(request):
     
 
     # Show only Verified students (status='selected')
-    applications = Application.objects.filter(institute=institute, status='selected')
-    
-    # NEW: Only show Paid students in Rank List too?
-    # Usually rank list is for verified students who have paid.
-    applications = applications.filter(payment__status='success')
+    from django.db import models
+    applications = Application.objects.filter(
+        institute=institute, 
+        status='selected', 
+        payment__status='success'
+    ).select_related('course', 'student').prefetch_related(
+        models.Prefetch(
+            'field_values',
+            queryset=ApplicationFieldValue.objects.select_related('field', 'field__section')
+        )
+    )
 
     if course_id:
         applications = applications.filter(course_id=course_id)
@@ -1244,7 +1250,17 @@ def export_rank_excel(request):
     year_id = request.GET.get('year')
 
     # Show only Verified students (status='selected')
-    applications = Application.objects.filter(institute=institute, status='selected', payment__status='success')
+    from django.db import models
+    applications = Application.objects.filter(
+        institute=institute, 
+        status='selected', 
+        payment__status='success'
+    ).select_related('course', 'student').prefetch_related(
+        models.Prefetch(
+            'field_values',
+            queryset=ApplicationFieldValue.objects.select_related('field', 'field__section')
+        )
+    )
 
     if course_id:
         applications = applications.filter(course_id=course_id)
