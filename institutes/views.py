@@ -421,7 +421,10 @@ def register_student(request, app_id):
     subjects = []
     latest_subjects = {}
     for v in app.field_values.all().order_by('-id'):
-        if v.value and ":" in str(v.value) and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
+        label_lower = (v.field.label if v.field else v.field_label or "").lower()
+        section_lower = (v.field.section.name if v.field and v.field.section else v.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
+        if v.value and ":" in str(v.value) and is_qual_field and not getattr(v.field, 'is_photo', False) and not getattr(v.field, 'is_signature', False):
             parts = str(v.value).split(":")
             if len(parts) >= 2:
                 name = parts[0].strip()
@@ -877,10 +880,12 @@ def view_application(request, app_id):
     for fv in field_values:
         label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
         val_str = str(fv.value or "").strip()
+        section_lower = (fv.field.section.name if fv.field and fv.field.section else fv.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
 
         # Identify subject marks (value containing ':')
         # Broad check: if it has a colon and the second part is numeric, it's likely a mark
-        is_mark_format = ":" in val_str and len(val_str.split(":")) >= 2
+        is_mark_format = ":" in val_str and len(val_str.split(":")) >= 2 and is_qual_field
         is_media_field = any(x in label_lower for x in ["photo", "signature", "sign"])
         
         if is_mark_format and not is_media_field:
@@ -1104,7 +1109,10 @@ def calculate_total_and_percentage(application):
     # calculate
     for fv in application.field_values.all():
         val_str = str(fv.value or "").strip()
-        if ":" in val_str:
+        label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
+        section_lower = (fv.field.section.name if fv.field and fv.field.section else fv.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
+        if ":" in val_str and is_qual_field:
             try:
                 parts = val_str.split(":")
                 subject = parts[0].lower().strip()
@@ -1207,7 +1215,7 @@ def get_student_name(application):
     falling back to dynamic field values, and finally username.
     """
     # 1. Check User model
-    if application.student.first_name:
+    if application.student and application.student.first_name:
         return application.student.first_name
 
     # 2. Check for field marked as is_name_field
@@ -1223,7 +1231,9 @@ def get_student_name(application):
             if "name" in label and ":" not in str(v.value):
                 return v.value
 
-    return application.student.username
+    if application.student:
+        return application.student.username
+    return f"Form #{application.id}"
 
 @login_required
 def export_rank_excel(request):
@@ -1309,25 +1319,28 @@ def export_rank_excel(request):
                         exam_name = val
                 
                 if ":" in val:
-                    try:
-                        parts = val.split(":")
-                        if len(parts) >= 2:
-                            s_name_raw = parts[0].strip()
-                            s_marks = parts[1].strip()
-                            
-                            config = subjects_config.get(s_name_raw.lower(), {"max": 100, "pass": 35, "full_name": s_name_raw})
-                            s_max = parts[2].strip() if len(parts) > 2 else str(config["max"])
-                            s_pass = str(config["pass"])
-                            
-                            s_display_name = config["full_name"]
-                            subjects_data[s_display_name] = {
-                                "marks": s_marks,
-                                "max": s_max,
-                                "pass": s_pass
-                            }
-                            if s_display_name not in unique_subjects:
-                                unique_subjects.append(s_display_name)
-                    except: pass
+                    section_lower = (v.field.section.name if v.field and v.field.section else v.field_label or "").lower()
+                    is_qual_field = any(x in lbl or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
+                    if is_qual_field:
+                        try:
+                            parts = val.split(":")
+                            if len(parts) >= 2:
+                                s_name_raw = parts[0].strip()
+                                s_marks = parts[1].strip()
+                                
+                                config = subjects_config.get(s_name_raw.lower(), {"max": 100, "pass": 35, "full_name": s_name_raw})
+                                s_max = parts[2].strip() if len(parts) > 2 else str(config["max"])
+                                s_pass = str(config["pass"])
+                                
+                                s_display_name = config["full_name"]
+                                subjects_data[s_display_name] = {
+                                    "marks": s_marks,
+                                    "max": s_max,
+                                    "pass": s_pass
+                                }
+                                if s_display_name not in unique_subjects:
+                                    unique_subjects.append(s_display_name)
+                        except: pass
 
             ranked_list.append({
                 "name": get_student_name(app),
@@ -1863,7 +1876,10 @@ def edit_application(request, app_id):
     for v in app.field_values.all():
         val_str = str(v.value or "").strip()
         # Same logic as view_application: check for colon and numeric second part
-        if ":" in val_str:
+        label_lower = (v.field.label if v.field else v.field_label or "").lower()
+        section_lower = (v.field.section.name if v.field and v.field.section else v.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
+        if ":" in val_str and is_qual_field:
             label_lower = (v.field.label if v.field else v.field_label or "").lower()
             is_media = any(x in label_lower for x in ["photo", "signature", "sign"])
             if is_media: continue
@@ -2541,7 +2557,7 @@ def export_payments_excel(request):
             Q(application__student__first_name__icontains=search_query) |
             Q(application__student__username__icontains=search_query) |
             Q(gateway_transaction_id__icontains=search_query) |
-            Q(id__icontains=search_query)
+            Q(application__id__icontains=search_query)
         ).distinct()
 
     if date_from:
@@ -2555,17 +2571,17 @@ def export_payments_excel(request):
     ws = wb.active
     ws.title = "Student Payments"
 
-    headers = ['ID', 'Student Name', 'Mobile No.', 'Payment Status', 'Amount', 'Payment Mode', 'Gateway Transaction ID', 'Created At']
+    headers = ['Form Number', 'Student Name', 'Mobile No.', 'Payment Status', 'Amount', 'Payment Mode', 'Gateway Transaction ID', 'Payment Date']
     ws.append(headers)
 
     for payment in payments:
         student_name = payment.application.display_name
         student_mobile = payment.application.student_mobile
-        created_at_str = payment.created_at.strftime('%Y-%m-%d %H:%M') if payment.created_at else ''
+        created_at_str = payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else (payment.created_at.strftime('%Y-%m-%d %H:%M') if payment.created_at else '')
         status_display = dict(Payment._meta.get_field('status').choices).get(payment.status, payment.status).title()
         
         ws.append([
-            str(payment.id),
+            str(payment.application.id),
             student_name,
             student_mobile,
             status_display,
@@ -3351,7 +3367,7 @@ def export_payments_pdf(request):
             Q(application__student__first_name__icontains=search_query) |
             Q(application__student__username__icontains=search_query) |
             Q(gateway_transaction_id__icontains=search_query) |
-            Q(id__icontains=search_query)
+            Q(application__id__icontains=search_query)
         ).distinct()
 
     if date_from:
@@ -3374,25 +3390,25 @@ def export_payments_pdf(request):
     elements.append(Spacer(1, 10))
     
     headers = [
-        Paragraph("ID", header_style),
+        Paragraph("Form Number", header_style),
         Paragraph("Student Name", header_style),
         Paragraph("Mobile No.", header_style),
         Paragraph("Payment Status", header_style),
         Paragraph("Amount", header_style),
         Paragraph("Payment Mode", header_style),
         Paragraph("Gateway Transaction ID", header_style),
-        Paragraph("Created At", header_style)
+        Paragraph("Payment Date", header_style)
     ]
     
     data = [headers]
     for p in payments:
         student_name = p.application.display_name
         student_mobile = p.application.student_mobile
-        created_at_str = p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else ''
+        created_at_str = p.payment_date.strftime('%Y-%m-%d') if p.payment_date else (p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else '')
         status_display = dict(Payment._meta.get_field('status').choices).get(p.status, p.status).title()
         
         data.append([
-            Paragraph(f"#{p.id}", cell_style),
+            Paragraph(f"#{p.application.id}", cell_style),
             Paragraph(student_name, cell_style),
             Paragraph(student_mobile or '-', cell_style),
             Paragraph(status_display, cell_style),

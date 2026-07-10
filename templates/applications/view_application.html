@@ -290,8 +290,9 @@
                         <td>
                             {% if item.field.field_type == 'file' %}
                                 {% if item.id and item.value and item.value != '-' and item.value != 'None' and item.value != '' %}
-                                    [Document Uploaded]
-                                {% endif %}
+                                     <a href="{{ MEDIA_URL }}{{ item.value }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline font-bold no-print">[View Document]</a>
+                                     <span class="hidden print:inline">[Document Uploaded]</span>
+                                 {% endif %}
                             {% else %}
                                 {{ item.display_value|default:item.value|default:"-" }}
                             {% endif %}

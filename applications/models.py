@@ -186,6 +186,12 @@ class Payment(models.Model):
         null=True
     )
 
+    payment_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text="For manual payments"
+    )
+
     gateway_response = models.JSONField(null=True, blank=True)
 
     status = models.CharField(

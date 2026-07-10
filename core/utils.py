@@ -159,7 +159,10 @@ def generate_application_pdf(application, buffer):
     total_max = 0
     
     for v in application.field_values.all().order_by('id'):
-        if v.value and ":" in str(v.value):
+        label_lower = (v.field.label if v.field else v.field_label or "").lower()
+        section_lower = (v.field.section.name if v.field and v.field.section else v.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
+        if v.value and ":" in str(v.value) and is_qual_field:
             try:
                 parts = str(v.value).split(":")
                 subject_name = parts[0].strip()

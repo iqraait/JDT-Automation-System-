@@ -456,6 +456,19 @@ def ccavenue_callback(request):
             payment.gateway_response = raw_response
             payment.gateway_transaction_id = result.get('txn_id')
             
+            # Map and normalize payment_mode safely to avoid DB field length constraints (max 10 chars)
+            mode_raw = str(result.get('payment_mode') or '').strip().upper()
+            std_mode = None
+            if 'CARD' in mode_raw:
+                std_mode = 'CARD'
+            elif 'UPI' in mode_raw or 'VPA' in mode_raw:
+                std_mode = 'UPI'
+            elif 'BANK' in mode_raw or 'NB' in mode_raw or 'NET' in mode_raw:
+                std_mode = 'NB'
+            else:
+                std_mode = mode_raw[:10] if mode_raw else None
+            payment.payment_mode = std_mode
+            
             if result['status'] == 'success':
                 payment.status = 'success'
                 payment.save()
@@ -754,13 +767,13 @@ def view_application(request, app_id):
     # 2. Process ALL field values to extract marks and media (including orphans/mislinked)
     processed_fv_ids = set()
     for fv in field_values:
+        # Check if the field belongs to a qualification/marks section or label
         label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
         val_str = str(fv.value or "").strip()
+        section_lower = (fv.field.section.name if fv.field and fv.field.section else fv.field_label or "").lower()
+        is_qual_field = any(x in label_lower or x in section_lower for x in ["mark", "subject", "qualify", "exam"])
 
-        # Identify subject marks (value containing ':')
-        # Broad check: if it has a colon and the second part is numeric, it's likely a mark
-        # We also check if the label itself mentions "mark" or "subject" as a secondary indicator
-        is_mark_format = ":" in val_str and len(val_str.split(":")) >= 2
+        is_mark_format = ":" in val_str and len(val_str.split(":")) >= 2 and is_qual_field
         is_media_field = any(x in label_lower for x in ["photo", "signature", "sign"])
         
         # Check if the first part looks like a subject name (not a URL or path)

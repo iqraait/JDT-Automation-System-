@@ -82,7 +82,7 @@
             <table class="w-full text-left">
                 <thead>
                     <tr class="bg-slate-50/50 border-b border-slate-100">
-                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">ID</th>
+                        <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Form Number</th>
                         <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Student Name</th>
                         <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Mobile No.</th>
                         <th class="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Payment Status</th>
@@ -96,7 +96,7 @@
                     {% for payment in page_obj %}
                     <tr class="hover:bg-slate-50/50 transition-all group overflow-visible">
                         <td class="px-8 py-6">
-                            <span class="font-black text-slate-800">#{{ payment.id }}</span>
+                            <span class="font-black text-slate-800">#{{ payment.application.id }}</span>
                         </td>
                         <td class="px-8 py-6">
                             <div class="flex items-center gap-4">
@@ -134,7 +134,13 @@
                             <span class="font-bold text-slate-500 text-sm tracking-tight">{{ payment.gateway_transaction_id|default:"-" }}</span>
                         </td>
                         <td class="px-8 py-6">
-                            <span class="font-bold text-slate-500 text-sm whitespace-nowrap">{{ payment.created_at|date:"d M Y, h:i A" }}</span>
+                            <span class="font-bold text-slate-500 text-sm whitespace-nowrap">
+                                {% if payment.payment_date %}
+                                    {{ payment.payment_date|date:"d M Y" }}
+                                {% else %}
+                                    {{ payment.created_at|date:"d M Y, h:i A" }}
+                                {% endif %}
+                            </span>
                         </td>
                     </tr>
                     {% empty %}

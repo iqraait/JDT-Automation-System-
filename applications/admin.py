@@ -90,10 +90,22 @@ class PaymentConfigAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'display_student_name', 'status', 'amount', 'payment_mode', 'gateway_transaction_id', 'created_at']
+    list_display = ['display_form_number', 'display_student_name', 'status', 'amount', 'payment_mode', 'gateway_transaction_id', 'display_payment_date']
     list_filter = ['status', 'gateway_config', 'created_at', 'payment_mode']
-    search_fields = ['application__student__username', 'gateway_transaction_id', 'application__field_values__value']
+    search_fields = ['application__id', 'application__student__username', 'gateway_transaction_id', 'application__field_values__value']
     readonly_fields = ['formatted_response']
+
+    def display_form_number(self, obj):
+        return obj.application.id
+    display_form_number.short_description = 'Form Number'
+    display_form_number.admin_order_field = 'application__id'
+
+    def display_payment_date(self, obj):
+        if obj.payment_date:
+            return obj.payment_date.strftime('%Y-%m-%d')
+        return obj.created_at.strftime('%Y-%m-%d %H:%M')
+    display_payment_date.short_description = 'Payment Date'
+    display_payment_date.admin_order_field = 'payment_date'
 
     def display_student_name(self, obj):
         return obj.application.display_name
