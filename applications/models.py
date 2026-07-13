@@ -65,6 +65,7 @@ class Application(models.Model):
                     return fv.value
 
         return self.student.username
+        
 
     @property
     def student_mobile(self):
@@ -208,6 +209,12 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.status == 'success' and self.application.status == 'pending_payment':
+            self.application.status = 'submitted'
+            self.application.save()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Payment {self.application.id} - {self.status}"

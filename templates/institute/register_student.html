@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <form method="POST" class="space-y-8" id="registrationForm">
+    <form method="POST" enctype="multipart/form-data" class="space-y-8" id="registrationForm">
         {% csrf_token %}
         
         <!-- REGISTRATION DETAILS -->
@@ -41,7 +41,7 @@
                     <div>
                         <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Registration ID <span class="text-red-500">*</span></label>
                         <div class="relative group">
-                            <input type="text" name="registration_id" id="registration_id" value="" required
+                            <input type="text" name="registration_id" id="registration_id" value="{{ registration_id }}" required
                                 class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all font-mono font-bold text-lg outline-none group-hover:border-slate-200">
                             <span class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-400 uppercase tracking-widest hidden md:block">EDIT OK</span>
                         </div>
@@ -104,7 +104,7 @@
                             class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
                             <option value="">-- Choose Category --</option>
                             {% for cat in fee_categories %}
-                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            <option value="{{ cat.id }}" {% if adm.assigned_fee_category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -166,12 +166,12 @@
                         <div class="pt-6 border-t border-white/10 space-y-4">
                             <div>
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Amount</label>
-                                <input type="number" step="0.01" name="discount_amount" id="discount_amount" value="0" oninput="updateFinalFee()"
+                                <input type="number" step="0.01" name="discount_amount" id="discount_amount" value="{{ adm.discount_amount|default:'0' }}" oninput="updateFinalFee()"
                                     class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
                             </div>
                             <div>
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Reason</label>
-                                <input type="text" name="discount_reason" id="discount_reason" placeholder="Scholarship, sibling, etc"
+                                <input type="text" name="discount_reason" id="discount_reason" value="{{ adm.discount_reason|default:'' }}" placeholder="Scholarship, sibling, etc"
                                     class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
                             </div>
                         </div>
@@ -311,23 +311,23 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div>
                     <label class="block text-sm font-bold text-slate-600 mb-3">Care Of (Optional)</label>
-                    <input type="text" name="care_of" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                    <input type="text" name="care_of" value="{{ adm.care_of|default:'' }}" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-600 mb-3">Guardian Name</label>
-                    <input type="text" name="guardian_name" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                    <input type="text" name="guardian_name" value="{{ adm.guardian_name|default:'' }}" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-600 mb-3">Mobile</label>
-                    <input type="text" name="guardian_mobile" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                    <input type="text" name="guardian_mobile" value="{{ adm.guardian_mobile|default:'' }}" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-600 mb-3">Relationship</label>
-                    <input type="text" name="relationship" placeholder="Father, Mother, etc" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
+                    <input type="text" name="relationship" value="{{ adm.relationship|default:'' }}" placeholder="Father, Mother, etc" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-bold text-slate-600 mb-3">Full Address</label>
-                    <textarea name="guardian_address" rows="2" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all"></textarea>
+                    <textarea name="guardian_address" rows="2" class="w-full bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl outline-none focus:border-blue-600 transition-all">{{ adm.guardian_address|default:'' }}</textarea>
                 </div>
             </div>
         </div>
@@ -358,7 +358,7 @@
     // Datepicker
     flatpickr("#datepicker", {
         dateFormat: "Y-m-d",
-        defaultDate: new Date()
+        defaultDate: "{% if adm %}{{ adm.date_of_join|date:'Y-m-d' }}{% else %}today{% endif %}"
     });
 
     function updateFileName(input, labelId) {
@@ -391,16 +391,19 @@
 
         // Generate Label Buttons
         container.innerHTML = '';
+        const selectedJoiningPeriodId = "{% if adm.joining_period_id %}{{ adm.joining_period_id }}{% endif %}";
         subCategories.forEach((sub, index) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = `p-3 text-center border-2 rounded-xl transition-all font-bold text-xs ${index === 0 ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-blue-300'}`;
+            const isSelected = selectedJoiningPeriodId ? (sub.id == selectedJoiningPeriodId) : (index === 0);
+            btn.className = `p-3 text-center border-2 rounded-xl transition-all font-bold text-xs ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-blue-300'}`;
             btn.innerText = sub.name;
             btn.onclick = () => selectPeriod(index, btn, sub.id);
             container.appendChild(btn);
             
-            if (index === 0) {
+            if (isSelected) {
                 document.getElementById('joining_period_id').value = sub.id;
+                selectedStartIndex = index;
             }
         });
 
@@ -443,12 +446,19 @@
                     .then(data => {
                         classSelect.innerHTML = '<option value="">-- Select Class --</option>';
                         document.getElementById('assigned_class_year_id').innerHTML = '<option value="">-- Select Class Year --</option>';
+                        const selectedClassId = "{% if adm.assigned_class_id %}{{ adm.assigned_class_id }}{% endif %}";
                         data.forEach(c => {
                             const opt = document.createElement('option');
                             opt.value = c.id;
                             opt.innerText = c.name;
+                            if (selectedClassId && c.id == selectedClassId) {
+                                opt.selected = true;
+                            }
                             classSelect.appendChild(opt);
                         });
+                        if (selectedClassId) {
+                            loadClassYears();
+                        }
                     });
             });
     }
@@ -464,10 +474,14 @@
             .then(res => res.json())
             .then(data => {
                 classYearSelect.innerHTML = '<option value="">-- Select Class Year --</option>';
+                const selectedClassYearId = "{% if adm.assigned_class_year_id %}{{ adm.assigned_class_year_id }}{% endif %}";
                 data.forEach(cy => {
                     const opt = document.createElement('option');
                     opt.value = cy.id;
                     opt.innerText = cy.name;
+                    if (selectedClassYearId && cy.id == selectedClassYearId) {
+                        opt.selected = true;
+                    }
                     classYearSelect.appendChild(opt);
                 });
             });

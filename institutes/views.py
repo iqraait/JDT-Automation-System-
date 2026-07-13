@@ -270,7 +270,7 @@ def register_student(request, app_id):
         relationship = request.POST.get('relationship', '') or ''
         guardian_address = request.POST.get('guardian_address', '') or ''
         
-        if Admission.objects.filter(registration_id=registration_id).exists():
+        if Admission.objects.filter(registration_id=registration_id).exclude(application=app).exists():
             messages.error(request, "Registration ID already exists.")
             return redirect(request.path)
 
@@ -284,26 +284,50 @@ def register_student(request, app_id):
             if fee_cat_master:
                 app_fee_cat = FeeCategory.objects.filter(course=course, name__iexact=fee_cat_master.name).first()
 
-        adm = Admission.objects.create(
-            application=app,
-            registration_id=registration_id,
-            date_of_join=doj_obj,
-            selected_course=course,
-            fee_category=app_fee_cat,
-            assigned_fee_category=fee_cat_master,
-            joining_period_id=joining_period_id if joining_period_id else None,
-            calculated_fee=calculated_fee if calculated_fee else 0.00,
-            discount_amount=discount_amount if discount_amount else 0.00,
-            discount_reason=discount_reason,
-            final_fee=final_fee if final_fee else 0.00,
-            care_of=care_of,
-            guardian_name=guardian_name,
-            guardian_mobile=guardian_mobile,
-            relationship=relationship,
-            guardian_address=guardian_address,
-            assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None,
-            assigned_class_year_id=request.POST.get('assigned_class_year_id') if request.POST.get('assigned_class_year_id') else None
-        )
+        # Check if Admission already exists
+        adm = Admission.objects.filter(application=app).first()
+        if adm:
+            # Update existing Admission record
+            adm.registration_id = registration_id
+            adm.date_of_join = doj_obj
+            adm.selected_course = course
+            adm.fee_category = app_fee_cat
+            adm.assigned_fee_category = fee_cat_master
+            adm.joining_period_id = joining_period_id if joining_period_id else None
+            adm.calculated_fee = calculated_fee if calculated_fee else 0.00
+            adm.discount_amount = discount_amount if discount_amount else 0.00
+            adm.discount_reason = discount_reason
+            adm.final_fee = final_fee if final_fee else 0.00
+            adm.care_of = care_of
+            adm.guardian_name = guardian_name
+            adm.guardian_mobile = guardian_mobile
+            adm.relationship = relationship
+            adm.guardian_address = guardian_address
+            adm.assigned_class_id = request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None
+            adm.assigned_class_year_id = request.POST.get('assigned_class_year_id') if request.POST.get('assigned_class_year_id') else None
+            adm.save()
+        else:
+            # Create new Admission record
+            adm = Admission.objects.create(
+                application=app,
+                registration_id=registration_id,
+                date_of_join=doj_obj,
+                selected_course=course,
+                fee_category=app_fee_cat,
+                assigned_fee_category=fee_cat_master,
+                joining_period_id=joining_period_id if joining_period_id else None,
+                calculated_fee=calculated_fee if calculated_fee else 0.00,
+                discount_amount=discount_amount if discount_amount else 0.00,
+                discount_reason=discount_reason,
+                final_fee=final_fee if final_fee else 0.00,
+                care_of=care_of,
+                guardian_name=guardian_name,
+                guardian_mobile=guardian_mobile,
+                relationship=relationship,
+                guardian_address=guardian_address,
+                assigned_class_id=request.POST.get('assigned_class_id') if request.POST.get('assigned_class_id') else None,
+                assigned_class_year_id=request.POST.get('assigned_class_year_id') if request.POST.get('assigned_class_year_id') else None
+            )
 
         # 2. Save Dynamic Form Fields
         fields = FormField.objects.filter(form=course.form)
@@ -312,7 +336,12 @@ def register_student(request, app_id):
             if field.field_type == 'file':
                 file_obj = request.FILES.get(key)
                 if file_obj:
-                    # FIX: Handle potential duplicate values safely
+                    # FIX: Use FileSystemStorage to save file on disk
+                    from django.core.files.storage import FileSystemStorage
+                    fs = FileSystemStorage()
+                    filename = fs.save(file_obj.name, file_obj)
+
+                    # Handle potential duplicate values safely
                     val_obj = ApplicationFieldValue.objects.filter(application=app, field=field).first()
                     if not val_obj:
                         val_obj = ApplicationFieldValue.objects.create(
@@ -322,7 +351,7 @@ def register_student(request, app_id):
                             field_type=field.field_type
                         )
                     
-                    val_obj.value = file_obj.name # Or save actual file
+                    val_obj.value = filename
                     val_obj.save()
             else:
                 val = request.POST.get(key)
@@ -388,8 +417,11 @@ def register_student(request, app_id):
                 student_mobile = v.value
                 break
     
-    # Registration ID should be blank so they enter it manually
-    registration_id = ""
+    # Check if Admission already exists
+    adm = Admission.objects.filter(application=app).first()
+    
+    # Registration ID should be blank so they enter it manually, unless already registered
+    registration_id = adm.registration_id if adm else ""
         
     fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     fee_cats_json = []
@@ -439,6 +471,7 @@ def register_student(request, app_id):
 
     return render(request, 'institute/register_student.html', {
         'app': app,
+        'adm': adm,
         'student_name': student_name,
         'registration_id': registration_id,
         'fee_categories': fee_categories,
@@ -1582,7 +1615,7 @@ def institute_dashboard(request):
     if status_filter:
         if status_filter in ['active', 'warned', 'suspended', 'trashed']:
             apps = apps.filter(admission__status=status_filter)
-        elif status_filter in ['pending', 'selected', 'rejected', 'hold']:
+        elif status_filter in ['submitted', 'pending', 'selected', 'rejected', 'hold']:
             apps = apps.filter(status=status_filter)
         else:
             # Try both if unknown
@@ -1758,12 +1791,15 @@ def edit_application(request, app_id):
                 if file_obj:
                     # Clean up duplicates to avoid MultipleObjectsReturned
                     ApplicationFieldValue.objects.filter(application=app, field=field).delete()
+                    from django.core.files.storage import FileSystemStorage
+                    fs = FileSystemStorage()
+                    filename = fs.save(file_obj.name, file_obj)
                     ApplicationFieldValue.objects.create(
                         application=app,
                         field=field,
                         field_label=field.label,
                         field_type=field.field_type,
-                        value=file_obj.name
+                        value=filename
                     )
 
             else:
