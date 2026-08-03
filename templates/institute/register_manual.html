@@ -86,6 +86,17 @@
                         </div>
                     </div>
 
+                    <!-- Admission Quota -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Admission Quota <span class="text-red-500">*</span></label>
+                        <select name="admission_quota" required
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            <option value="Merit">Merit</option>
+                            <option value="Management">Management</option>
+                            <option value="NRI">NRI</option>
+                        </select>
+                    </div>
+
                     <!-- Academic Session -->
                     <div class="lg:col-span-1 md:col-span-2">
                         <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Academic Session <span class="text-red-500">*</span></label>
@@ -153,50 +164,6 @@
                         </select>
                     </div>
                 </div>
-            </div>
-
-            <!-- DYNAMIC FEE BREAKDOWN PANEL -->
-            <div id="feeCalculationBox" class="hidden bg-slate-900 p-8 md:p-12 text-white border-t border-white/5 overflow-hidden transition-all">
-                <div class="flex flex-col md:flex-row justify-between items-start gap-8">
-                    <div class="flex-1 space-y-6">
-                        <h4 class="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Financial Overview</h4>
-                        <div id="breakdownList" class="space-y-3 font-medium text-slate-300">
-                             <!-- JS Content -->
-                        </div>
-                    </div>
-                    
-                    <div class="w-full md:w-80 bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 space-y-6">
-                        <div>
-                            <span class="text-[10px] font-black text-blue-300 uppercase tracking-widest block mb-1">Base Fee</span>
-                            <div class="text-3xl font-black flex items-baseline gap-1">
-                                <span class="text-blue-400 text-lg">₹</span>
-                                <input type="number" step="0.01" name="calculated_fee" id="calc_fee" readonly class="bg-transparent border-none outline-none w-full text-white pointer-events-none">
-                            </div>
-                        </div>
-
-                        <div class="pt-6 border-t border-white/10 space-y-4">
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Amount</label>
-                                <input type="number" step="0.01" name="discount_amount" id="disc_amt" value="0" oninput="updateManualFinal()"
-                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all font-bold">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Discount Reason</label>
-                                <input type="text" name="discount_reason" placeholder="Reason (Optional)"
-                                    class="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-4 focus:ring-blue-600/30 outline-none transition-all">
-                            </div>
-                        </div>
-
-                        <div class="pt-6 border-t border-white/20">
-                            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Final Amount</span>
-                            <div class="text-4xl font-black text-emerald-400 flex items-baseline gap-1">
-                                <span class="text-lg">₹</span>
-                                <input type="number" step="0.01" name="final_fee" id="final_f" readonly class="bg-transparent border-none outline-none w-full text-emerald-400 pointer-events-none">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- 3. DYNAMIC FORM FIELDS (Injected by JS) -->
@@ -415,7 +382,8 @@
                 });
                 
                 document.getElementById('fee_cat_id').selectedIndex = 0;
-                document.getElementById('feeCalculationBox').classList.add('hidden');
+                const feeCalcBox = document.getElementById('feeCalculationBox');
+                if (feeCalcBox) feeCalcBox.classList.add('hidden');
                 document.getElementById('periodSection').classList.add('hidden');
                 loadManualClasses();
             });
@@ -458,14 +426,16 @@
         const select = document.getElementById('fee_cat_id');
         const option = select.options[select.selectedIndex];
         if (!option.value) {
-            document.getElementById('feeCalculationBox').classList.add('hidden');
+            const feeCalcBox = document.getElementById('feeCalculationBox');
+            if (feeCalcBox) feeCalcBox.classList.add('hidden');
             document.getElementById('periodSection').classList.add('hidden');
             return;
         }
 
         const breakdown = JSON.parse(option.dataset.breakdown || '[]');
         currentBreakdown = breakdown;
-        document.getElementById('feeCalculationBox').classList.remove('hidden');
+        const feeCalcBox = document.getElementById('feeCalculationBox');
+        if (feeCalcBox) feeCalcBox.classList.remove('hidden');
         document.getElementById('periodSection').classList.remove('hidden');
         
         const container = document.getElementById('labelContainer');
@@ -492,23 +462,30 @@
 
     function updateManualBreakdown(startIndex) {
         const list = document.getElementById('breakdownList');
-        list.innerHTML = '';
+        if (list) list.innerHTML = '';
         let total = 0;
         currentBreakdown.forEach((amount, i) => {
-            const row = document.createElement('div');
-            row.className = `flex justify-between items-center py-2 border-b border-white/5 ${i < startIndex ? 'opacity-30' : ''}`;
-            row.innerHTML = `<span>${subCategories[i]?.name || 'Period '+(i+1)}</span><span class="font-mono text-blue-300">${i < startIndex ? 'Skipped' : '₹'+parseFloat(amount).toFixed(2)}</span>`;
-            list.appendChild(row);
+            if (list) {
+                const row = document.createElement('div');
+                row.className = `flex justify-between items-center py-2 border-b border-white/5 ${i < startIndex ? 'opacity-30' : ''}`;
+                row.innerHTML = `<span>${subCategories[i]?.name || 'Period '+(i+1)}</span><span class="font-mono text-blue-300">${i < startIndex ? 'Skipped' : '₹'+parseFloat(amount).toFixed(2)}</span>`;
+                list.appendChild(row);
+            }
             if (i >= startIndex) total += parseFloat(amount);
         });
-        document.getElementById('calc_fee').value = total.toFixed(2);
+        const calcFee = document.getElementById('calc_fee');
+        if (calcFee) calcFee.value = total.toFixed(2);
         updateManualFinal();
     }
 
     function updateManualFinal() {
-        const base = parseFloat(document.getElementById('calc_fee').value) || 0;
-        const disc = parseFloat(document.getElementById('disc_amt').value) || 0;
-        document.getElementById('final_f').value = Math.max(0, base - disc).toFixed(2);
+        const calcFeeEl = document.getElementById('calc_fee');
+        const discAmtEl = document.getElementById('disc_amt');
+        const finalFEl = document.getElementById('final_f');
+        if (!calcFeeEl || !finalFEl) return;
+        const base = parseFloat(calcFeeEl.value) || 0;
+        const disc = parseFloat(discAmtEl ? discAmtEl.value : 0) || 0;
+        finalFEl.value = Math.max(0, base - disc).toFixed(2);
     }
 
     function loadManualClasses() {

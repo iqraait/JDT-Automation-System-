@@ -247,6 +247,7 @@ def register_student(request, app_id):
         registration_id = request.POST.get('registration_id')
         student_email = request.POST.get('student_email')
         date_of_join = request.POST.get('date_of_join')
+        admission_quota = request.POST.get('admission_quota', 'Merit')
         fee_cat_id = request.POST.get('fee_category_id')
         joining_period_id = request.POST.get('joining_period_id')
         calculated_fee = request.POST.get('calculated_fee')
@@ -262,6 +263,9 @@ def register_student(request, app_id):
         
         if selected_course_id:
             course = get_object_or_404(Course, id=selected_course_id)
+            if app.course != course:
+                app.course = course
+                app.save()
         
         # Guardian
         care_of = request.POST.get('care_of', '') or ''
@@ -289,6 +293,7 @@ def register_student(request, app_id):
         if adm:
             # Update existing Admission record
             adm.registration_id = registration_id
+            adm.admission_quota = admission_quota
             adm.date_of_join = doj_obj
             adm.selected_course = course
             adm.fee_category = app_fee_cat
@@ -311,6 +316,7 @@ def register_student(request, app_id):
             adm = Admission.objects.create(
                 application=app,
                 registration_id=registration_id,
+                admission_quota=admission_quota,
                 date_of_join=doj_obj,
                 selected_course=course,
                 fee_category=app_fee_cat,
@@ -1742,9 +1748,11 @@ def edit_application(request, app_id):
     # =========================
     # GET FORM FIELDS
     # =========================
-    fields = FormField.objects.filter(
-        form=app.course.form
-    ).select_related('section').order_by('section__order', 'order')
+    fields = []
+    if hasattr(app.course, 'form') and app.course.form:
+        fields = FormField.objects.filter(
+            form=app.course.form
+        ).select_related('section').order_by('section__order', 'order')
 
     # ATTACH VALUES TO FIELDS
     # Use order_by('id') so that if duplicates exist, the latest one (highest ID) is kept in the dictionary

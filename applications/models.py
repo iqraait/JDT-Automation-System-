@@ -314,6 +314,17 @@ class Admission(models.Model):
     register_number = models.CharField(max_length=100, unique=True, null=True, blank=True, db_index=True)
     annual_serial = models.IntegerField(default=1)
 
+    ADMISSION_QUOTA_CHOICES = [
+        ('Merit', 'Merit'),
+        ('Management', 'Management'),
+        ('NRI', 'NRI'),
+    ]
+    admission_quota = models.CharField(
+        max_length=20,
+        choices=ADMISSION_QUOTA_CHOICES,
+        default='Merit'
+    )
+
     date_of_join = models.DateField()
     selected_course = models.ForeignKey(Course, on_delete=models.PROTECT)
     

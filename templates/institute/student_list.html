@@ -42,78 +42,81 @@
     </div>
     {% endif %}    <!-- FILTERS -->
     <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Adm No / Reg ID</label>
-                <input type="text" name="form_id" value="{{ request.GET.form_id }}" placeholder="e.g. 1024" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
-            </div>
-            
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Candidate Name</label>
-                <input type="text" name="name" value="{{ request.GET.name }}" placeholder="Search name..." class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+        <form method="GET" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Row 1: Admission No / Registration ID -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Adm No / Reg ID</label>
+                    <input type="text" name="form_id" value="{{ request.GET.form_id }}" placeholder="e.g. 1024" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                </div>
+                
+                <!-- Row 1: Candidate Name -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Candidate Name</label>
+                    <input type="text" name="name" value="{{ request.GET.name }}" placeholder="Search name..." class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                </div>
+
+                <!-- Row 1: Batch -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Batch</label>
+                    <select name="batch_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                        <option value="">All Years</option>
+                        {% for b in batches %}
+                            <option value="{{ b.id }}" {% if request.GET.batch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Row 1: Class -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class</label>
+                    <select name="class_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if request.GET.class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Batch</label>
-                <select name="batch_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
-                    <option value="">All Years</option>
-                    {% for b in batches %}
-                        <option value="{{ b.id }}" {% if request.GET.batch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Row 2: Class Year -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class Year</label>
+                    <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                        <option value="">All Class Years</option>
+                        {% for cy in class_years %}
+                            <option value="{{ cy.id }}" {% if request.GET.class_year_id == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class</label>
-                <select name="class_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
-                    <option value="">All Classes</option>
-                    {% for c in classes %}
-                        <option value="{{ c.id }}" {% if request.GET.class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Class Year</label>
-                <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
-                    <option value="">All Class Years</option>
-                    {% for cy in class_years %}
-                        <option value="{{ cy.id }}" {% if request.GET.class_year_id == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
-                    <option value="">All Statuses</option>
-                    <optgroup label="Application Status">
-                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending Audit</option>
-                        <option value="selected" {% if request.GET.status == 'selected' %}selected{% endif %}>Verified</option>
-                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                        <option value="hold" {% if request.GET.status == 'hold' %}selected{% endif %}>On Hold</option>
-                    </optgroup>
-                    <optgroup label="Admission Status">
-                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active Student</option>
+                <!-- Row 2: Status -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                    <select name="status" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none">
+                        <option value="active" {% if request.GET.status == 'active' or request.GET.status == None %}selected{% endif %}>Active Student</option>
+                        <option value="all" {% if request.GET.status == 'all' %}selected{% endif %}>All</option>
                         <option value="warned" {% if request.GET.status == 'warned' %}selected{% endif %}>Warned</option>
                         <option value="suspended" {% if request.GET.status == 'suspended' %}selected{% endif %}>Suspended</option>
                         <option value="trashed" {% if request.GET.status == 'trashed' %}selected{% endif %}>Trashed</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Stream</label>
-                <div class="flex gap-2">
-                    <select name="course_id" class="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none text-sm">
-                        <option value="">All Courses</option>
-                        {% for c in courses %}
-                            <option value="{{ c.id }}" {% if request.GET.course_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                        {% endfor %}
                     </select>
-                    <button type="submit" class="p-3.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </button>
+                </div>
+
+                <!-- Row 2: Stream -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Stream</label>
+                    <div class="flex gap-2">
+                        <select name="course_id" class="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:border-blue-600 transition-all outline-none text-sm">
+                            <option value="">All Courses</option>
+                            {% for c in courses %}
+                                <option value="{{ c.id }}" {% if request.GET.course_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="p-3.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -141,14 +144,9 @@
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Joined: {{ adm.date_of_join|date:"d M, Y" }}</p>
                         </td>
                         <td class="px-8 py-6">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm border border-white">
-                                    {{ adm.application.display_name|first|upper }}
-                                </div>
-                                <div>
-                                    <p class="font-black text-slate-800 leading-tight">{{ adm.application.display_name }}</p>
-                                    <p class="text-slate-400 text-xs font-bold mt-0.5 tracking-tight">{{ adm.application.student.email|default:adm.application.student.username }}</p>
-                                </div>
+                            <div>
+                                <p class="font-black text-slate-800 leading-tight">{{ adm.application.display_name }}</p>
+                                <p class="text-slate-400 text-xs font-bold mt-0.5 tracking-tight">{{ adm.application.student.email|default:adm.application.student.username }}</p>
                             </div>
                         </td>
                         <td class="px-8 py-6">
