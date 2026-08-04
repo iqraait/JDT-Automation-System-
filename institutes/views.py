@@ -1668,7 +1668,7 @@ def institute_dashboard(request):
             
             if not val or str(val).strip() == "None": continue
 
-            if lbl == "admission quota":
+            if "admission quota" in lbl:
                 quota = str(val).strip()
                 exact_quota_found = True
                 continue
@@ -1678,6 +1678,10 @@ def institute_dashboard(request):
             elif "gender" in lbl:
                 gender = val
             elif "quota" in lbl and not exact_quota_found:
+                # Explicitly skip if the label asks for a document, proof, etc.
+                if any(word in lbl for word in ['document', 'proof', 'certificate', 'upload', 'file', 'pdf', 'image']):
+                    continue
+                    
                 # Exclude file uploads from being captured as the 'quota' string
                 is_file = False
                 if hasattr(v, 'field_type') and v.field_type == 'file':
@@ -1686,7 +1690,7 @@ def institute_dashboard(request):
                     is_file = True
                 
                 val_lower = str(val).strip().lower()
-                if '.pdf' in val_lower or '.jpg' in val_lower or '.jpeg' in val_lower or '.png' in val_lower:
+                if any(ext in val_lower for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.doc']):
                     is_file = True
                     
                 if not is_file:
