@@ -1654,6 +1654,8 @@ def institute_dashboard(request):
         gender = "-"
         quota = "-"
         remarks = app.remarks or ""
+        
+        exact_quota_found = False
 
         # Optimized field extraction
         for v in app.field_values.all():
@@ -1661,23 +1663,30 @@ def institute_dashboard(request):
             if not field_label:
                 continue
 
-            lbl = field_label.lower()
+            lbl = field_label.lower().strip()
             val = v.value
             
-            if not val or val == "None": continue
+            if not val or str(val).strip() == "None": continue
+
+            if lbl == "admission quota":
+                quota = str(val).strip()
+                exact_quota_found = True
+                continue
 
             if "phone" in lbl or "mobile" in lbl or "contact" in lbl:
                 contact = val
             elif "gender" in lbl:
                 gender = val
-            elif "quota" in lbl:
+            elif "quota" in lbl and not exact_quota_found:
                 # Exclude file uploads from being captured as the 'quota' string
                 is_file = False
                 if hasattr(v, 'field_type') and v.field_type == 'file':
                     is_file = True
                 if v.field and hasattr(v.field, 'field_type') and v.field.field_type == 'file':
                     is_file = True
-                if str(val).lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
+                
+                val_lower = str(val).strip().lower()
+                if '.pdf' in val_lower or '.jpg' in val_lower or '.jpeg' in val_lower or '.png' in val_lower:
                     is_file = True
                     
                 if not is_file:
