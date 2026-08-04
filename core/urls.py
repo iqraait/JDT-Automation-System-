@@ -10,12 +10,14 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from applications.views import load_exam_subjects
 
+from django.contrib.auth import views as auth_views
+
 def home(request):
     return render(request, 'home.html')
 
 
 urlpatterns = [
-    path('admin/logout/', lambda request: redirect('/admin/login/?next=/admin/')),
+    path('admin/logout/', auth_views.LogoutView.as_view(next_page='/admin/login/?next=/admin/')),
     path('admin/', admin.site.urls),
 
     # ✅ ACCOUNTS (LOGIN / REGISTER)
