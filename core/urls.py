@@ -15,6 +15,7 @@ def home(request):
 
 
 urlpatterns = [
+    path('admin/logout/', lambda request: redirect('/admin/login/?next=/admin/')),
     path('admin/', admin.site.urls),
 
     # ✅ ACCOUNTS (LOGIN / REGISTER)

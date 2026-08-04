@@ -1700,7 +1700,17 @@ def institute_dashboard(request):
     distinct_quotas = ApplicationFieldValue.objects.filter(
         application__institute=institute,
         field_label__icontains='quota'
-    ).exclude(value__in=[None, '', 'None', '-']).values_list('value', flat=True).distinct()
+    ).exclude(
+        value__in=[None, '', 'None', '-']
+    ).exclude(
+        field_type='file'
+    ).exclude(
+        field__field_type='file'
+    ).exclude(
+        value__icontains='.pdf'
+    ).exclude(
+        value__icontains='.jpg'
+    ).values_list('value', flat=True).distinct()
     quotas = sorted(list(set(q.strip() for q in distinct_quotas if q and q.strip())))
 
     # REQUIREMENT: Notice Board visibility for all users
