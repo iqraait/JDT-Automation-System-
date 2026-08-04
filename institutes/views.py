@@ -1671,7 +1671,17 @@ def institute_dashboard(request):
             elif "gender" in lbl:
                 gender = val
             elif "quota" in lbl:
-                quota = val
+                # Exclude file uploads from being captured as the 'quota' string
+                is_file = False
+                if hasattr(v, 'field_type') and v.field_type == 'file':
+                    is_file = True
+                if v.field and hasattr(v.field, 'field_type') and v.field.field_type == 'file':
+                    is_file = True
+                if str(val).lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
+                    is_file = True
+                    
+                if not is_file:
+                    quota = val
             elif "remarks" in lbl or "comment" in lbl:
                 if not remarks:
                     remarks = val
