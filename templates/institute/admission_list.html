@@ -147,15 +147,20 @@
                             </div>
                         </td>
                         <td class="px-10 py-8 text-right">
-                            {% if app.is_registered %}
-                                <button class="px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed">
-                                    Registration Complete
+                            <div class="flex items-center justify-end gap-3">
+                                {% if app.is_registered %}
+                                    <button class="px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed">
+                                        Registration Complete
+                                    </button>
+                                {% else %}
+                                    <a href="/institute/admission/register/{{ app.form_no }}/" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-100 inline-block">
+                                        Register Student
+                                    </a>
+                                {% endif %}
+                                <button onclick="openMemoModal('{{ app.form_no }}')" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
+                                    Allotment Memo
                                 </button>
-                            {% else %}
-                                <a href="/institute/admission/register/{{ app.form_no }}/" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-100 inline-block">
-                                    Register Student
-                                </a>
-                            {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -178,6 +183,86 @@
         </div>
     </div>
 </div>
+
+<!-- ALLOTMENT MEMO MODAL -->
+<div id="memoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden mx-4 animate-fade-in">
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800">Generate Allotment Memo</h3>
+            <button onclick="closeMemoModal()" class="w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 rounded-full transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form id="memoForm" method="GET" target="_blank" action="" class="p-8 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Phase No -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Phase No</label>
+                    <input type="text" name="phase_no" value="1st Allotment" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Allotment Date -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Allotment Date</label>
+                    <input type="date" name="allotment_date" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Rank -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Rank</label>
+                    <input type="text" name="rank" placeholder="e.g. 55" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Generated Time (Default Today) -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Reporting Time</label>
+                    <input type="time" name="reporting_time" value="10:00" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- From Date -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Report From Date</label>
+                    <input type="date" name="report_from" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- To Date -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Report To Date</label>
+                    <input type="date" name="report_to" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Fee Details (as seen on memo)</label>
+                <textarea name="fee_details" rows="2" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold leading-relaxed resize-none">Tuition fee - 80,328, Special Fee - 23,980, Caution Deposit - 10,000 = 1,14,308/-</textarea>
+            </div>
+            
+            <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                <button type="button" onclick="closeMemoModal()" class="px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-xl shadow-blue-100 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Print Memo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openMemoModal(appId) {
+        document.getElementById('memoModal').classList.remove('hidden');
+        document.getElementById('memoModal').classList.add('flex');
+        document.getElementById('memoForm').action = '/institute/admission/allotment-memo/' + appId + '/';
+        
+        // Auto-fill dates
+        const today = new Date().toISOString().split('T')[0];
+        if(!document.querySelector('input[name="allotment_date"]').value) 
+            document.querySelector('input[name="allotment_date"]').value = today;
+    }
+    
+    function closeMemoModal() {
+        document.getElementById('memoModal').classList.add('hidden');
+        document.getElementById('memoModal').classList.remove('flex');
+    }
+</script>
 
 <style>
 @keyframes fadeIn {

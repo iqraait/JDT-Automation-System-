@@ -16,6 +16,7 @@ urlpatterns = [
     # ✅ ADMISSION / STUDENT REGISTRATION
     path('admission/', admission_list, name='admission_list'),
     path('admission/register/<int:app_id>/', register_student, name='register_student'),
+    path('admission/allotment-memo/<int:app_id>/', generate_allotment_memo, name='generate_allotment_memo'),
     path('admission/register-manual/', register_manual, name='register_manual'),
     path('admission/load-subcategories/', load_subcategories, name='load_subcategories'),
     path('admission/load-classes/', load_classes, name='load_classes'),

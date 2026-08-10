@@ -235,6 +235,62 @@ def admission_list(request):
 
 
 # =========================
+# ALLOTMENT MEMO
+# =========================
+@login_required
+def generate_allotment_memo(request, app_id):
+    app = get_object_or_404(Application, id=app_id)
+    institute = request.user.institute
+    
+    context = {
+        'phase_no': request.GET.get('phase_no', '1st Allotment'),
+        'allotment_date': request.GET.get('allotment_date'),
+        'rank': request.GET.get('rank', 'N/A'),
+        'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
+        'report_from': request.GET.get('report_from'),
+        'report_to': request.GET.get('report_to'),
+        'fee_details': request.GET.get('fee_details'),
+        'app': app,
+        'institute': institute,
+    }
+    
+    dob = None
+    place = None
+    place_fields = ['district', 'city', 'place', 'address', 'location']
+    
+    for fv in app.field_values.all():
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if 'dob' in label or 'date of birth' in label:
+            dob = fv.value
+        for pf in place_fields:
+            if pf in label and not place:
+                place = fv.value
+                break
+                
+    context['dob'] = dob or 'N/A'
+    context['place'] = place or 'N/A'
+    
+    # Check for custom application format
+    app_no_prefix = "CON2025"
+    if hasattr(app, 'application_no'):
+        context['app_no'] = app.application_no
+    else:
+        # Build custom ID mimicking screenshot "CON2025200"
+        context['app_no'] = f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
+
+    # Determine Quota
+    admission = Admission.objects.filter(application=app).first()
+    if admission and admission.admission_quota:
+        context['quota'] = admission.admission_quota
+    elif app.course and app.course.category:
+        context['quota'] = app.course.category.name
+    else:
+        context['quota'] = 'Management'
+
+    return render(request, 'institute/allotment_memo.html', context)
+
+
+# =========================
 # REGISTER STUDENT
 # =========================
 @login_required

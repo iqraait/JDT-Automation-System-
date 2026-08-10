@@ -12,6 +12,8 @@ class Institute(models.Model):
     code = models.CharField(max_length=50, unique=True)
     address = models.TextField(blank=True, null=True)
     logo = models.ImageField(upload_to='institute_logos/', blank=True, null=True)
+    signature_image = models.ImageField(upload_to='institute_signatures/', blank=True, null=True, help_text="Signature for official documents like Allotment Memo")
+    seal_image = models.ImageField(upload_to='institute_seals/', blank=True, null=True, help_text="Official seal for documents")
 
     def __str__(self):
         return self.name
@@ -62,3 +64,4 @@ def log_activity(user, module, activity, institute=None):
             )
     except Exception as e:
         print(f"Error logging activity: {str(e)}")
+        
