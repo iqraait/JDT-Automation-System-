@@ -7,9 +7,13 @@
     <style>
         body { font-family: 'Times New Roman', Times, serif; color: #000; margin: 0; padding: 0;line-height: 1.5; }
         .page { width: 21cm; min-height: 29.7cm; padding: 1.5cm; margin: 0 auto; background: white; box-sizing: border-box; }
+        @page {
+            size: A4 portrait;
+            margin: 0; /* Removing page margin hides the browser's default headers and footers */
+        }
         @media print {
-            body { background: none; }
-            .page { margin: 0; box-shadow: none; border: none; padding: 1cm; page-break-after: always; }
+            body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; }
+            .page { margin: 0; box-shadow: none; border: none; padding: 2cm; min-height: 100vh; page-break-after: always; }
             .no-print { display: none !important; }
         }
         .header-text { text-align: center; margin-bottom: 20px; line-height: 1.3; font-size: 14pt; }
