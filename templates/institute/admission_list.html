@@ -157,7 +157,7 @@
                                         Register Student
                                     </a>
                                 {% endif %}
-                                <button onclick="openMemoModal('{{ app.form_no }}')" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
+                                <button onclick="openMemoModal('{{ app.form_no }}', '{{ app.rank }}')" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
                                     Allotment Memo
                                 </button>
                             </div>
@@ -247,11 +247,16 @@
 </div>
 
 <script>
-    function openMemoModal(appId) {
+    function openMemoModal(appId, appRank) {
         document.getElementById('memoModal').classList.remove('hidden');
         document.getElementById('memoModal').classList.add('flex');
         document.getElementById('memoForm').action = '/institute/admission/allotment-memo/' + appId + '/';
         
+        // Auto-fill rank
+        if(appRank && appRank !== 'N/A' && appRank !== 'None') {
+            document.querySelector('input[name="rank"]').value = appRank;
+        }
+
         // Auto-fill dates
         const today = new Date().toISOString().split('T')[0];
         if(!document.querySelector('input[name="allotment_date"]').value) 

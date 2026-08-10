@@ -204,6 +204,37 @@ def admission_list(request):
     years = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
     
+    # Calculate ranks for displayed applications
+    from django.db import models
+    course_year_groups = set()
+    for app in applications:
+        if app.course_id and app.academic_year_id:
+            course_year_groups.add((app.course_id, app.academic_year_id))
+            
+    rank_map = {}
+    for cid, ayid in course_year_groups:
+        group_apps = Application.objects.filter(
+            institute=institute,
+            status='selected',
+            payment__status='success',
+            course_id=cid,
+            academic_year_id=ayid
+        ).prefetch_related(
+            models.Prefetch('field_values', queryset=ApplicationFieldValue.objects.select_related('field', 'field__section'))
+        )
+        ranked_list = []
+        for g_app in group_apps:
+            total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(g_app)
+            ranked_list.append({
+                "app_id": g_app.id,
+                "percentage": percentage,
+                "main_mark": main_mark,
+                "sub_mark": sub_mark
+            })
+        ranked_list.sort(key=lambda x: (x['percentage'], x['main_mark'], x['sub_mark']), reverse=True)
+        for i, item in enumerate(ranked_list, start=1):
+            rank_map[item['app_id']] = i
+
     for app in applications:
         std_name = get_student_name(app)
         
@@ -220,6 +251,7 @@ def admission_list(request):
             "status": app.status,
             "is_registered": hasattr(app, 'admission'),
             "category": app.course.category.name if app.course.category else "Uncategorized",
+            "rank": rank_map.get(app.id, 'N/A'),
         })
 
     return render(request, 'institute/admission_list.html', {
