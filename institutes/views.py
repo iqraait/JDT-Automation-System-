@@ -254,8 +254,14 @@ def admission_list(request):
             "rank": rank_map.get(app.id, 'N/A'),
         })
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(processed_apps, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'institute/admission_list.html', {
-        'applications': processed_apps,
+        'applications': page_obj,
+        'page_obj': page_obj,
         'years': years,
         'courses': courses,
         'selected_year': admission_year,
@@ -555,10 +561,11 @@ def register_student(request, app_id):
             if len(parts) >= 2:
                 name = parts[0].strip()
                 marks = parts[1].strip()
+                max_marks = parts[2].strip() if len(parts) >= 3 else "100"
                 if name not in latest_subjects:
-                    latest_subjects[name] = marks
-    for name, marks in latest_subjects.items():
-        subjects.append({"name": name, "marks": marks})
+                    latest_subjects[name] = {'marks': marks, 'max': max_marks}
+    for name, data in latest_subjects.items():
+        subjects.append({"name": name, "marks": data['marks'], "max": data['max']})
 
     # Get subcategories (labels) for the course category
     subcategories = course.category.subcategories.all() if course.category else []
@@ -1728,7 +1735,7 @@ def institute_dashboard(request):
         )
 
     # Performance: Pagination
-    paginator = Paginator(apps, 100)
+    paginator = Paginator(apps, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -2354,8 +2361,14 @@ def student_list_view(request):
         
     class_years = ClassYear.objects.filter(class_obj__in=classes, is_active=True)
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(admissions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'institute/student_list.html', {
-        'admissions': admissions,
+        'admissions': page_obj,
+        'page_obj': page_obj,
         'batches': batches,
         'courses': courses,
         'classes': classes,
