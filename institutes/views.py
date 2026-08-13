@@ -571,6 +571,8 @@ def register_student(request, app_id):
                     latest_subjects[name] = {'marks': marks, 'max': max_marks}
     for name, data in latest_subjects.items():
         subjects.append({"name": name, "marks": data['marks'], "max": data['max']})
+        
+    subjects.reverse()
 
     # Get subcategories (labels) for the course category
     subcategories = course.category.subcategories.all() if course.category else []
