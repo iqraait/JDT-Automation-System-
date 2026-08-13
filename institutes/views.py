@@ -541,8 +541,16 @@ def register_student(request, app_id):
         sections[f.section].append(f)
     
     # Fetch existing values for these fields
-    field_values_by_id = {v.field_id: v.value for v in app.field_values.all()}
-    field_values_by_label = {(v.field.label if v.field else v.field_label or "").lower(): v.value for v in app.field_values.all()}
+    field_values_by_id = {}
+    field_values_by_label = {}
+    for v in app.field_values.all().order_by('id'):
+        val_str = str(v.value or "")
+        if ":" not in val_str: 
+            if v.field_id:
+                field_values_by_id[v.field_id] = v.value
+            lbl = (v.field.label if v.field else v.field_label or "").lower()
+            if lbl:
+                field_values_by_label[lbl] = v.value
     
     for f in form_fields:
         f.current_value = field_values_by_id.get(f.id, "")
