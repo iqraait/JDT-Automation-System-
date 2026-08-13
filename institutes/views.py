@@ -541,9 +541,14 @@ def register_student(request, app_id):
         sections[f.section].append(f)
     
     # Fetch existing values for these fields
-    field_values = {v.field_id: v.value for v in app.field_values.all()}
+    field_values_by_id = {v.field_id: v.value for v in app.field_values.all()}
+    field_values_by_label = {(v.field.label if v.field else v.field_label or "").lower(): v.value for v in app.field_values.all()}
+    
     for f in form_fields:
-        f.current_value = field_values.get(f.id, "")
+        f.current_value = field_values_by_id.get(f.id, "")
+        if not f.current_value:
+            f.current_value = field_values_by_label.get(f.label.lower(), "")
+            
         # FIX: Ensure Full Name shows student name, not corrupted subject marks
         if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
             f.current_value = app.student.first_name
