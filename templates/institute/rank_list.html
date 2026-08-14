@@ -26,7 +26,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-             <a href="{% url 'export_rank_excel' %}?course={{ request.GET.course }}&year={{ request.GET.year }}"
+             <a href="{% url 'export_rank_excel' %}?course={{ request.GET.course|default:'' }}&year={{ request.GET.year|default:'' }}&quota={{ request.GET.quota|default:'' }}"
                class="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-xl shadow-emerald-100 flex items-center gap-3">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Export Matrix
@@ -36,7 +36,7 @@
 
     <!-- FILTER PANEL (Modern Sidebar Style) -->
     <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="space-y-2">
                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Course Stream</label>
                 <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
@@ -53,6 +53,16 @@
                     <option value="">Full History</option>
                     {% for y in years %}
                     <option value="{{ y.id }}" {% if y.id|stringformat:"s" == request.GET.year %}selected{% endif %}>{{ y.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Admission Quota</label>
+                <select name="quota" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                    <option value="">All Quotas</option>
+                    {% for q in quotas %}
+                    <option value="{{ q }}" {% if q == request.GET.quota %}selected{% endif %}>{{ q }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -89,7 +99,12 @@
                         <td class="px-6 py-4">
                             <div class="flex flex-col">
                                 <span class="text-slate-900 font-bold uppercase">{{ item.name }}</span>
-                                <span class="text-[10px] text-slate-400 font-medium tracking-wide">ID: #{{ item.app.id }}</span>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-[10px] text-slate-400 font-medium tracking-wide">ID: #{{ item.app.id }}</span>
+                                    {% if item.quota and item.quota != '-' %}
+                                    <span class="text-[10px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 uppercase tracking-wider">{{ item.quota }}</span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </td>
                         <td class="px-6 py-4">

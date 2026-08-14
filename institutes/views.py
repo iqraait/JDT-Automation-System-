@@ -1304,7 +1304,7 @@ def rank_list_view(request):
     institute = request.user.institute
     course_id = request.GET.get('course')
     year_id = request.GET.get('year')
-    
+    quota_id = request.GET.get('quota')
 
     # Show only Verified students (status='selected')
     from django.db import models
@@ -1326,14 +1326,23 @@ def rank_list_view(request):
         applications = applications.filter(academic_year_id=year_id)
 
     ranked_list = []
+    available_quotas = set()
 
     for app in applications:
         total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(app)
+        quota = get_student_quota(app)
+
+        if quota and quota != "-":
+            available_quotas.add(quota)
+
+        if quota_id and quota.lower() != quota_id.lower():
+            continue
 
         ranked_list.append({
             "app": app,
             "name": get_student_name(app),
             "course": app.course.name if app.course else "No Course",
+            "quota": quota,
             "total": total,
             "max_total": max_total,
             "qualified_total": qualified_total,
@@ -1352,10 +1361,42 @@ def rank_list_view(request):
     for i, item in enumerate(ranked_list, start=1):
         item['rank'] = i
 
+    # Fetch additional distinct quotas from database for complete dropdown options
+    distinct_db_quotas = ApplicationFieldValue.objects.filter(
+        application__institute=institute,
+        field_label__icontains='quota'
+    ).exclude(
+        value__in=[None, '', 'None', '-']
+    ).exclude(
+        field_type='file'
+    ).exclude(
+        field__field_type='file'
+    ).exclude(
+        value__icontains='.pdf'
+    ).exclude(
+        value__icontains='.jpg'
+    ).exclude(
+        field_label__icontains='document'
+    ).exclude(
+        field_label__icontains='proof'
+    ).exclude(
+        field_label__icontains='certificate'
+    ).exclude(
+        field_label__icontains='upload'
+    ).values_list('value', flat=True).distinct()
+
+    for q in distinct_db_quotas:
+        if q and q.strip() and not any(ext in q.lower() for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']):
+            available_quotas.add(q.strip())
+
+    quotas = sorted(list(available_quotas))
+
     context = {
         "ranked_list": ranked_list,
         "courses": Course.objects.filter(institute=institute),
-        "years": AcademicYear.objects.filter(institute=institute, is_active=True)
+        "years": AcademicYear.objects.filter(institute=institute, is_active=True),
+        "quotas": quotas,
+        "selected_quota": quota_id or "",
     }
 
     return render(request, "institute/rank_list.html", context)
@@ -1390,6 +1431,56 @@ def get_student_name(application):
         return application.student.username
     return f"Form #{application.id}"
 
+
+def get_student_quota(application):
+    """
+    Extracts the quota value for an application, ignoring file uploads (e.g. death.pdf).
+    """
+    quota = "-"
+    exact_quota_found = False
+
+    for v in application.field_values.all():
+        field_label = v.field.label if v.field else v.field_label
+        if not field_label:
+            continue
+
+        lbl = field_label.lower().strip()
+        val = str(v.value or "").strip()
+        
+        if not val or val in ["None", "-", ""]:
+            continue
+
+        if "admission quota" in lbl:
+            quota = val
+            exact_quota_found = True
+            continue
+
+        if "quota" in lbl and not exact_quota_found:
+            # Skip document / upload field labels
+            if any(word in lbl for word in ['document', 'proof', 'certificate', 'upload', 'file', 'pdf', 'image']):
+                continue
+                
+            # Exclude file uploads
+            is_file = False
+            if hasattr(v, 'field_type') and v.field_type == 'file':
+                is_file = True
+            if v.field and hasattr(v.field, 'field_type') and v.field.field_type == 'file':
+                is_file = True
+            
+            val_lower = val.lower()
+            if any(ext in val_lower for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']):
+                is_file = True
+                
+            if not is_file:
+                quota = val
+
+    # Fallback to admission object if present
+    if quota == "-" and hasattr(application, 'admission') and application.admission and getattr(application.admission, 'admission_quota', None):
+        quota = application.admission.admission_quota
+
+    return quota
+
+
 @login_required
 def export_rank_excel(request):
     institute = getattr(request.user, 'institute', None)
@@ -1397,6 +1488,7 @@ def export_rank_excel(request):
         return HttpResponse("Unauthorized", status=401)
     course_id = request.GET.get('course')
     year_id = request.GET.get('year')
+    quota_id = request.GET.get('quota')
 
     # Show only Verified students (status='selected')
     from django.db import models
@@ -1428,7 +1520,11 @@ def export_rank_excel(request):
             mobile = "-"
             gender = "-"
             exam_name = "-"
-            quota = "-"
+            quota = get_student_quota(app)
+
+            if quota_id and quota.lower() != quota_id.lower():
+                continue
+
             choice1 = "-"
             choice2 = "-"
             choice3 = "-"
@@ -1467,8 +1563,6 @@ def export_rank_excel(request):
                     mobile = val
                 elif "gender" in lbl:
                     gender = val
-                elif "quota" in lbl:
-                    quota = val
                 elif "choice 1" in lbl or "choice1" in lbl:
                     choice1 = val
                 elif "choice 2" in lbl or "choice2" in lbl:
