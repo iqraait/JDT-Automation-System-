@@ -52,6 +52,7 @@ urlpatterns = [
     path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),
     path('student/<int:admission_id>/fees/collect/<int:head_id>/', collect_student_fee, name='collect_student_fee'),
     path('student/<int:admission_id>/fees/collect-multiple/', collect_multiple_fees, name='collect_multiple_fees'),
+    path('fee-receipt/<str:receipt_number>/', print_fee_receipt, name='print_fee_receipt'),
     path('fee-reports/', fee_reports, name='fee_reports'),
     path('fee-reports/export-excel/', export_fee_reports_excel, name='export_fee_reports_excel'),
     path('fee-reports/export-pdf/', export_fee_reports_pdf, name='export_fee_reports_pdf'),

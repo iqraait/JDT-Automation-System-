@@ -413,10 +413,11 @@ class StudentFeePayment(models.Model):
         default='cash'
     )
     reference_no = models.CharField(max_length=100, blank=True, null=True, help_text="Receipt, Transaction ID, etc.")
+    receipt_number = models.CharField(max_length=50, blank=True, null=True, db_index=True, help_text="Receipt number for fee payment transaction")
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         verbose_name = "Student Fee Payment"
         verbose_name_plural = "Student Fee Payments"
     def __str__(self):
-        return f"{self.admission.register_number} - {self.fee_head.fee_type.name} - ₹{self.amount_paid}"
+        return f"{self.admission.registration_id or self.id} - {self.fee_head.fee_type.name} - ₹{self.amount_paid}"

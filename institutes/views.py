@@ -2900,6 +2900,147 @@ def export_payments_excel(request):
     return response
 
 
+# Helper to convert numbers to words (Rupees and Paise)
+def num_to_words(n):
+    try:
+        n = float(n)
+    except (ValueError, TypeError):
+        return ""
+    
+    units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+             "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def _convert_below_thousand(num):
+        word = ""
+        if num >= 100:
+            word += units[num // 100] + " Hundred "
+            num %= 100
+        if num >= 20:
+            word += tens[num // 10] + " "
+            num %= 10
+        if num > 0:
+            word += units[num] + " "
+        return word
+
+    rupees = int(n)
+    paise = int(round((n - rupees) * 100))
+
+    if rupees == 0:
+        words = "Zero"
+    else:
+        words = ""
+        cr = rupees // 10000000
+        rupees %= 10000000
+        lakh = rupees // 100000
+        rupees %= 100000
+        thousand = rupees // 1000
+        rupees %= 1000
+        hundreds = rupees
+
+        if cr > 0:
+            words += _convert_below_thousand(cr).strip() + " Crore "
+        if lakh > 0:
+            words += _convert_below_thousand(lakh).strip() + " Lakh "
+        if thousand > 0:
+            words += _convert_below_thousand(thousand).strip() + " Thousand "
+        if hundreds > 0:
+            words += _convert_below_thousand(hundreds).strip() + " "
+
+    res = words.strip() + " Rupees"
+    if paise > 0:
+        res += " and " + _convert_below_thousand(paise).strip() + " Paise"
+    res += " Only"
+    return res
+
+
+def generate_receipt_number():
+    import re
+    payments_with_rcpt = StudentFeePayment.objects.filter(receipt_number__isnull=False).exclude(receipt_number='')
+    max_num = 32210
+    for p in payments_with_rcpt:
+        nums = re.findall(r'\d+', p.receipt_number or '')
+        if nums:
+            val = int(nums[-1])
+            if val >= max_num:
+                max_num = val + 1
+    if max_num == 32210:
+        count = StudentFeePayment.objects.count()
+        max_num = 32210 + count
+    return str(max_num)
+
+
+def ensure_receipt_numbers():
+    unassigned = StudentFeePayment.objects.filter(Q(receipt_number__isnull=True) | Q(receipt_number=''))
+    if unassigned.exists():
+        start_no = 32200
+        for p in unassigned:
+            if not p.receipt_number:
+                same_batch = StudentFeePayment.objects.filter(
+                    admission=p.admission,
+                    payment_date=p.payment_date,
+                    reference_no=p.reference_no,
+                    created_at__gte=p.created_at - datetime.timedelta(seconds=5),
+                    created_at__lte=p.created_at + datetime.timedelta(seconds=5)
+                ).filter(receipt_number__isnull=False).first()
+                if same_batch and same_batch.receipt_number:
+                    p.receipt_number = same_batch.receipt_number
+                else:
+                    p.receipt_number = str(start_no + p.id)
+                p.save()
+
+
+def group_payments_by_receipt(payments_qs):
+    ensure_receipt_numbers()
+    receipt_dict = {}
+    receipt_order = []
+    
+    for payment in payments_qs:
+        rcpt_id = payment.receipt_number or f"REC-{payment.id}"
+        if rcpt_id not in receipt_dict:
+            receipt_dict[rcpt_id] = {
+                'receipt_number': rcpt_id,
+                'admission': payment.admission,
+                'payment_date': payment.payment_date,
+                'payment_mode': payment.payment_mode,
+                'payment_mode_display': payment.get_payment_mode_display(),
+                'reference_no': payment.reference_no,
+                'remarks': payment.remarks,
+                'created_at': payment.created_at,
+                'payments': [],
+                'fee_items': [],
+                'total_amount_paid': 0.0,
+                'total_fine_paid': 0.0,
+                'grand_total': 0.0,
+            }
+            receipt_order.append(rcpt_id)
+        
+        g = receipt_dict[rcpt_id]
+        g['payments'].append(payment)
+        fee_name = payment.fee_head.fee_type.name
+        g['fee_items'].append({
+            'name': fee_name,
+            'amount_paid': float(payment.amount_paid),
+            'fine_paid': float(payment.fine_paid),
+            'total': float(payment.amount_paid) + float(payment.fine_paid)
+        })
+        g['total_amount_paid'] += float(payment.amount_paid)
+        g['total_fine_paid'] += float(payment.fine_paid)
+        g['grand_total'] += (float(payment.amount_paid) + float(payment.fine_paid))
+        if payment.reference_no and not g['reference_no']:
+            g['reference_no'] = payment.reference_no
+        if payment.remarks and not g['remarks']:
+            g['remarks'] = payment.remarks
+
+    grouped_list = []
+    for rcpt_id in receipt_order:
+        g = receipt_dict[rcpt_id]
+        g['fee_types_str'] = ", ".join(item['name'] for item in g['fee_items'])
+        grouped_list.append(g)
+        
+    return grouped_list
+
+
 # =============================================================================
 # STUDENT FEE MANAGEMENT VIEWS
 # =============================================================================
@@ -3009,7 +3150,8 @@ def manage_student_fees(request, admission_id):
                 total_pending += max(0.0, pending_fee)
                 total_fine += paid_fine
                 
-    payments_history = StudentFeePayment.objects.filter(admission=admission).order_by('-created_at')
+    raw_history = StudentFeePayment.objects.filter(admission=admission).select_related('fee_head__fee_type').order_by('-created_at')
+    payments_history = group_payments_by_receipt(raw_history)
     
     return render(request, 'institute/manage_student_fees.html', {
         'admission': admission,
@@ -3039,6 +3181,7 @@ def collect_student_fee(request, admission_id, head_id):
         try:
             amt_val = float(amount_paid) if amount_paid else 0.0
             fine_val = float(fine_paid) if fine_paid else 0.0
+            rcpt_no = generate_receipt_number()
             
             StudentFeePayment.objects.create(
                 admission=admission,
@@ -3047,6 +3190,7 @@ def collect_student_fee(request, admission_id, head_id):
                 fine_paid=fine_val,
                 payment_mode=payment_mode,
                 reference_no=reference_no,
+                receipt_number=rcpt_no,
                 remarks=remarks,
                 payment_date=datetime.date.today()
             )
@@ -3064,6 +3208,77 @@ def collect_student_fee(request, admission_id, head_id):
             messages.error(request, f"Error processing payment: {str(e)}")
             
     return redirect('manage_student_fees', admission_id=admission_id)
+
+
+@login_required
+def print_fee_receipt(request, receipt_number):
+    institute = getattr(request.user, 'institute', None)
+    if not institute and request.user.is_staff:
+        institute = Institute.objects.first()
+
+    payments = StudentFeePayment.objects.filter(
+        receipt_number=receipt_number,
+        admission__application__institute=institute
+    ).select_related('admission__application__student', 'admission__selected_course', 'admission__assigned_class', 'admission__assigned_class_year', 'fee_head__fee_type')
+
+    if not payments.exists():
+        messages.error(request, f"Receipt #{receipt_number} not found.")
+        return redirect('student_list')
+
+    first_payment = payments.first()
+    admission = first_payment.admission
+    app = admission.application
+
+    fee_items = []
+    grand_total = 0.0
+
+    for p in payments:
+        amt = float(p.amount_paid)
+        if amt > 0:
+            fee_items.append({
+                'particulars': p.fee_head.fee_type.name,
+                'amount': amt,
+                'rs': int(amt),
+                'ps': int(round((amt - int(amt)) * 100))
+            })
+            grand_total += amt
+
+        fine = float(p.fine_paid)
+        if fine > 0:
+            fee_items.append({
+                'particulars': f"Fine ({p.fee_head.fee_type.name})",
+                'amount': fine,
+                'rs': int(fine),
+                'ps': int(round((fine - int(fine)) * 100))
+            })
+            grand_total += fine
+
+    total_rs = int(grand_total)
+    total_ps = int(round((grand_total - total_rs) * 100))
+    amount_in_words = num_to_words(grand_total)
+
+    class_name = admission.assigned_class_year.name if admission.assigned_class_year else (admission.assigned_class.name if admission.assigned_class else "Semester / Class")
+    course_name = admission.selected_course.name if admission.selected_course else (app.course.name if app.course else "")
+
+    context = {
+        'receipt_number': receipt_number,
+        'payments': payments,
+        'first_payment': first_payment,
+        'admission': admission,
+        'app': app,
+        'institute': institute,
+        'fee_items': fee_items,
+        'grand_total': grand_total,
+        'total_rs': total_rs,
+        'total_ps': f"{total_ps:02d}",
+        'amount_in_words': amount_in_words,
+        'class_name': class_name,
+        'course_name': course_name,
+        'payment_date': first_payment.payment_date,
+        'payment_mode': first_payment.get_payment_mode_display(),
+        'reference_no': first_payment.reference_no,
+    }
+    return render(request, 'institute/print_receipt.html', context)
 
 
 def clean_id_param(val):
@@ -3130,7 +3345,6 @@ def fee_reports(request):
                 std_fines = 0.0
                 
                 for head in heads:
-                    # CHECK IF DISCOUNT IS ELIGIBLE (User Enhancement 1)
                     if head.fee_type.is_discountable:
                         discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
                         discount_pct = discount_pct or 0
@@ -3171,6 +3385,8 @@ def fee_reports(request):
     if date_to:
         ledger_payments = ledger_payments.filter(payment_date__lte=date_to)
         
+    grouped_ledger = group_payments_by_receipt(ledger_payments)
+
     batches = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
     classes = Class.objects.filter(institute=institute)
@@ -3183,7 +3399,7 @@ def fee_reports(request):
         'total_all_demand': total_all_demand,
         'total_all_collected': total_all_collected,
         'total_all_pending': total_all_pending,
-        'ledger_payments': ledger_payments[:100],
+        'ledger_payments': grouped_ledger[:100],
         'batches': batches,
         'courses': courses,
         'classes': classes,
@@ -3233,6 +3449,7 @@ def collect_multiple_fees(request, admission_id):
                 
                 if structure:
                     heads = structure.heads.filter(id__in=head_ids, is_active=True)
+                    rcpt_no = generate_receipt_number() # Single receipt ID for all items collected together!
                     
                     for head in heads:
                         if head.fee_type.is_discountable:
@@ -3267,6 +3484,7 @@ def collect_multiple_fees(request, admission_id):
                                 fine_paid=fine_val,
                                 payment_mode=payment_mode,
                                 reference_no=reference_no,
+                                receipt_number=rcpt_no,
                                 remarks=remarks,
                                 payment_date=datetime.date.today()
                             )
@@ -3278,10 +3496,10 @@ def collect_multiple_fees(request, admission_id):
                 log_activity(
                     user=request.user,
                     module="Fee Management",
-                    activity=f"Bulk collected ₹{total_collected:.2f} for {success_count} fee heads of student {admission.application.display_name}",
+                    activity=f"Bulk collected ₹{total_collected:.2f} for {success_count} fee heads of student {admission.application.display_name} (Receipt #{rcpt_no})",
                     institute=admission.application.institute
                 )
-                messages.success(request, f"Successfully collected ₹{total_collected:.2f} for {success_count} fee heads!")
+                messages.success(request, f"Successfully collected ₹{total_collected:.2f} for {success_count} fee heads! (Receipt #{rcpt_no})")
             else:
                 messages.warning(request, "Selected fee heads have already been fully paid.")
         except Exception as e:
@@ -3383,20 +3601,21 @@ def export_fee_reports_excel(request):
     
     if report_type == 'audit':
         ws.title = "Collection Audit Log"
-        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Head', 'Amount Paid', 'Penalty Paid', 'Mode', 'Reference No']
+        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Heads', 'Amount Paid', 'Penalty Paid', 'Mode', 'Reference No']
         ws.append(headers)
         
-        for p in ledger_payments:
+        grouped_audit = group_payments_by_receipt(ledger_payments)
+        for p in grouped_audit:
             ws.append([
-                f"#{p.id}",
-                p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '-',
-                p.admission.application.display_name,
-                p.admission.registration_id or '-',
-                p.fee_head.fee_type.name,
-                float(p.amount_paid),
-                float(p.fine_paid),
-                p.get_payment_mode_display(),
-                p.reference_no or '-'
+                f"#{p['receipt_number']}",
+                p['payment_date'].strftime('%Y-%m-%d') if p['payment_date'] else '-',
+                p['admission'].application.display_name,
+                p['admission'].registration_id or '-',
+                p['fee_types_str'],
+                float(p['total_amount_paid']),
+                float(p['total_fine_paid']),
+                p['payment_mode_display'],
+                p['reference_no'] or '-'
             ])
             
     else:
@@ -3542,7 +3761,7 @@ def export_fee_reports_pdf(request):
             Paragraph("Date", header_style),
             Paragraph("Candidate Name", header_style),
             Paragraph("Register No", header_style),
-            Paragraph("Demanded Head", header_style),
+            Paragraph("Demanded Heads", header_style),
             Paragraph("Amount Paid", header_style),
             Paragraph("Penalty Paid", header_style),
             Paragraph("Mode", header_style),
@@ -3550,17 +3769,18 @@ def export_fee_reports_pdf(request):
         ]
         
         data = [headers]
-        for p in ledger_payments:
+        grouped_audit = group_payments_by_receipt(ledger_payments)
+        for p in grouped_audit:
             data.append([
-                Paragraph(f"#{p.id}", cell_style),
-                Paragraph(p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '-', cell_style),
-                Paragraph(p.admission.application.display_name, cell_style),
-                Paragraph(p.admission.registration_id or '-', cell_style),
-                Paragraph(p.fee_head.fee_type.name, cell_style),
-                Paragraph(f"₹{p.amount_paid:.2f}", cell_style),
-                Paragraph(f"₹{p.fine_paid:.2f}", cell_style),
-                Paragraph(p.get_payment_mode_display(), cell_style),
-                Paragraph(p.reference_no or '-', cell_style)
+                Paragraph(f"#{p['receipt_number']}", cell_style),
+                Paragraph(p['payment_date'].strftime('%Y-%m-%d') if p['payment_date'] else '-', cell_style),
+                Paragraph(p['admission'].application.display_name, cell_style),
+                Paragraph(p['admission'].registration_id or '-', cell_style),
+                Paragraph(p['fee_types_str'], cell_style),
+                Paragraph(f"₹{p['total_amount_paid']:.2f}", cell_style),
+                Paragraph(f"₹{p['total_fine_paid']:.2f}", cell_style),
+                Paragraph(p['payment_mode_display'], cell_style),
+                Paragraph(p['reference_no'] or '-', cell_style)
             ])
             
         t = Table(data, colWidths=[60, 65, 120, 80, 100, 75, 75, 65, 100])
