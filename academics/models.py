@@ -414,6 +414,9 @@ class StudentFeePayment(models.Model):
     )
     reference_no = models.CharField(max_length=100, blank=True, null=True, help_text="Receipt, Transaction ID, etc.")
     receipt_number = models.CharField(max_length=50, blank=True, null=True, db_index=True, help_text="Receipt number for fee payment transaction")
+    is_cancelled = models.BooleanField(default=False, db_index=True)
+    cancelled_at = models.DateTimeField(blank=True, null=True)
+    cancellation_reason = models.TextField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:

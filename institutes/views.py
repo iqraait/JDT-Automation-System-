@@ -280,6 +280,8 @@ def generate_allotment_memo(request, app_id):
     app = get_object_or_404(Application, id=app_id)
     institute = request.user.institute
     
+    include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
+    
     context = {
         'phase_no': request.GET.get('phase_no', '1st Allotment'),
         'allotment_date': request.GET.get('allotment_date'),
@@ -288,6 +290,11 @@ def generate_allotment_memo(request, app_id):
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
         'fee_details': request.GET.get('fee_details'),
+        'include_bank_details': include_bank,
+        'bank_name': request.GET.get('bank_name', 'Punjab National Bank'),
+        'account_no': request.GET.get('account_no', '4909001300014441'),
+        'ifsc_code': request.GET.get('ifsc_code', 'PUNB0788500'),
+        'branch_name': request.GET.get('branch_name', 'Vellimadukunnu'),
         'app': app,
         'institute': institute,
     }
@@ -308,15 +315,96 @@ def generate_allotment_memo(request, app_id):
     context['dob'] = dob or 'N/A'
     context['place'] = place or 'N/A'
     
-    # Check for custom application format
-    app_no_prefix = "CON2025"
-    if hasattr(app, 'application_no'):
+    # Application No load from app form
+    if getattr(app, 'application_no', None):
         context['app_no'] = app.application_no
+    elif getattr(app, 'form_no', None):
+        context['app_no'] = app.form_no
     else:
-        # Build custom ID mimicking screenshot "CON2025200"
+        app_no_val = None
+        for fv in app.field_values.all():
+            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if 'application' in lbl or 'form no' in lbl or 'app no' in lbl:
+                app_no_val = fv.value
+                break
+        context['app_no'] = app_no_val or f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
+
+    # Determine Quota from form / admission
+    admission = Admission.objects.filter(application=app).first()
+    quota_val = None
+    if admission and admission.admission_quota:
+        quota_val = admission.admission_quota
+    else:
+        for fv in app.field_values.all():
+            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if 'quota' in lbl or 'category' in lbl:
+                quota_val = fv.value
+                break
+    if not quota_val:
+        if app.course and app.course.category:
+            quota_val = app.course.category.name
+        else:
+            quota_val = 'Management'
+            
+    context['quota'] = quota_val
+
+    return render(request, 'institute/allotment_memo.html', context)
+
+
+@login_required
+def send_allotment_memo_email(request, app_id):
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+
+    app = get_object_or_404(Application, id=app_id, institute=request.user.institute)
+    student_email = app.student.email if app.student else None
+    
+    if not student_email:
+        messages.error(request, "Student does not have a registered email address.")
+        return redirect(request.META.get('HTTP_REFERER', '/institute/admission/'))
+
+    include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
+
+    context = {
+        'phase_no': request.GET.get('phase_no', '1st Allotment'),
+        'allotment_date': request.GET.get('allotment_date'),
+        'rank': request.GET.get('rank', 'N/A'),
+        'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
+        'report_from': request.GET.get('report_from'),
+        'report_to': request.GET.get('report_to'),
+        'fee_details': request.GET.get('fee_details'),
+        'include_bank_details': include_bank,
+        'bank_name': request.GET.get('bank_name', 'Punjab National Bank'),
+        'account_no': request.GET.get('account_no', '4909001300014441'),
+        'ifsc_code': request.GET.get('ifsc_code', 'PUNB0788500'),
+        'branch_name': request.GET.get('branch_name', 'Vellimadukunnu'),
+        'app': app,
+        'institute': request.user.institute,
+    }
+    
+    dob = None
+    place = None
+    place_fields = ['district', 'city', 'place', 'address', 'location']
+    
+    for fv in app.field_values.all():
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if 'dob' in label or 'date of birth' in label:
+            dob = fv.value
+        for pf in place_fields:
+            if pf in label and not place:
+                place = fv.value
+                break
+                
+    context['dob'] = dob or 'N/A'
+    context['place'] = place or 'N/A'
+
+    if getattr(app, 'application_no', None):
+        context['app_no'] = app.application_no
+    elif getattr(app, 'form_no', None):
+        context['app_no'] = app.form_no
+    else:
         context['app_no'] = f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
 
-    # Determine Quota
     admission = Admission.objects.filter(application=app).first()
     if admission and admission.admission_quota:
         context['quota'] = admission.admission_quota
@@ -325,7 +413,23 @@ def generate_allotment_memo(request, app_id):
     else:
         context['quota'] = 'Management'
 
-    return render(request, 'institute/allotment_memo.html', context)
+    html_content = render_to_string('institute/allotment_memo.html', context)
+    subject = f"Allotment Memo - {app.display_name} ({app.course.name if app.course else ''})"
+    
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=f"Dear {app.display_name},\n\nPlease find your Allotment Memo details for {app.course.name if app.course else ''}.\n\nRegards,\n{request.user.institute.name}",
+            from_email=None,
+            to=[student_email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        messages.success(request, f"Allotment Memo successfully emailed to {student_email}")
+    except Exception as e:
+        messages.error(request, f"Failed to send email: {str(e)}")
+
+    return redirect(request.META.get('HTTP_REFERER', '/institute/admission/'))
 
 
 # =========================
@@ -3006,6 +3110,9 @@ def group_payments_by_receipt(payments_qs):
                 'payment_mode_display': payment.get_payment_mode_display(),
                 'reference_no': payment.reference_no,
                 'remarks': payment.remarks,
+                'is_cancelled': payment.is_cancelled,
+                'cancelled_at': payment.cancelled_at,
+                'cancellation_reason': payment.cancellation_reason,
                 'created_at': payment.created_at,
                 'payments': [],
                 'fee_items': [],
@@ -3016,6 +3123,11 @@ def group_payments_by_receipt(payments_qs):
             receipt_order.append(rcpt_id)
         
         g = receipt_dict[rcpt_id]
+        if payment.is_cancelled:
+            g['is_cancelled'] = True
+            g['cancelled_at'] = payment.cancelled_at
+            g['cancellation_reason'] = payment.cancellation_reason
+
         g['payments'].append(payment)
         fee_name = payment.fee_head.fee_type.name
         g['fee_items'].append({
@@ -3039,6 +3151,103 @@ def group_payments_by_receipt(payments_qs):
         grouped_list.append(g)
         
     return grouped_list
+
+
+@login_required
+def receipt_list(request):
+    institute = request.user.institute
+    from django.utils import timezone
+    
+    academic_years = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
+    courses = Course.objects.filter(institute=institute, is_active=True).order_by('name')
+    categories = CourseCategory.objects.all().order_by('name')
+    
+    selected_year = request.GET.get('year', '')
+    selected_course = request.GET.get('course', '')
+    selected_category = request.GET.get('category', '')
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    payments = StudentFeePayment.objects.filter(
+        admission__application__institute=institute
+    ).select_related(
+        'admission', 'admission__application', 'admission__student',
+        'admission__course', 'admission__current_class', 'fee_head', 'fee_head__fee_type'
+    ).order_by('-created_at', '-id')
+    
+    if selected_year:
+        payments = payments.filter(admission__academic_year_id=selected_year)
+    if selected_course:
+        payments = payments.filter(admission__course_id=selected_course)
+    if selected_category:
+        payments = payments.filter(admission__course__category_id=selected_category)
+    if status_filter == 'active':
+        payments = payments.filter(is_cancelled=False)
+    elif status_filter == 'cancelled':
+        payments = payments.filter(is_cancelled=True)
+        
+    if date_from:
+        payments = payments.filter(payment_date__gte=date_from)
+    if date_to:
+        payments = payments.filter(payment_date__lte=date_to)
+        
+    if search_query:
+        payments = payments.filter(
+            Q(receipt_number__icontains=search_query) |
+            Q(admission__registration_id__icontains=search_query) |
+            Q(admission__application__form_no__icontains=search_query) |
+            Q(admission__student__first_name__icontains=search_query) |
+            Q(admission__student__last_name__icontains=search_query) |
+            Q(reference_no__icontains=search_query)
+        )
+        
+    grouped = group_payments_by_receipt(payments)
+    
+    paginator = Paginator(grouped, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'receipts': page_obj.object_list,
+        'page_obj': page_obj,
+        'academic_years': academic_years,
+        'courses': courses,
+        'categories': categories,
+        'selected_year': selected_year,
+        'selected_course': selected_course,
+        'selected_category': selected_category,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+    return render(request, 'institute/receipt_list.html', context)
+
+
+@login_required
+def cancel_fee_receipt(request, receipt_number):
+    institute = request.user.institute
+    from django.utils import timezone
+    if request.method == 'POST':
+        reason = request.POST.get('cancellation_reason', 'Cancelled by administrator').strip()
+        payments = StudentFeePayment.objects.filter(
+            receipt_number=receipt_number,
+            admission__application__institute=institute
+        )
+        if payments.exists():
+            payments.update(
+                is_cancelled=True,
+                cancelled_at=timezone.now(),
+                cancellation_reason=reason
+            )
+            messages.success(request, f"Receipt #{receipt_number} has been cancelled successfully.")
+        else:
+            messages.error(request, f"Receipt #{receipt_number} not found.")
+            
+    next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/institute/receipts/'))
+    return redirect(next_url)
 
 
 # =============================================================================

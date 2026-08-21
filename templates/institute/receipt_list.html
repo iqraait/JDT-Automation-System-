@@ -1,0 +1,350 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Receipts | JDT Automation{% endblock %}
+
+{% block sidebar_title %}Institute Panel{% endblock %}
+
+{% block header_title %}Receipts & Transaction Control{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in">
+    
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-5">
+            <div class="w-16 h-16 bg-blue-900 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-blue-100 border-4 border-white">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Receipts Ledger</h2>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest">Fee Collections</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                    <p class="text-sm text-slate-500 font-medium">View, print, and audit generated fee payment receipts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER SECTION (Matching Student List matrix style) -->
+    <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            
+            <div class="space-y-1.5 col-span-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Search</label>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Receipt Nº, Reg No, Name..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Batch Year</label>
+                <select name="year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-xs">
+                    <option value="">All Batches</option>
+                    {% for y in academic_years %}
+                    <option value="{{ y.id }}" {% if selected_year == y.id|stringformat:"s" %}selected{% endif %}>{{ y.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Course</label>
+                <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-xs">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Category</label>
+                <select name="category" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-xs">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Receipt Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-xs">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Receipts</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled Only</option>
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+            </div>
+
+            <div class="xl:col-span-7 flex justify-between items-center pt-2">
+                 <div>
+                    {% if search_query or selected_year or selected_course or selected_category or status_filter != 'all' or date_from or date_to %}
+                        <a href="{% url 'receipt_list' %}" class="text-xs font-black text-red-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-5 h-5 bg-red-50 rounded-lg flex items-center justify-center">×</span>
+                            Reset Filters
+                        </a>
+                    {% endif %}
+                 </div>
+                <button type="submit" class="px-8 py-3 bg-slate-900 hover:bg-black text-white font-black rounded-2xl transition-all shadow-lg shadow-slate-200 text-xs flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- RECEIPTS TABLE -->
+    <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+            <h3 class="text-lg font-black text-slate-800">Fee Receipts Directory</h3>
+            <span class="px-4 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">{{ page_obj.paginator.count }} Receipts Found</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs font-medium text-slate-500">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-widest font-black border-b border-slate-100">
+                        <th class="px-6 py-5 text-left">Receipt Nº</th>
+                        <th class="px-6 py-5 text-left">Collection Date</th>
+                        <th class="px-6 py-5 text-left">Student Details</th>
+                        <th class="px-6 py-5 text-left">Fee Particulars</th>
+                        <th class="px-6 py-5 text-right font-mono">Amount</th>
+                        <th class="px-6 py-5 text-center">Mode</th>
+                        <th class="px-6 py-5 text-center">Status</th>
+                        <th class="px-6 py-5 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for rcpt in receipts %}
+                    <tr class="transition-colors {% if rcpt.is_cancelled %}bg-red-50/70 border-l-4 border-red-500 hover:bg-red-100/60{% else %}hover:bg-slate-50/50{% endif %}">
+                        
+                        <!-- Receipt Number -->
+                        <td class="px-6 py-5 font-black text-slate-800">
+                            <span class="font-mono text-sm {% if rcpt.is_cancelled %}text-red-700 line-through{% else %}text-slate-800{% endif %}">#{{ rcpt.receipt_number }}</span>
+                        </td>
+                        
+                        <!-- Collection Date -->
+                        <td class="px-6 py-5 font-bold text-slate-600">
+                            {{ rcpt.payment_date|date:"d M, Y" }}
+                        </td>
+
+                        <!-- Student Details -->
+                        <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                                <span class="font-black text-slate-800 text-sm {% if rcpt.is_cancelled %}text-slate-600 line-through{% endif %}">{{ rcpt.admission.application.display_name }}</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">{{ rcpt.admission.registration_id }} | {{ rcpt.admission.selected_course.name|default:rcpt.admission.application.course.name }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Fee Particulars -->
+                        <td class="px-6 py-5 font-bold text-slate-600 max-w-xs truncate">
+                            {{ rcpt.fee_types_str }}
+                        </td>
+
+                        <!-- Amount Paid -->
+                        <td class="px-6 py-5 text-right font-black text-slate-800 font-mono text-sm">
+                            <div class="{% if rcpt.is_cancelled %}text-red-600 line-through{% endif %}">
+                                ₹{{ rcpt.grand_total|floatformat:2 }}
+                            </div>
+                            {% if rcpt.total_fine_paid > 0 %}
+                                <span class="text-[9px] font-bold text-amber-600 block">(incl. ₹{{ rcpt.total_fine_paid|floatformat:2 }} fine)</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Payment Mode -->
+                        <td class="px-6 py-5 text-center">
+                            <span class="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider
+                                {% if rcpt.payment_mode == 'cash' %}bg-amber-100 text-amber-700
+                                {% elif rcpt.payment_mode == 'online' %}bg-blue-100 text-blue-700
+                                {% else %}bg-purple-100 text-purple-700{% endif %}">
+                                {{ rcpt.payment_mode_display }}
+                            </span>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="px-6 py-5 text-center">
+                            {% if rcpt.is_cancelled %}
+                                <span class="px-3 py-1 bg-red-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm inline-flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    CANCELLED
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 inline-flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    ACTIVE
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-6 py-5 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- Print Button -->
+                                <a href="{% url 'print_fee_receipt' rcpt.receipt_number %}" target="_blank" title="Print A4 Landscape Receipt" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                </a>
+
+                                <!-- View Details -->
+                                <button onclick="viewReceiptDetails('{{ rcpt.receipt_number }}', '{{ rcpt.admission.application.display_name }}', '{{ rcpt.payment_date|date:"d M, Y" }}', '₹{{ rcpt.grand_total|floatformat:2 }}', '{{ rcpt.fee_types_str }}', '{{ rcpt.payment_mode_display }}', '{{ rcpt.reference_no|default:"-" }}', '{{ rcpt.is_cancelled }}', '{{ rcpt.cancellation_reason|default:"" }}')" title="View Details" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+
+                                <!-- Cancel Button -->
+                                {% if not rcpt.is_cancelled %}
+                                <button onclick="openCancelModal('{{ rcpt.receipt_number }}', '{{ rcpt.admission.application.display_name }}')" title="Cancel Receipt" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-8 py-16 text-center text-slate-400 italic">
+                            No receipts found matching your current filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION (20 Entries per page) -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} receipts
+            </span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Prev</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- VIEW DETAILS MODAL -->
+<div id="viewModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden mx-4 animate-fade-in">
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800" id="viewRcptTitle">Receipt Details</h3>
+            <button onclick="closeViewModal()" class="w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 rounded-full transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-8 space-y-4 text-sm font-medium">
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 uppercase text-[10px] font-black tracking-widest">Student Name</span>
+                <span class="font-bold text-slate-800" id="vName"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 uppercase text-[10px] font-black tracking-widest">Date</span>
+                <span class="font-bold text-slate-700" id="vDate"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 uppercase text-[10px] font-black tracking-widest">Fee Particulars</span>
+                <span class="font-bold text-slate-700 text-right max-w-xs" id="vParticulars"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 uppercase text-[10px] font-black tracking-widest">Total Amount</span>
+                <span class="font-black text-slate-900 text-base font-mono" id="vAmount"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 uppercase text-[10px] font-black tracking-widest">Mode & Ref</span>
+                <span class="font-bold text-slate-700" id="vMode"></span>
+            </div>
+            <div id="vCancelReasonBox" class="p-4 bg-red-50 rounded-xl text-red-700 border border-red-100 hidden">
+                <span class="font-black uppercase text-[10px] tracking-widest block mb-1">Cancellation Reason:</span>
+                <p id="vCancelReason" class="text-xs italic"></p>
+            </div>
+        </div>
+        <div class="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <button onclick="closeViewModal()" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-black transition-all">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- CANCEL RECEIPT MODAL -->
+<div id="cancelModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden mx-4 animate-fade-in">
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-red-50">
+            <h3 class="text-lg font-black text-red-700">Cancel Receipt</h3>
+            <button onclick="closeCancelModal()" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 hover:bg-red-200 rounded-full transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="cancelForm" method="POST" action="" class="p-8 space-y-5">
+            {% csrf_token %}
+            <p class="text-sm font-medium text-slate-600">
+                Are you sure you want to cancel receipt <b id="cancelRcptId" class="text-slate-900"></b> for <b id="cancelName" class="text-slate-900"></b>?
+            </p>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Reason for Cancellation</label>
+                <textarea name="cancellation_reason" rows="3" required placeholder="Enter reason for cancelling this fee receipt..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 p-4 rounded-xl focus:ring-4 focus:ring-red-600/10 focus:border-red-600 transition-all outline-none font-medium text-xs leading-relaxed resize-none"></textarea>
+            </div>
+            <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <button type="button" onclick="closeCancelModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs hover:bg-slate-200 transition-colors">Abort</button>
+                <button type="submit" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-xs transition-all shadow-lg shadow-red-200">Confirm Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function viewReceiptDetails(rcptNo, name, date, amount, particulars, mode, ref, isCancelled, reason) {
+    document.getElementById('viewRcptTitle').innerText = 'Receipt #' + rcptNo;
+    document.getElementById('vName').innerText = name;
+    document.getElementById('vDate').innerText = date;
+    document.getElementById('vAmount').innerText = amount;
+    document.getElementById('vParticulars').innerText = particulars;
+    document.getElementById('vMode').innerText = mode + ' (Ref: ' + ref + ')';
+    
+    if (isCancelled === 'True' || isCancelled === 'true') {
+        document.getElementById('vCancelReasonBox').classList.remove('hidden');
+        document.getElementById('vCancelReason').innerText = reason || 'No reason specified.';
+    } else {
+        document.getElementById('vCancelReasonBox').classList.add('hidden');
+    }
+    
+    document.getElementById('viewModal').classList.remove('hidden');
+    document.getElementById('viewModal').classList.add('flex');
+}
+
+function closeViewModal() {
+    document.getElementById('viewModal').classList.add('hidden');
+    document.getElementById('viewModal').classList.remove('flex');
+}
+
+function openCancelModal(rcptNo, name) {
+    document.getElementById('cancelRcptId').innerText = '#' + rcptNo;
+    document.getElementById('cancelName').innerText = name;
+    document.getElementById('cancelForm').action = '/institute/fee-receipt/' + rcptNo + '/cancel/';
+    document.getElementById('cancelModal').classList.remove('hidden');
+    document.getElementById('cancelModal').classList.add('flex');
+}
+
+function closeCancelModal() {
+    document.getElementById('cancelModal').classList.add('hidden');
+    document.getElementById('cancelModal').classList.remove('flex');
+}
+</script>
+{% endblock %}

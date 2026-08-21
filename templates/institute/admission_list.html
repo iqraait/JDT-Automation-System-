@@ -257,6 +257,32 @@
                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Fee Details (as seen on memo)</label>
                 <textarea name="fee_details" rows="2" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold leading-relaxed resize-none">Tuition fee - 80,328, Special Fee - 23,980, Caution Deposit - 10,000 = 1,14,308/-</textarea>
             </div>
+
+            <div class="pt-2 border-t border-slate-100 space-y-3">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="include_bank_details" id="includeBankDetails" onchange="toggleBankDetailsInputs()" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                    <label for="includeBankDetails" class="text-xs font-black text-slate-700 cursor-pointer">Include Bank Account Details in Memo</label>
+                </div>
+                
+                <div id="bankDetailsSection" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Bank Name</label>
+                        <input type="text" name="bank_name" value="Punjab National Bank" class="w-full bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Account No</label>
+                        <input type="text" name="account_no" value="4909001300014441" class="w-full bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">IFSC Code</label>
+                        <input type="text" name="ifsc_code" value="PUNB0788500" class="w-full bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Branch Name</label>
+                        <input type="text" name="branch_name" value="Vellimadukunnu" class="w-full bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold outline-none">
+                    </div>
+                </div>
+            </div>
             
             <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
                 <button type="button" onclick="closeMemoModal()" class="px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors">
@@ -291,6 +317,16 @@
     function closeMemoModal() {
         document.getElementById('memoModal').classList.add('hidden');
         document.getElementById('memoModal').classList.remove('flex');
+    }
+
+    function toggleBankDetailsInputs() {
+        const isChecked = document.getElementById('includeBankDetails').checked;
+        const section = document.getElementById('bankDetailsSection');
+        if (isChecked) {
+            section.classList.remove('hidden');
+        } else {
+            section.classList.add('hidden');
+        }
     }
 </script>
 
