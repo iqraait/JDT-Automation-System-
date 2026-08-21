@@ -3159,7 +3159,7 @@ def receipt_list(request):
     from django.utils import timezone
     
     academic_years = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
-    courses = Course.objects.filter(institute=institute, is_active=True).order_by('name')
+    courses = Course.objects.filter(institute=institute).order_by('name')
     categories = CourseCategory.objects.all().order_by('name')
     
     selected_year = request.GET.get('year', '')
