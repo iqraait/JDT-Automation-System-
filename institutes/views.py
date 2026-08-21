@@ -3173,16 +3173,16 @@ def receipt_list(request):
     payments = StudentFeePayment.objects.filter(
         admission__application__institute=institute
     ).select_related(
-        'admission', 'admission__application', 'admission__student',
-        'admission__course', 'admission__current_class', 'fee_head', 'fee_head__fee_type'
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'fee_head', 'fee_head__fee_type'
     ).order_by('-created_at', '-id')
     
     if selected_year:
-        payments = payments.filter(admission__academic_year_id=selected_year)
+        payments = payments.filter(admission__application__academic_year_id=selected_year)
     if selected_course:
-        payments = payments.filter(admission__course_id=selected_course)
+        payments = payments.filter(admission__selected_course_id=selected_course)
     if selected_category:
-        payments = payments.filter(admission__course__category_id=selected_category)
+        payments = payments.filter(admission__selected_course__category_id=selected_category)
     if status_filter == 'active':
         payments = payments.filter(is_cancelled=False)
     elif status_filter == 'cancelled':
@@ -3198,8 +3198,8 @@ def receipt_list(request):
             Q(receipt_number__icontains=search_query) |
             Q(admission__registration_id__icontains=search_query) |
             Q(admission__application__form_no__icontains=search_query) |
-            Q(admission__student__first_name__icontains=search_query) |
-            Q(admission__student__last_name__icontains=search_query) |
+            Q(admission__application__student__first_name__icontains=search_query) |
+            Q(admission__application__student__last_name__icontains=search_query) |
             Q(reference_no__icontains=search_query)
         )
         
