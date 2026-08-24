@@ -1,0 +1,82 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Fee Status & Receipts | Student Portal{% endblock %}
+{% block header_title %}Fee Management & Receipts{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 pb-24">
+
+    <!-- TOP HEADER -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+            <h2 class="text-xl font-black text-slate-800">Fee Structure & Receipts</h2>
+            <p class="text-xs text-slate-400">Tagged fee breakdown, paid history, and printable receipts</p>
+        </div>
+        <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">💳 Financial Hub</span>
+    </div>
+
+    <!-- SUMMARY METRICS -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Tagged Fee</span>
+            <p class="text-xl font-black text-slate-800">₹ {{ total_fee_tagged|floatformat:2 }}</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-3xl text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-1">Total Amount Paid</span>
+            <p class="text-xl font-black text-emerald-700">₹ {{ total_paid|floatformat:2 }}</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 p-5 rounded-3xl text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 block mb-1">Balance Due</span>
+            <p class="text-xl font-black text-blue-700">₹ {{ balance_due|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <!-- TAGGED FEE HEADS BREAKDOWN -->
+    {% if fee_heads %}
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Tagged Fee Structure Items</h3>
+        <div class="divide-y divide-slate-100">
+            {% for head in fee_heads %}
+            <div class="py-3 flex items-center justify-between text-xs font-medium">
+                <span class="text-slate-700 font-bold">{{ head.fee_type.name }}</span>
+                <span class="text-slate-900 font-black">₹ {{ head.amount|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FEE PAYMENT RECEIPTS LOG -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Payment Transaction Receipts</h3>
+        {% if payments %}
+        <div class="space-y-3">
+            {% for payment in payments %}
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-800">{{ payment.fee_head.fee_type.name }}</span>
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-md uppercase">{{ payment.payment_mode }}</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px]">Receipt #: <span class="font-bold text-slate-600">{{ payment.receipt_number|default:payment.reference_no }}</span> | Date: {{ payment.payment_date|date:"d M Y" }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-base font-black text-emerald-600">₹ {{ payment.amount_paid|floatformat:2 }}</span>
+                    {% if payment.receipt_number %}
+                    <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm text-[11px]">
+                        🧾 Receipt PDF
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-slate-400 text-xs font-medium">
+            No fee payment receipts recorded yet.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

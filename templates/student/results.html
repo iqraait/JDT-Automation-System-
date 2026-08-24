@@ -1,0 +1,64 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Academic Results | Student Portal{% endblock %}
+{% block header_title %}Academic Results & Report Card{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 pb-24">
+
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-black text-slate-800">Academic Marks & Report Card</h2>
+            <p class="text-xs text-slate-400">Semester-wise examination performance</p>
+        </div>
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow">
+            🖨️ Print Report Card
+        </button>
+    </div>
+
+    {% if results_by_period %}
+        {% for period_name, period_results in results_by_period.items %}
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden space-y-4 p-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-black text-slate-800">{{ period_name }}</h3>
+                <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">Completed</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                            <th class="py-3 px-4">Subject</th>
+                            <th class="py-3 px-4">Marks Obtained</th>
+                            <th class="py-3 px-4">Max Marks</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                        {% for res in period_results %}
+                        <tr>
+                            <td class="py-3 px-4 font-bold">{{ res.subject.name }}</td>
+                            <td class="py-3 px-4 text-blue-600 font-black">{{ res.marks_obtained }}</td>
+                            <td class="py-3 px-4">{{ res.max_marks }}</td>
+                            <td class="py-3 px-4">
+                                {% if res.marks_obtained >= res.pass_marks %}
+                                    <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full text-[10px]">Pass</span>
+                                {% else %}
+                                    <span class="px-2.5 py-0.5 bg-rose-100 text-rose-700 font-bold rounded-full text-[10px]">Needs Improvement</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="bg-white p-12 rounded-3xl text-center text-slate-400 text-xs font-medium">
+            No academic exam results published yet.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -230,9 +230,9 @@ def admission_list(request):
     institute = request.user.institute
     
     # Only "Selected" applications
-    applications = Application.objects.filter(institute=institute, status='selected').prefetch_related(
-        'field_values', 'field_values__field', 'student', 'course', 'academic_year'
-    )
+    applications = Application.objects.filter(institute=institute, status='selected').select_related(
+        'student', 'course', 'academic_year', 'course__category'
+    ).order_by('-id')
     
     # Filters
     form_id = request.GET.get('form_id')
@@ -254,50 +254,77 @@ def admission_list(request):
         applications = applications.filter(admission__isnull=False)
     elif status_filter == 'pending':
         applications = applications.filter(admission__isnull=True)
-        
-    processed_apps = []
-    
+
+    from django.db.models import Q
+    if name:
+        name_clean = name.strip()
+        applications = applications.filter(
+            Q(student__first_name__icontains=name_clean) |
+            Q(student__last_name__icontains=name_clean) |
+            Q(student__username__icontains=name_clean)
+        )
+
     # Get active academic years related to selected institute
     years = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
-    
-    # Calculate ranks for displayed applications
-    from django.db import models
+
+    # Paginate Applications QuerySet FIRST
+    from django.core.paginator import Paginator
+    paginator = Paginator(applications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Fetch page objects and prefetch field_values ONLY for these page items (max 20)
+    page_app_ids = [app.id for app in page_obj.object_list]
+    page_apps_qs = Application.objects.filter(id__in=page_app_ids).select_related(
+        'student', 'course', 'academic_year', 'course__category'
+    ).prefetch_related(
+        'field_values', 'field_values__field', 'field_values__field__section', 'admission'
+    )
+    page_apps_dict = {app.id: app for app in page_apps_qs}
+
+    # Calculate ranks for displayed applications without hitting SQLite limits (chunk_size=500)
     course_year_groups = set()
-    for app in applications:
+    for app in page_obj.object_list:
         if app.course_id and app.academic_year_id:
             course_year_groups.add((app.course_id, app.academic_year_id))
             
     rank_map = {}
     for cid, ayid in course_year_groups:
-        group_apps = Application.objects.filter(
+        group_app_ids = list(Application.objects.filter(
             institute=institute,
             status='selected',
             payment__status='success',
             course_id=cid,
             academic_year_id=ayid
-        ).prefetch_related(
-            models.Prefetch('field_values', queryset=ApplicationFieldValue.objects.select_related('field', 'field__section'))
-        )
-        ranked_list = []
-        for g_app in group_apps:
-            total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(g_app)
-            ranked_list.append({
-                "app_id": g_app.id,
-                "percentage": percentage,
-                "main_mark": main_mark,
-                "sub_mark": sub_mark
-            })
-        ranked_list.sort(key=lambda x: (x['percentage'], x['main_mark'], x['sub_mark']), reverse=True)
-        for i, item in enumerate(ranked_list, start=1):
-            rank_map[item['app_id']] = i
+        ).values_list('id', flat=True))
 
-    for app in applications:
+        ranked_list = []
+        chunk_size = 400
+        for i in range(0, len(group_app_ids), chunk_size):
+            chunk_ids = group_app_ids[i:i + chunk_size]
+            group_apps = Application.objects.filter(id__in=chunk_ids).select_related(
+                'student', 'course', 'academic_year'
+            ).prefetch_related(
+                'field_values', 'field_values__field', 'field_values__field__section'
+            )
+            for g_app in group_apps:
+                total, percentage, main_mark, sub_mark, max_total, qualified_total = calculate_total_and_percentage(g_app)
+                ranked_list.append({
+                    "app_id": g_app.id,
+                    "percentage": percentage,
+                    "main_mark": main_mark,
+                    "sub_mark": sub_mark
+                })
+
+        ranked_list.sort(key=lambda x: (x['percentage'], x['main_mark'], x['sub_mark']), reverse=True)
+        for idx, item in enumerate(ranked_list, start=1):
+            rank_map[item['app_id']] = idx
+
+    processed_apps = []
+    for app_item in page_obj.object_list:
+        app = page_apps_dict.get(app_item.id, app_item)
         std_name = get_student_name(app)
-        
-        # Name Filter
-        if name and name.lower() not in std_name.lower():
-            continue
             
         memo_def = get_allotment_memo_defaults(app)
 
@@ -309,7 +336,7 @@ def admission_list(request):
             "academic_year": app.academic_year,
             "status": app.status,
             "is_registered": hasattr(app, 'admission'),
-            "category": app.course.category.name if app.course.category else "Uncategorized",
+            "category": app.course.category.name if (app.course and app.course.category) else "Uncategorized",
             "rank": rank_map.get(app.id, 'N/A'),
             "app_no": memo_def['app_no'],
             "dob": memo_def['dob'],
@@ -317,10 +344,8 @@ def admission_list(request):
             "quota": memo_def['quota'],
         })
 
-    from django.core.paginator import Paginator
-    paginator = Paginator(processed_apps, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Wrap processed apps into a paginator page object structure for the template
+    page_obj.object_list = processed_apps
 
     return render(request, 'institute/admission_list.html', {
         'applications': page_obj,
@@ -4209,4 +4234,93 @@ def activity_logs_view(request):
         'date_from': date_from,
         'date_to': date_to,
     })
+
+
+@login_required
+def manage_attendance(request):
+    if request.user.role != 'institute' and not request.user.is_staff and not request.user.is_superuser:
+        return redirect('/')
+
+    institute = getattr(request.user, 'institute', None)
+    if not institute and (request.user.is_staff or request.user.is_superuser):
+        institute = Institute.objects.first()
+
+    if not institute:
+        messages.error(request, "No Institute context found.")
+        return redirect('/')
+
+    from academics.models import Class, StudentAttendance
+    from applications.models import Admission
+
+    classes = Class.objects.filter(institute=institute).select_related('course')
+    selected_class_id = request.GET.get('class_id')
+    selected_date_str = request.GET.get('date', datetime.date.today().strftime('%Y-%m-%d'))
+    
+    try:
+        selected_date = datetime.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = datetime.date.today()
+        selected_date_str = selected_date.strftime('%Y-%m-%d')
+
+    selected_class = None
+    admissions = []
+    attendance_map = {}
+
+    if selected_class_id:
+        selected_class = Class.objects.filter(id=selected_class_id, institute=institute).first()
+        if selected_class:
+            admissions = Admission.objects.filter(
+                assigned_class=selected_class,
+                status='active'
+            ).select_related('application__student', 'application')
+
+            attendance_records = StudentAttendance.objects.filter(
+                admission__in=admissions,
+                date=selected_date
+            )
+            for record in attendance_records:
+                attendance_map[record.admission_id] = record.status
+
+            for adm in admissions:
+                adm.current_attendance_status = attendance_map.get(adm.id, 'present')
+
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        date_str = request.POST.get('date')
+        
+        try:
+            target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            target_date = datetime.date.today()
+
+        target_class = Class.objects.filter(id=class_id, institute=institute).first()
+        if target_class:
+            target_admissions = Admission.objects.filter(assigned_class=target_class, status='active')
+            count = 0
+            for adm in target_admissions:
+                status_val = request.POST.get(f'status_{adm.id}', 'present')
+                remarks_val = request.POST.get(f'remarks_{adm.id}', '')
+                
+                StudentAttendance.objects.update_or_create(
+                    admission=adm,
+                    date=target_date,
+                    defaults={
+                        'status': status_val,
+                        'remarks': remarks_val,
+                        'marked_by': request.user
+                    }
+                )
+                count += 1
+            messages.success(request, f"Attendance saved successfully for {count} students on {target_date.strftime('%d %b %Y')}.")
+            return redirect(f"/institute/attendance/?class_id={target_class.id}&date={target_date.strftime('%Y-%m-%d')}")
+
+    return render(request, 'institute/manage_attendance.html', {
+        'classes': classes,
+        'selected_class': selected_class,
+        'selected_class_id': selected_class_id,
+        'selected_date_str': selected_date_str,
+        'admissions': admissions,
+        'attendance_map': attendance_map,
+    })
+
 

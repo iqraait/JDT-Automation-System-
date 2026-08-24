@@ -52,6 +52,7 @@ urlpatterns = [
     path('notices/', manage_notices, name='manage_notices'),
     path('timetables/', manage_timetables, name='manage_timetables'),
     path('academic-results/', enter_academic_results, name='enter_academic_results'),
+    path('attendance/', manage_attendance, name='manage_attendance'),
     
     # ✅ STUDENT FEE MANAGEMENT URLS
     path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),

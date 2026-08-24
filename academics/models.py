@@ -424,3 +424,28 @@ class StudentFeePayment(models.Model):
         verbose_name_plural = "Student Fee Payments"
     def __str__(self):
         return f"{self.admission.registration_id or self.id} - {self.fee_head.fee_type.name} - ₹{self.amount_paid}"
+
+
+# ✅ NEW: STUDENT ATTENDANCE MODEL
+class StudentAttendance(models.Model):
+    STATUS_CHOICES = (
+        ('present', 'Present'),
+        ('absent', 'Absent'),
+        ('half_day', 'Half Day'),
+        ('leave', 'On Leave'),
+    )
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField(db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
+    remarks = models.CharField(max_length=255, blank=True, null=True)
+    marked_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Student Attendance"
+        verbose_name_plural = "Student Attendances"
+        unique_together = ('admission', 'date')
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.admission.registration_id or self.admission.id} - {self.date} ({self.status})"

@@ -4,6 +4,12 @@ from .views import *
 urlpatterns = [
     path('dashboard/', dashboard, name='student_dashboard'),
     path('student-profile/', student_profile, name='student_profile'),
+    path('attendance/', student_attendance, name='student_attendance'),
+    path('news/', student_news, name='student_news'),
+    path('results/', student_results, name='student_results'),
+    path('timetable/', student_timetable, name='student_timetable'),
+    path('fees/', student_fees, name='student_fees'),
+    path('settings/', student_settings, name='student_settings'),
     path('upload-document/', upload_document, name='upload_document'),
     path('apply/', apply_course, name='apply_course'),
     path('my-applications/', my_applications, name='my_applications'),

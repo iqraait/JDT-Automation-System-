@@ -1,295 +1,322 @@
 {% extends "dashboard_base.html" %}
 
-{% block title %}Dashboard | Student Portal{% endblock %}
-
-{% block sidebar_title %}Student Portal{% endblock %}
-
+{% block title %}Student Portal | Dashboard{% endblock %}
 {% block header_title %}Overview{% endblock %}
 
-{% block sidebar_nav %}
-<a href="/dashboard/"
-    class="flex items-center gap-3 px-4 py-3 bg-white/20 text-white rounded-xl transition duration-200 shadow-sm border border-white/10">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-        </path>
-    </svg>
-    <span class="font-medium">Dashboard</span>
-</a>
-
-<a href="/apply/"
-    class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-        </path>
-    </svg>
-    <span class="font-medium">Apply Online</span>
-</a>
-
-<a href="{% url 'student_profile' %}"
-    class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-    </svg>
-    <span class="font-medium">My Academic Hub</span>
-</a>
-
-<a href="/my-applications/"
-    class="flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition duration-200">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-        </path>
-    </svg>
-    <span class="font-medium">My Applications</span>
-</a>
-{% endblock %}
-
 {% block content %}
-<div class="space-y-12">
+<div class="max-w-5xl mx-auto space-y-8 pb-24">
 
-    <!-- QUICK ACTIONS SECTION -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
-            <span class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-            </span>
-            Quick Actions
-        </h3>
-
-        <!-- 🔔 NOTIFICATION POPUP BUTTON -->
-        <button onclick="toggleNoticeModal()" class="relative flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl hover:border-blue-600 hover:bg-blue-50 transition-all group shadow-sm">
-            <div class="relative">
-                <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                {% if notices %}
-                <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
-                {% endif %}
-            </div>
-            <span class="text-sm font-bold text-slate-600 group-hover:text-blue-700">View Announcements</span>
-            <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-lg">{{ notices|length }}</span>
-        </button>
-    </div>
-
-    <!-- 📢 OPEN ANNOUNCEMENTS DISPLAY (MODIFIED TO INCLUDE BOTH) -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white shadow-xl shadow-blue-200 overflow-hidden relative group">
-        <!-- Abstract Background Shape -->
-        <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
-        
-        <div class="relative flex flex-col lg:flex-row lg:items-center gap-8">
-            <div class="flex-shrink-0">
-                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
-                    </svg>
+    <!-- TOP MOBILE-FIRST GREETING BANNER -->
+    <div class="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-48 h-48 bg-blue-500/20 rounded-full blur-2xl"></div>
+        <div class="relative flex items-center justify-between">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[11px] font-extrabold uppercase tracking-wider text-blue-100">
+                        Academic Batch 2026 - 2027
+                    </span>
                 </div>
-            </div>
-            
-            <div class="flex-1 min-w-0">
-                {% with latest_item=notices.0|default:notifications.0 %}
-                {% if latest_item %}
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">Latest Announcement</span>
-                    <span class="text-white/60 text-xs font-medium">{% if notices.0 %}{{ notices.0.created_at|date:"F d, Y" }}{% else %}Active Notice{% endif %}</span>
-                </div>
-                <h4 class="text-2xl font-black mb-2 truncate">{% if notices.0 %}{{ notices.0.title }}{% else %}{{ notifications.0.title }}{% endif %}</h4>
-                <p class="text-blue-100/90 text-sm line-clamp-2 leading-relaxed">
-                    {% if notices.0 %}{{ notices.0.content|truncatewords:40 }}{% else %}{{ notifications.0.message|truncatewords:40 }}{% endif %}
+                <h2 class="text-2xl md:text-3xl font-black tracking-tight">
+                    Good Evening, {{ request.user.first_name|default:request.user.username }}! 👋
+                </h2>
+                <p class="text-xs md:text-sm text-blue-200/90 font-medium">
+                    {% if admission %}
+                        {{ admission.application.course.name }} {% if admission.assigned_class %}— {{ admission.assigned_class.name }}{% endif %}
+                    {% else %}
+                        Welcome to JDT Student & Parent Portal
+                    {% endif %}
                 </p>
-                {% else %}
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">Notice Board</span>
-                </div>
-                <h4 class="text-2xl font-black mb-2 truncate">Institutional Announcements</h4>
-                <p class="text-blue-100/90 text-sm line-clamp-2 leading-relaxed">
-                    Check here for the latest updates from JDT Group of Institutions.
-                </p>
-                {% endif %}
-                {% endwith %}
             </div>
-            
-            <div class="flex-shrink-0 flex gap-4">
-                <button onclick="toggleNoticeModal()" class="px-8 py-4 bg-white text-blue-700 font-black rounded-2xl hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20 active:scale-95">
-                    Read Details
+            <div class="flex items-center gap-3">
+                <button onclick="toggleNoticeModal()" class="w-11 h-11 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 transition relative">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    {% if notices %}
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
+                    {% endif %}
                 </button>
             </div>
         </div>
     </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- APPLY CARD -->
-            <div class="bg-white p-1 rounded-[2rem] hover-card group border border-slate-200">
-                <div class="p-8 rounded-[1.8rem] flex flex-col h-full bg-slate-50/50">
-                    <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
+    <!-- QUICK ACTIONS SECTION -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">⚡</span>
+                Quick Actions
+            </h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 1. NEW APPLICATION CARD -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition group">
+                <div class="space-y-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-200 group-hover:scale-105 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     </div>
-                    <h4 class="text-xl font-bold text-slate-800 mb-2">New Application</h4>
-                    <p class="text-slate-500 mb-8 flex-1 leading-relaxed">
-                        Ready to start your journey? Submit a new application for your desired course.
-                    </p>
-                    <a href="/apply/" class="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl text-center group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
+                    <div>
+                        <h4 class="text-base font-bold text-slate-800">New Application</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">
+                            Ready to start your journey? Submit a new application for your desired course.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <a href="/apply/" class="block w-full py-3 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white text-slate-700 font-bold rounded-2xl text-center text-xs transition duration-200 shadow-sm">
                         Apply Now
                     </a>
                 </div>
             </div>
 
-            <!-- TRACK CARD -->
-            <div class="bg-white p-1 rounded-[2rem] hover-card group border border-slate-200">
-                <div class="p-8 rounded-[1.8rem] flex flex-col h-full bg-slate-50/50">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-6 shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                        </svg>
+            <!-- 2. TRACK APPLICATION CARD -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition group">
+                <div class="space-y-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                     </div>
-                    <h4 class="text-xl font-bold text-slate-800 mb-2">Track Application</h4>
-                    <p class="text-slate-500 mb-8 flex-1 leading-relaxed">
-                        Check the current status of your submitted applications and download receipts.
-                    </p>
-                    <a href="/my-applications/" class="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl text-center group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all duration-300">
+                    <div>
+                        <h4 class="text-base font-bold text-slate-800">Track Application</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">
+                            Check the current status of your submitted applications and download receipts.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <a href="/my-applications/" class="block w-full py-3 bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white text-slate-700 font-bold rounded-2xl text-center text-xs transition duration-200 shadow-sm">
                         View History
                     </a>
                 </div>
             </div>
 
-            <!-- PROFILE CARD -->
-            {% if is_admitted %}
-            <div class="bg-white p-1 rounded-[2rem] hover-card group border border-slate-200">
-                <div class="p-8 rounded-[1.8rem] flex flex-col h-full bg-slate-50/50">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-800 text-white flex items-center justify-center mb-6 shadow-lg shadow-slate-200 group-hover:scale-110 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
+            <!-- 3. STUDENT PROFILE CARD (Only unlocked for Enrolled/Verified Students) -->
+            {% if is_verified_or_enrolled %}
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition group">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-200 group-hover:scale-105 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase">
+                            ✓ Enrolled
+                        </span>
                     </div>
-                    <h4 class="text-xl font-bold text-slate-800 mb-2">Student Profile</h4>
-                    <p class="text-slate-500 mb-8 flex-1 leading-relaxed">
-                        View and manage your personal details, academic records, and college profile.
-                    </p>
-                    <a href="{% url 'student_profile' %}" class="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl text-center group-hover:bg-slate-800 group-hover:text-white group-hover:border-slate-800 transition-all duration-300">
+                    <div>
+                        <h4 class="text-base font-bold text-slate-800">Student Profile</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">
+                            View and manage your personal details, academic records, and college profile.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <a href="{% url 'student_profile' %}" class="block w-full py-3 bg-slate-900 border border-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-center text-xs transition duration-200 shadow-sm">
                         View Profile
                     </a>
                 </div>
             </div>
             {% else %}
-            <div class="bg-slate-100 p-8 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center opacity-70">
-                <div class="w-14 h-14 rounded-2xl bg-slate-400 text-white flex items-center justify-center mb-4">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
+            <div class="bg-slate-50/80 p-6 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col justify-between opacity-85">
+                <div class="space-y-3 text-center py-2">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-400 flex items-center justify-center mx-auto shadow-inner">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-600">Student Profile</h4>
+                    <p class="text-xs text-slate-400">
+                        Profile will be available once your application is verified or enrolled.
+                    </p>
                 </div>
-                <h4 class="text-lg font-bold text-slate-600 mb-1">Student Profile</h4>
-                <p class="text-slate-500 text-sm">Profile will be available after Admission</p>
+                <div class="pt-4">
+                    <button disabled class="w-full py-3 bg-slate-200 text-slate-400 font-bold rounded-2xl text-center text-xs cursor-not-allowed">
+                        Verification / Enrolment Pending
+                    </button>
+                </div>
             </div>
             {% endif %}
         </div>
-    </section>
+    </div>
 
-    </section>
+    <!-- METRIC KPI CARDS (Only for Enrolled Students) -->
+    {% if is_verified_or_enrolled %}
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Attendance Metric -->
+        <a href="{% url 'student_attendance' %}" class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+                {% if total_days > 0 %}
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Marked</span>
+                {% else %}
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">No Data</span>
+                {% endif %}
+            </div>
+            <div class="space-y-0.5">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Attendance %</span>
+                <p class="text-2xl font-black text-slate-800 group-hover:text-emerald-600 transition">
+                    {% if total_days > 0 %}{{ attendance_percentage }}%{% else %}0%{% endif %}
+                </p>
+            </div>
+        </a>
+
+        <!-- Fee Balance Metric -->
+        <a href="{% url 'student_fees' %}" class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Tag Fee</span>
+            </div>
+            <div class="space-y-0.5">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Balance Due</span>
+                <p class="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition">₹ {{ fee_balance|floatformat:0 }}</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- ACTIVITY FEED SECTION -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-800 uppercase tracking-wider">Feed Activity</h3>
+            <span class="text-xs font-semibold text-slate-400">Updates & Notices</span>
+        </div>
+
+        {% if notices %}
+        {% for notice in notices|slice:":3" %}
+        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-xl">
+                    📰 {{ notice.created_at|date:"d M Y" }}
+                </span>
+                {% if notice.file_attachment %}
+                <a href="{{ notice.file_attachment.url }}" target="_blank" class="text-xs font-bold text-blue-600 hover:underline">Download File</a>
+                {% endif %}
+            </div>
+            <h4 class="text-base font-bold text-slate-800">{{ notice.title }}</h4>
+            <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">{{ notice.content }}</p>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-400">JDT Institute Administration</span>
+                <button onclick="toggleNoticeModal()" class="text-xs font-bold text-blue-600 hover:text-blue-800">Read More →</button>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="bg-white p-6 rounded-3xl border border-slate-200/80 text-center text-slate-400 text-xs font-medium">
+            No active activity feeds at this moment.
+        </div>
+        {% endif %}
+    </div>
 
 </div>
 
-<!-- 🔔 ANNOUNCEMENTS MODAL -->
-<div id="noticeModal" class="fixed inset-0 z-[100] hidden">
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300" onclick="toggleNoticeModal()"></div>
-    
-    <!-- Modal Content -->
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] overflow-hidden bg-white rounded-[3rem] shadow-2xl animate-modal-in border border-slate-100 flex flex-col">
-        <!-- Header -->
-        <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div>
-                <h3 class="text-2xl font-black text-slate-800 tracking-tight">Institutional Notices</h3>
-                <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">LATEST UPDATES FROM ADMINISTRATION</p>
-            </div>
-            <button onclick="toggleNoticeModal()" class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:rotate-90 transition-all shadow-sm border border-slate-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-
-        <!-- Body -->
-        <div class="p-10 overflow-y-auto space-y-8 custom-scrollbar">
-            {% for notice in notices %}
-            <div class="space-y-4 pb-8 {% if not forloop.last or notifications %}border-b border-slate-100{% endif %}">
-                <div class="flex items-center justify-between">
-                    <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                        {{ notice.created_at|date:"d M, Y" }}
-                    </span>
-                    {% if notice.file_attachment %}
-                    <a href="{{ notice.file_attachment.url }}" target="_blank" class="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        ATTACHMENT
-                    </a>
-                    {% endif %}
-                </div>
-                <h4 class="text-xl font-bold text-slate-800">{{ notice.title }}</h4>
-                <div class="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{{ notice.content }}</div>
-            </div>
-            {% endfor %}
-
-            {% for notif in notifications %}
-            <div class="space-y-4 pb-8 {% if not forloop.last %}border-b border-slate-100{% endif %}">
-                <div class="flex items-center justify-between">
-                    <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                        FORM NOTICE
-                    </span>
-                </div>
-                <h4 class="text-xl font-bold text-slate-800">{{ notif.title }}</h4>
-                <div class="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{{ notif.message }}</div>
-            </div>
-            {% endfor %}
-
-            {% if not notices and not notifications %}
-            <div class="py-20 text-center space-y-4">
-                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                </div>
-                <p class="text-slate-400 font-bold">No active notices at this time.</p>
-            </div>
-            {% endif %}
-        </div>
+<!-- BOTTOM QUICK LAUNCHER NAVIGATION BAR (Only for Enrolled Students) -->
+{% if is_verified_or_enrolled %}
+<div class="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 p-3 z-40">
+    <div class="max-w-md mx-auto flex items-center justify-around">
+        <a href="{% url 'student_dashboard' %}" class="flex flex-col items-center gap-1 text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[10px] font-bold">Home</span>
+        </a>
+        <a href="{% url 'student_attendance' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-bold">Attendance</span>
+        </a>
         
-        <!-- Footer -->
-        <div class="px-10 py-6 bg-slate-50 text-center">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by JDT Academic Relationship Portal</p>
+        <!-- Central Quick Launcher Button -->
+        <button onclick="toggleQuickLauncher()" class="w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition -mt-5 border-4 border-slate-50">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+        </button>
+
+        <a href="{% url 'student_fees' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span class="text-[10px] font-bold">Fees</span>
+        </a>
+        <a href="{% url 'student_settings' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+            <span class="text-[10px] font-bold">Profile</span>
+        </a>
+    </div>
+</div>
+
+<!-- 🚀 8-TILE QUICK LAUNCHER MODAL -->
+<div id="quickLauncherModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onclick="toggleQuickLauncher()"></div>
+    <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-[2.5rem] p-6 space-y-6 shadow-2xl border-t border-slate-100 max-w-xl mx-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-800">Quick Modules Launcher</h3>
+                <p class="text-xs text-slate-400">Access student and parent portal tools</p>
+            </div>
+            <button onclick="toggleQuickLauncher()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold hover:bg-slate-200">✕</button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4">
+            <a href="{% url 'student_attendance' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">📋</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Attendance</span>
+            </a>
+            <a href="{% url 'student_news' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">🏠</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Homework</span>
+            </a>
+            <a href="{% url 'student_news' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">📰</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">News</span>
+            </a>
+            <a href="{% url 'student_results' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">🎯</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Results</span>
+            </a>
+            <a href="{% url 'student_results' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">📊</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Report Card</span>
+            </a>
+            <a href="{% url 'student_results' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">📝</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Unit Tests</span>
+            </a>
+            <a href="{% url 'student_results' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-yellow-100 text-yellow-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">🌟</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Holistic</span>
+            </a>
+            <a href="{% url 'student_timetable' %}" class="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50 transition group">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition">📅</div>
+                <span class="text-[11px] font-bold text-slate-700 text-center">Time Table</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ANNOUNCEMENTS MODAL -->
+<div id="noticeModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onclick="toggleNoticeModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl max-h-[80vh] overflow-hidden bg-white rounded-3xl shadow-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-lg font-bold text-slate-800">Institute Announcements</h3>
+            <button onclick="toggleNoticeModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+        </div>
+        <div class="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
+            {% for notice in notices %}
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <span class="text-[10px] font-bold text-blue-600 uppercase">{{ notice.created_at|date:"d M Y" }}</span>
+                <h4 class="text-sm font-bold text-slate-800">{{ notice.title }}</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">{{ notice.content }}</p>
+            </div>
+            {% empty %}
+            <p class="text-center text-xs text-slate-400 py-6">No announcements available.</p>
+            {% endfor %}
         </div>
     </div>
 </div>
 
 <script>
+    function toggleQuickLauncher() {
+        const modal = document.getElementById('quickLauncherModal');
+        modal.classList.toggle('hidden');
+    }
     function toggleNoticeModal() {
         const modal = document.getElementById('noticeModal');
-        if (modal.classList.contains('hidden')) {
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        } else {
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
+        modal.classList.toggle('hidden');
     }
 </script>
-
-<style>
-@keyframes modalIn {
-    from { opacity: 0; transform: translate(-50%, -40%); }
-    to { opacity: 1; transform: translate(-50%, -50%); }
-}
-.animate-modal-in {
-    animation: modalIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-</style>
 {% endblock %}
-
