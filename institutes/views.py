@@ -168,6 +168,61 @@ def send_admission_status_email(admission, new_status):
 
 
 # =========================
+# HELPER FOR ALLOTMENT MEMO
+# =========================
+def get_allotment_memo_defaults(app):
+    dob = None
+    place = None
+    place_fields = ['district', 'city', 'place', 'address', 'location']
+    
+    for fv in app.field_values.all():
+        label = (fv.field.label if fv.field else fv.field_label or "").lower()
+        if ('dob' in label or 'date of birth' in label) and not dob:
+            dob = fv.value
+        for pf in place_fields:
+            if pf in label and not place:
+                place = fv.value
+                break
+                
+    if getattr(app, 'application_no', None):
+        app_no = app.application_no
+    elif getattr(app, 'form_no', None):
+        app_no = app.form_no
+    else:
+        app_no_val = None
+        for fv in app.field_values.all():
+            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if 'application' in lbl or 'form no' in lbl or 'app no' in lbl:
+                app_no_val = fv.value
+                break
+        app_no = app_no_val or f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
+
+    admission = Admission.objects.filter(application=app).first()
+    quota_val = None
+    if admission and admission.admission_quota:
+        quota_val = admission.admission_quota
+    else:
+        for fv in app.field_values.all():
+            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if 'quota' in lbl or 'category' in lbl:
+                quota_val = fv.value
+                break
+    if not quota_val:
+        if app.course and app.course.category:
+            quota_val = app.course.category.name
+        else:
+            quota_val = 'Management'
+
+    return {
+        'app_no': app_no,
+        'student_name': get_student_name(app),
+        'dob': dob or 'N/A',
+        'place': place or 'N/A',
+        'quota': quota_val,
+    }
+
+
+# =========================
 # ADMISSION LIST
 # =========================
 @login_required
@@ -175,7 +230,9 @@ def admission_list(request):
     institute = request.user.institute
     
     # Only "Selected" applications
-    applications = Application.objects.filter(institute=institute, status='selected')
+    applications = Application.objects.filter(institute=institute, status='selected').prefetch_related(
+        'field_values', 'field_values__field', 'student', 'course', 'academic_year'
+    )
     
     # Filters
     form_id = request.GET.get('form_id')
@@ -242,6 +299,8 @@ def admission_list(request):
         if name and name.lower() not in std_name.lower():
             continue
             
+        memo_def = get_allotment_memo_defaults(app)
+
         processed_apps.append({
             "form_no": app.id,
             "name": std_name,
@@ -252,6 +311,10 @@ def admission_list(request):
             "is_registered": hasattr(app, 'admission'),
             "category": app.course.category.name if app.course.category else "Uncategorized",
             "rank": rank_map.get(app.id, 'N/A'),
+            "app_no": memo_def['app_no'],
+            "dob": memo_def['dob'],
+            "place": memo_def['place'],
+            "quota": memo_def['quota'],
         })
 
     from django.core.paginator import Paginator
@@ -281,11 +344,17 @@ def generate_allotment_memo(request, app_id):
     institute = request.user.institute
     
     include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
+    memo_def = get_allotment_memo_defaults(app)
     
     context = {
         'phase_no': request.GET.get('phase_no', '1st Allotment'),
         'allotment_date': request.GET.get('allotment_date'),
-        'rank': request.GET.get('rank', 'N/A'),
+        'app_no': request.GET.get('app_no') or memo_def['app_no'],
+        'student_name': request.GET.get('student_name') or memo_def['student_name'],
+        'dob': request.GET.get('dob') or memo_def['dob'],
+        'quota': request.GET.get('quota') or memo_def['quota'],
+        'place': request.GET.get('place') or memo_def['place'],
+        'rank': request.GET.get('rank') if request.GET.get('rank') is not None else 'N/A',
         'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
@@ -299,55 +368,6 @@ def generate_allotment_memo(request, app_id):
         'institute': institute,
     }
     
-    dob = None
-    place = None
-    place_fields = ['district', 'city', 'place', 'address', 'location']
-    
-    for fv in app.field_values.all():
-        label = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if 'dob' in label or 'date of birth' in label:
-            dob = fv.value
-        for pf in place_fields:
-            if pf in label and not place:
-                place = fv.value
-                break
-                
-    context['dob'] = dob or 'N/A'
-    context['place'] = place or 'N/A'
-    
-    # Application No load from app form
-    if getattr(app, 'application_no', None):
-        context['app_no'] = app.application_no
-    elif getattr(app, 'form_no', None):
-        context['app_no'] = app.form_no
-    else:
-        app_no_val = None
-        for fv in app.field_values.all():
-            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
-            if 'application' in lbl or 'form no' in lbl or 'app no' in lbl:
-                app_no_val = fv.value
-                break
-        context['app_no'] = app_no_val or f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
-
-    # Determine Quota from form / admission
-    admission = Admission.objects.filter(application=app).first()
-    quota_val = None
-    if admission and admission.admission_quota:
-        quota_val = admission.admission_quota
-    else:
-        for fv in app.field_values.all():
-            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
-            if 'quota' in lbl or 'category' in lbl:
-                quota_val = fv.value
-                break
-    if not quota_val:
-        if app.course and app.course.category:
-            quota_val = app.course.category.name
-        else:
-            quota_val = 'Management'
-            
-    context['quota'] = quota_val
-
     return render(request, 'institute/allotment_memo.html', context)
 
 
@@ -364,11 +384,17 @@ def send_allotment_memo_email(request, app_id):
         return redirect(request.META.get('HTTP_REFERER', '/institute/admission/'))
 
     include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
+    memo_def = get_allotment_memo_defaults(app)
 
     context = {
         'phase_no': request.GET.get('phase_no', '1st Allotment'),
         'allotment_date': request.GET.get('allotment_date'),
-        'rank': request.GET.get('rank', 'N/A'),
+        'app_no': request.GET.get('app_no') or memo_def['app_no'],
+        'student_name': request.GET.get('student_name') or memo_def['student_name'],
+        'dob': request.GET.get('dob') or memo_def['dob'],
+        'quota': request.GET.get('quota') or memo_def['quota'],
+        'place': request.GET.get('place') or memo_def['place'],
+        'rank': request.GET.get('rank') if request.GET.get('rank') is not None else 'N/A',
         'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
@@ -381,45 +407,15 @@ def send_allotment_memo_email(request, app_id):
         'app': app,
         'institute': request.user.institute,
     }
-    
-    dob = None
-    place = None
-    place_fields = ['district', 'city', 'place', 'address', 'location']
-    
-    for fv in app.field_values.all():
-        label = (fv.field.label if fv.field else fv.field_label or "").lower()
-        if 'dob' in label or 'date of birth' in label:
-            dob = fv.value
-        for pf in place_fields:
-            if pf in label and not place:
-                place = fv.value
-                break
-                
-    context['dob'] = dob or 'N/A'
-    context['place'] = place or 'N/A'
-
-    if getattr(app, 'application_no', None):
-        context['app_no'] = app.application_no
-    elif getattr(app, 'form_no', None):
-        context['app_no'] = app.form_no
-    else:
-        context['app_no'] = f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
-
-    admission = Admission.objects.filter(application=app).first()
-    if admission and admission.admission_quota:
-        context['quota'] = admission.admission_quota
-    elif app.course and app.course.category:
-        context['quota'] = app.course.category.name
-    else:
-        context['quota'] = 'Management'
 
     html_content = render_to_string('institute/allotment_memo.html', context)
-    subject = f"Allotment Memo - {app.display_name} ({app.course.name if app.course else ''})"
+    student_display_name = context['student_name'] or app.display_name
+    subject = f"Allotment Memo - {student_display_name} ({app.course.name if app.course else ''})"
     
     try:
         msg = EmailMultiAlternatives(
             subject=subject,
-            body=f"Dear {app.display_name},\n\nPlease find your Allotment Memo details for {app.course.name if app.course else ''}.\n\nRegards,\n{request.user.institute.name}",
+            body=f"Dear {student_display_name},\n\nPlease find your Allotment Memo details for {app.course.name if app.course else ''}.\n\nRegards,\n{request.user.institute.name}",
             from_email=None,
             to=[student_email]
         )

@@ -157,7 +157,15 @@
                                         Register Student
                                     </a>
                                 {% endif %}
-                                <button onclick="openMemoModal('{{ app.form_no }}', '{{ app.rank }}')" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
+                                <button onclick="openMemoModal(this)"
+                                        data-app-id="{{ app.form_no }}"
+                                        data-app-no="{{ app.app_no|default:'' }}"
+                                        data-student-name="{{ app.name|default:'' }}"
+                                        data-dob="{{ app.dob|default:'' }}"
+                                        data-quota="{{ app.quota|default:'' }}"
+                                        data-place="{{ app.place|default:'' }}"
+                                        data-rank="{{ app.rank|default:'' }}"
+                                        class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
                                     Allotment Memo
                                 </button>
                             </div>
@@ -211,15 +219,15 @@
 
 <!-- ALLOTMENT MEMO MODAL -->
 <div id="memoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center">
-    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden mx-4 animate-fade-in">
-        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl overflow-hidden mx-4 animate-fade-in max-h-[90vh] flex flex-col">
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
             <h3 class="text-xl font-black text-slate-800">Generate Allotment Memo</h3>
             <button onclick="closeMemoModal()" class="w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 rounded-full transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
         
-        <form id="memoForm" method="GET" target="_blank" action="" class="p-8 space-y-6">
+        <form id="memoForm" method="GET" target="_blank" action="" class="p-8 space-y-6 overflow-y-auto">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Phase No -->
                 <div class="space-y-2">
@@ -231,12 +239,37 @@
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Allotment Date</label>
                     <input type="date" name="allotment_date" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
                 </div>
+                <!-- Application No -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Application No</label>
+                    <input type="text" name="app_no" placeholder="Application No" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Candidate Name -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Candidate Name</label>
+                    <input type="text" name="student_name" placeholder="Candidate Name" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Date of Birth -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Date of Birth</label>
+                    <input type="text" name="dob" placeholder="e.g. 01/01/2000" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Quota -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Quota</label>
+                    <input type="text" name="quota" placeholder="e.g. Management / Merit" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
+                <!-- Place -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Place</label>
+                    <input type="text" name="place" placeholder="Place / Location" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                </div>
                 <!-- Rank -->
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Rank</label>
                     <input type="text" name="rank" placeholder="e.g. 55" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
                 </div>
-                <!-- Generated Time (Default Today) -->
+                <!-- Reporting Time -->
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Reporting Time</label>
                     <input type="time" name="reporting_time" value="10:00" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
@@ -284,7 +317,7 @@
                 </div>
             </div>
             
-            <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+            <div class="pt-6 border-t border-slate-100 flex justify-end gap-3 shrink-0">
                 <button type="button" onclick="closeMemoModal()" class="px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors">
                     Cancel
                 </button>
@@ -298,14 +331,43 @@
 </div>
 
 <script>
-    function openMemoModal(appId, appRank) {
+    function openMemoModal(btnOrId, appRank) {
         document.getElementById('memoModal').classList.remove('hidden');
         document.getElementById('memoModal').classList.add('flex');
+        
+        let appId, appNo = '', studentName = '', dob = '', quota = '', place = '', rankVal = '';
+        if (typeof btnOrId === 'object' && btnOrId !== null) {
+            appId = btnOrId.getAttribute('data-app-id');
+            appNo = btnOrId.getAttribute('data-app-no') || '';
+            studentName = btnOrId.getAttribute('data-student-name') || '';
+            dob = btnOrId.getAttribute('data-dob') || '';
+            quota = btnOrId.getAttribute('data-quota') || '';
+            place = btnOrId.getAttribute('data-place') || '';
+            rankVal = btnOrId.getAttribute('data-rank') || '';
+        } else {
+            appId = btnOrId;
+            rankVal = appRank;
+        }
+
         document.getElementById('memoForm').action = '/institute/admission/allotment-memo/' + appId + '/';
         
+        // Auto-fill input fields
+        if (document.querySelector('input[name="app_no"]'))
+            document.querySelector('input[name="app_no"]').value = appNo;
+        if (document.querySelector('input[name="student_name"]'))
+            document.querySelector('input[name="student_name"]').value = studentName;
+        if (document.querySelector('input[name="dob"]'))
+            document.querySelector('input[name="dob"]').value = dob;
+        if (document.querySelector('input[name="quota"]'))
+            document.querySelector('input[name="quota"]').value = quota;
+        if (document.querySelector('input[name="place"]'))
+            document.querySelector('input[name="place"]').value = place;
+
         // Auto-fill rank
-        if(appRank && appRank !== 'N/A' && appRank !== 'None') {
-            document.querySelector('input[name="rank"]').value = appRank;
+        if (rankVal && rankVal !== 'N/A' && rankVal !== 'None') {
+            document.querySelector('input[name="rank"]').value = rankVal;
+        } else if (document.querySelector('input[name="rank"]')) {
+            document.querySelector('input[name="rank"]').value = 'N/A';
         }
 
         // Auto-fill dates
