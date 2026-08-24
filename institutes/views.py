@@ -283,7 +283,7 @@ def admission_list(request):
     )
     page_apps_dict = {app.id: app for app in page_apps_qs}
 
-    # Calculate ranks for displayed applications without hitting SQLite limits (chunk_size=500)
+    # Calculate ranks for displayed applications without hitting SQLite limits (chunk_size=400)
     course_year_groups = set()
     for app in page_obj.object_list:
         if app.course_id and app.academic_year_id:
@@ -4234,93 +4234,4 @@ def activity_logs_view(request):
         'date_from': date_from,
         'date_to': date_to,
     })
-
-
-@login_required
-def manage_attendance(request):
-    if request.user.role != 'institute' and not request.user.is_staff and not request.user.is_superuser:
-        return redirect('/')
-
-    institute = getattr(request.user, 'institute', None)
-    if not institute and (request.user.is_staff or request.user.is_superuser):
-        institute = Institute.objects.first()
-
-    if not institute:
-        messages.error(request, "No Institute context found.")
-        return redirect('/')
-
-    from academics.models import Class, StudentAttendance
-    from applications.models import Admission
-
-    classes = Class.objects.filter(institute=institute).select_related('course')
-    selected_class_id = request.GET.get('class_id')
-    selected_date_str = request.GET.get('date', datetime.date.today().strftime('%Y-%m-%d'))
-    
-    try:
-        selected_date = datetime.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        selected_date = datetime.date.today()
-        selected_date_str = selected_date.strftime('%Y-%m-%d')
-
-    selected_class = None
-    admissions = []
-    attendance_map = {}
-
-    if selected_class_id:
-        selected_class = Class.objects.filter(id=selected_class_id, institute=institute).first()
-        if selected_class:
-            admissions = Admission.objects.filter(
-                assigned_class=selected_class,
-                status='active'
-            ).select_related('application__student', 'application')
-
-            attendance_records = StudentAttendance.objects.filter(
-                admission__in=admissions,
-                date=selected_date
-            )
-            for record in attendance_records:
-                attendance_map[record.admission_id] = record.status
-
-            for adm in admissions:
-                adm.current_attendance_status = attendance_map.get(adm.id, 'present')
-
-    if request.method == 'POST':
-        class_id = request.POST.get('class_id')
-        date_str = request.POST.get('date')
-        
-        try:
-            target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            target_date = datetime.date.today()
-
-        target_class = Class.objects.filter(id=class_id, institute=institute).first()
-        if target_class:
-            target_admissions = Admission.objects.filter(assigned_class=target_class, status='active')
-            count = 0
-            for adm in target_admissions:
-                status_val = request.POST.get(f'status_{adm.id}', 'present')
-                remarks_val = request.POST.get(f'remarks_{adm.id}', '')
-                
-                StudentAttendance.objects.update_or_create(
-                    admission=adm,
-                    date=target_date,
-                    defaults={
-                        'status': status_val,
-                        'remarks': remarks_val,
-                        'marked_by': request.user
-                    }
-                )
-                count += 1
-            messages.success(request, f"Attendance saved successfully for {count} students on {target_date.strftime('%d %b %Y')}.")
-            return redirect(f"/institute/attendance/?class_id={target_class.id}&date={target_date.strftime('%Y-%m-%d')}")
-
-    return render(request, 'institute/manage_attendance.html', {
-        'classes': classes,
-        'selected_class': selected_class,
-        'selected_class_id': selected_class_id,
-        'selected_date_str': selected_date_str,
-        'admissions': admissions,
-        'attendance_map': attendance_map,
-    })
-
 
