@@ -3350,7 +3350,7 @@ def manage_student_fees(request, admission_id):
                     has_fine = True
                     fine_amt = float(head.fine_amount)
                     
-                payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head)
+                payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False)
                 paid_fee = sum(float(p.amount_paid) for p in payments)
                 paid_fine = sum(float(p.fine_paid) for p in payments)
                 
@@ -3584,7 +3584,7 @@ def fee_reports(request):
                     discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
                     std_demand += discounted_amount
                     
-                    payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                    payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
                     std_collected += sum(float(p.amount_paid) for p in payments)
                     std_fines += sum(float(p.fine_paid) for p in payments)
                     
@@ -3696,7 +3696,7 @@ def collect_multiple_fees(request, admission_id):
                             has_fine = True
                             fine_amt = float(head.fine_amount)
                             
-                        payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head)
+                        payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False)
                         paid_fee = sum(float(p.amount_paid) for p in payments)
                         paid_fine = sum(float(p.fine_paid) for p in payments)
                         
@@ -3889,7 +3889,7 @@ def export_fee_reports_excel(request):
                         discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
                         std_demand += discounted_amount
                         
-                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
                         std_collected += sum(float(p.amount_paid) for p in payments)
                         std_fines += sum(float(p.fine_paid) for p in payments)
                         
@@ -4058,7 +4058,7 @@ def export_fee_reports_pdf(request):
                         discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
                         std_demand += discounted_amount
                         
-                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head)
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
                         std_collected += sum(float(p.amount_paid) for p in payments)
                         std_fines += sum(float(p.fine_paid) for p in payments)
                         
