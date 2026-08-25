@@ -172,12 +172,10 @@
             </div>
             <div class="signature-box">
                 {% if institute.signature_image %}
-                    <img src="{{ institute.signature_image.url }}" class="signature" alt="Signature"><br>
+                    <img src="{{ institute.signature_image.url }}" class="signature" alt="Signature">
                 {% else %}
                     <div style="height: 45px; width: 130px;"></div>
                 {% endif %}
-                <span style="font-size: 11px;">(Principal)</span><br>
-                <span style="font-size: 11px;">{{ institute.name }}</span>
             </div>
         </div>
 
