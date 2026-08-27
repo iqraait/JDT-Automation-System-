@@ -57,9 +57,6 @@
                     <span id="icon-mod-academics" class="text-lg font-bold text-white/70 group-hover:text-white transition-transform duration-200">+</span>
                 </button>
                 <div id="mod-academics" class="pl-4 space-y-1 hidden">
-                    <a href="{% url 'manage_attendance' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'attendance' in request.path %}bg-white/10 font-bold text-white{% endif %}">
-                        <span>• Attendance Marker</span>
-                    </a>
                     <a href="{% url 'manage_notices' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'notices' in request.path %}bg-white/10 font-bold text-white{% endif %}">
                         <span>• News & Notice Board</span>
                     </a>
