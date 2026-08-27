@@ -1009,9 +1009,18 @@ def register_manual(request):
 
 
 # =========================
-# LOGIN
+# LOGIN & ROOT REDIRECT
 # =========================
+def root_institute_view(request):
+    if request.user.is_authenticated and (getattr(request.user, 'role', '') == 'institute' or hasattr(request.user, 'institute')):
+        return redirect('/institute/dashboard/')
+    return redirect('/institute/login/')
+
+
 def institute_login(request):
+    if request.user.is_authenticated and getattr(request.user, 'role', '') == 'institute':
+        return redirect('/institute/dashboard/')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
