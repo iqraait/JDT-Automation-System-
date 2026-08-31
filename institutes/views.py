@@ -195,7 +195,7 @@ def get_allotment_memo_defaults(app):
             if 'application' in lbl or 'form no' in lbl or 'app no' in lbl:
                 app_no_val = fv.value
                 break
-        app_no = app_no_val or f"{app.course.course_code or 'CON'}{datetime.datetime.now().year}{app.id}"
+        app_no = app_no_val or str(app.id)
 
     admission = Admission.objects.filter(application=app).first()
     quota_val = None
@@ -379,11 +379,11 @@ def generate_allotment_memo(request, app_id):
         'dob': request.GET.get('dob') or memo_def['dob'],
         'quota': request.GET.get('quota') or memo_def['quota'],
         'place': request.GET.get('place') or memo_def['place'],
-        'rank': request.GET.get('rank') if request.GET.get('rank') is not None else 'N/A',
+        'rank': request.GET.get('rank', ''),
         'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
-        'fee_details': request.GET.get('fee_details'),
+        'fee_details': request.GET.get('fee_details', ''),
         'include_bank_details': include_bank,
         'bank_name': request.GET.get('bank_name', 'Punjab National Bank'),
         'account_no': request.GET.get('account_no', '4909001300014441'),
@@ -419,11 +419,11 @@ def send_allotment_memo_email(request, app_id):
         'dob': request.GET.get('dob') or memo_def['dob'],
         'quota': request.GET.get('quota') or memo_def['quota'],
         'place': request.GET.get('place') or memo_def['place'],
-        'rank': request.GET.get('rank') if request.GET.get('rank') is not None else 'N/A',
+        'rank': request.GET.get('rank', ''),
         'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
-        'fee_details': request.GET.get('fee_details'),
+        'fee_details': request.GET.get('fee_details', ''),
         'include_bank_details': include_bank,
         'bank_name': request.GET.get('bank_name', 'Punjab National Bank'),
         'account_no': request.GET.get('account_no', '4909001300014441'),
@@ -431,6 +431,7 @@ def send_allotment_memo_email(request, app_id):
         'branch_name': request.GET.get('branch_name', 'Vellimadukunnu'),
         'app': app,
         'institute': request.user.institute,
+        'is_email': True,
     }
 
     html_content = render_to_string('institute/allotment_memo.html', context)

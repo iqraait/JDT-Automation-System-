@@ -227,7 +227,7 @@
             </button>
         </div>
         
-        <form id="memoForm" method="GET" target="_blank" action="" class="p-8 space-y-6 overflow-y-auto">
+        <form id="memoForm" method="GET" target="_blank" action="" onsubmit="setTimeout(closeMemoModal, 300)" class="p-8 space-y-6 overflow-y-auto">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Phase No -->
                 <div class="space-y-2">
@@ -267,7 +267,7 @@
                 <!-- Rank -->
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Rank</label>
-                    <input type="text" name="rank" placeholder="e.g. 55" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
+                    <input type="text" name="rank" placeholder="Rank (optional)" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold">
                 </div>
                 <!-- Reporting Time -->
                 <div class="space-y-2">
@@ -288,7 +288,7 @@
             
             <div class="space-y-2">
                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Fee Details (as seen on memo)</label>
-                <textarea name="fee_details" rows="2" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold leading-relaxed resize-none">Tuition fee - 80,328, Special Fee - 23,980, Caution Deposit - 10,000 = 1,14,308/-</textarea>
+                <textarea name="fee_details" rows="2" placeholder="Fee details (optional)" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold leading-relaxed resize-none"></textarea>
             </div>
 
             <div class="pt-2 border-t border-slate-100 space-y-3">
@@ -321,7 +321,7 @@
                 <button type="button" onclick="closeMemoModal()" class="px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors">
                     Cancel
                 </button>
-                <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-xl shadow-blue-100 flex items-center gap-2">
+                <button type="submit" onclick="setTimeout(closeMemoModal, 300)" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-xl shadow-blue-100 flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Print Memo
                 </button>
@@ -363,12 +363,11 @@
         if (document.querySelector('input[name="place"]'))
             document.querySelector('input[name="place"]').value = place;
 
-        // Auto-fill rank
-        if (rankVal && rankVal !== 'N/A' && rankVal !== 'None') {
-            document.querySelector('input[name="rank"]').value = rankVal;
-        } else if (document.querySelector('input[name="rank"]')) {
-            document.querySelector('input[name="rank"]').value = 'N/A';
-        }
+        // Clear rank and fee details by default
+        if (document.querySelector('input[name="rank"]'))
+            document.querySelector('input[name="rank"]').value = '';
+        if (document.querySelector('textarea[name="fee_details"]'))
+            document.querySelector('textarea[name="fee_details"]').value = '';
 
         // Auto-fill dates
         const today = new Date().toISOString().split('T')[0];

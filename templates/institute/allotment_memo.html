@@ -45,6 +45,7 @@
 </head>
 <body>
     
+    {% if not is_email %}
     <div class="no-print">
         <button onclick="window.print()" class="btn-action">🖨️ Print Allotment Memo</button>
         {% if app.student.email %}
@@ -55,6 +56,7 @@
         <span class="btn-action" style="background:#94a3b8; cursor:not-allowed;" title="Student email not registered">✉️ Mail Disabled (No Email)</span>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- Allotment Memo Single Page -->
     <div class="page">
