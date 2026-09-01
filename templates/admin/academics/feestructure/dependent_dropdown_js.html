@@ -1,6 +1,8 @@
 <script>
 (function() {
-    document.addEventListener('DOMContentLoaded', function() {
+    function initDependentDropdowns() {
+        var $ = (window.django && window.django.jQuery) ? window.django.jQuery : (window.jQuery || null);
+
         var instituteSelect = document.getElementById('id_institute');
         var academicYearSelect = document.getElementById('id_academic_year');
         var courseSelect = document.getElementById('id_course');
@@ -16,6 +18,18 @@
             class_year: classYearSelect ? classYearSelect.innerHTML : ''
         };
 
+        function refreshSelectUI(selectEl) {
+            if (!selectEl) return;
+            if ($) {
+                try {
+                    $(selectEl).trigger('change.select2');
+                } catch(e) {}
+                try {
+                    $(selectEl).trigger('change');
+                } catch(e) {}
+            }
+        }
+
         function updateSelectOptions(selectEl, items, selectedValue, placeholder) {
             if (!selectEl) return;
             var html = '<option value="">' + (placeholder || '---------') + '</option>';
@@ -29,16 +43,21 @@
             selectEl.innerHTML = html;
             if (foundSelected) {
                 selectEl.value = selectedValue;
+            } else {
+                selectEl.value = '';
             }
+            refreshSelectUI(selectEl);
         }
 
         function loadOptionsForInstitute(preserveCurrent) {
-            var instId = instituteSelect.value;
-            if (!instId) {
-                if (academicYearSelect) academicYearSelect.innerHTML = initialOptions.academic_year;
-                if (courseSelect) courseSelect.innerHTML = initialOptions.course;
-                if (classObjSelect) classObjSelect.innerHTML = initialOptions.class_obj;
-                if (classYearSelect) classYearSelect.innerHTML = initialOptions.class_year;
+            var instId = instituteSelect ? instituteSelect.value : '';
+            var ayId = academicYearSelect ? academicYearSelect.value : '';
+
+            if (!instId && !ayId) {
+                if (academicYearSelect) { academicYearSelect.innerHTML = initialOptions.academic_year; refreshSelectUI(academicYearSelect); }
+                if (courseSelect) { courseSelect.innerHTML = initialOptions.course; refreshSelectUI(courseSelect); }
+                if (classObjSelect) { classObjSelect.innerHTML = initialOptions.class_obj; refreshSelectUI(classObjSelect); }
+                if (classYearSelect) { classYearSelect.innerHTML = initialOptions.class_year; refreshSelectUI(classYearSelect); }
                 return;
             }
 
@@ -47,18 +66,16 @@
             var currentClassObj = preserveCurrent && classObjSelect ? classObjSelect.value : '';
             var currentClassYear = preserveCurrent && classYearSelect ? classYearSelect.value : '';
 
-            var url = '/admin/academics/feestructure/api/options/?institute_id=' + encodeURIComponent(instId);
-            if (currentCourse) {
-                url += '&course_id=' + encodeURIComponent(currentCourse);
-            }
-            if (currentClassObj) {
-                url += '&class_id=' + encodeURIComponent(currentClassObj);
-            }
+            var url = '/admin/academics/feestructure/api/options/?';
+            if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
+            if (ayId) url += 'academic_year_id=' + encodeURIComponent(ayId) + '&';
+            if (currentCourse) url += 'course_id=' + encodeURIComponent(currentCourse) + '&';
+            if (currentClassObj) url += 'class_id=' + encodeURIComponent(currentClassObj);
 
             fetch(url)
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.academic_years) {
+                    if (data.academic_years && data.academic_years.length > 0) {
                         updateSelectOptions(academicYearSelect, data.academic_years, currentAY, '---------');
                     }
                     if (data.courses) {
@@ -77,7 +94,7 @@
         }
 
         function onCourseChange() {
-            var instId = instituteSelect.value;
+            var instId = instituteSelect ? instituteSelect.value : '';
             var courseId = courseSelect ? courseSelect.value : '';
 
             if (!instId && !courseId) return;
@@ -102,7 +119,7 @@
         }
 
         function onClassObjChange() {
-            var instId = instituteSelect.value;
+            var instId = instituteSelect ? instituteSelect.value : '';
             var courseId = courseSelect ? courseSelect.value : '';
             var classId = classObjSelect ? classObjSelect.value : '';
 
@@ -122,21 +139,29 @@
                 });
         }
 
-        instituteSelect.addEventListener('change', function() {
-            loadOptionsForInstitute(false);
-        });
-
-        if (courseSelect) {
-            courseSelect.addEventListener('change', onCourseChange);
+        // Register handlers using jQuery if available (captures Select2 events), fallback to DOM listeners
+        if ($) {
+            $(document).on('change', '#id_institute', function() { loadOptionsForInstitute(false); });
+            $(document).on('change', '#id_academic_year', function() { loadOptionsForInstitute(false); });
+            $(document).on('change', '#id_course', function() { onCourseChange(); });
+            $(document).on('change', '#id_class_obj', function() { onClassObjChange(); });
+        } else {
+            instituteSelect.addEventListener('change', function() { loadOptionsForInstitute(false); });
+            if (academicYearSelect) academicYearSelect.addEventListener('change', function() { loadOptionsForInstitute(false); });
+            if (courseSelect) courseSelect.addEventListener('change', onCourseChange);
+            if (classObjSelect) classObjSelect.addEventListener('change', onClassObjChange);
         }
 
-        if (classObjSelect) {
-            classObjSelect.addEventListener('change', onClassObjChange);
-        }
-
-        if (instituteSelect.value) {
+        // Execute initial filter on load if institute or academic year has value
+        if (instituteSelect.value || (academicYearSelect && academicYearSelect.value)) {
             loadOptionsForInstitute(true);
         }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDependentDropdowns);
+    } else {
+        initDependentDropdowns();
+    }
 })();
 </script>

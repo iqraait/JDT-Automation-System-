@@ -213,8 +213,17 @@ class FeeStructureAdmin(admin.ModelAdmin):
         from .models import Course, Class, ClassYear
 
         institute_id = request.GET.get('institute_id')
+        academic_year_id = request.GET.get('academic_year_id')
         course_id = request.GET.get('course_id')
         class_id = request.GET.get('class_id')
+
+        if not institute_id and academic_year_id:
+            try:
+                ay = AcademicYear.objects.filter(id=int(academic_year_id)).first()
+                if ay:
+                    institute_id = ay.institute_id
+            except (ValueError, TypeError):
+                pass
 
         data = {
             'academic_years': [],
@@ -222,6 +231,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
             'classes': [],
             'class_years': []
         }
+
 
         if institute_id:
             try:
