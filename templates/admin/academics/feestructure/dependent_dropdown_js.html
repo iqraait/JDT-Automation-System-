@@ -1,0 +1,142 @@
+<script>
+(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        var instituteSelect = document.getElementById('id_institute');
+        var academicYearSelect = document.getElementById('id_academic_year');
+        var courseSelect = document.getElementById('id_course');
+        var classObjSelect = document.getElementById('id_class_obj');
+        var classYearSelect = document.getElementById('id_class_year');
+
+        if (!instituteSelect) return;
+
+        var initialOptions = {
+            academic_year: academicYearSelect ? academicYearSelect.innerHTML : '',
+            course: courseSelect ? courseSelect.innerHTML : '',
+            class_obj: classObjSelect ? classObjSelect.innerHTML : '',
+            class_year: classYearSelect ? classYearSelect.innerHTML : ''
+        };
+
+        function updateSelectOptions(selectEl, items, selectedValue, placeholder) {
+            if (!selectEl) return;
+            var html = '<option value="">' + (placeholder || '---------') + '</option>';
+            var foundSelected = false;
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var sel = (selectedValue && String(selectedValue) === String(item.id)) ? ' selected' : '';
+                if (sel) foundSelected = true;
+                html += '<option value="' + item.id + '"' + sel + '>' + item.name + '</option>';
+            }
+            selectEl.innerHTML = html;
+            if (foundSelected) {
+                selectEl.value = selectedValue;
+            }
+        }
+
+        function loadOptionsForInstitute(preserveCurrent) {
+            var instId = instituteSelect.value;
+            if (!instId) {
+                if (academicYearSelect) academicYearSelect.innerHTML = initialOptions.academic_year;
+                if (courseSelect) courseSelect.innerHTML = initialOptions.course;
+                if (classObjSelect) classObjSelect.innerHTML = initialOptions.class_obj;
+                if (classYearSelect) classYearSelect.innerHTML = initialOptions.class_year;
+                return;
+            }
+
+            var currentAY = preserveCurrent && academicYearSelect ? academicYearSelect.value : '';
+            var currentCourse = preserveCurrent && courseSelect ? courseSelect.value : '';
+            var currentClassObj = preserveCurrent && classObjSelect ? classObjSelect.value : '';
+            var currentClassYear = preserveCurrent && classYearSelect ? classYearSelect.value : '';
+
+            var url = '/admin/academics/feestructure/api/options/?institute_id=' + encodeURIComponent(instId);
+            if (currentCourse) {
+                url += '&course_id=' + encodeURIComponent(currentCourse);
+            }
+            if (currentClassObj) {
+                url += '&class_id=' + encodeURIComponent(currentClassObj);
+            }
+
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.academic_years) {
+                        updateSelectOptions(academicYearSelect, data.academic_years, currentAY, '---------');
+                    }
+                    if (data.courses) {
+                        updateSelectOptions(courseSelect, data.courses, currentCourse, '---------');
+                    }
+                    if (data.classes) {
+                        updateSelectOptions(classObjSelect, data.classes, currentClassObj, '---------');
+                    }
+                    if (data.class_years) {
+                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Error fetching institute options:', err);
+                });
+        }
+
+        function onCourseChange() {
+            var instId = instituteSelect.value;
+            var courseId = courseSelect ? courseSelect.value : '';
+
+            if (!instId && !courseId) return;
+
+            var currentClassObj = classObjSelect ? classObjSelect.value : '';
+            var currentClassYear = classYearSelect ? classYearSelect.value : '';
+
+            var url = '/admin/academics/feestructure/api/options/?';
+            if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
+            if (courseId) url += 'course_id=' + encodeURIComponent(courseId);
+
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.classes) {
+                        updateSelectOptions(classObjSelect, data.classes, currentClassObj, '---------');
+                    }
+                    if (data.class_years) {
+                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
+                    }
+                });
+        }
+
+        function onClassObjChange() {
+            var instId = instituteSelect.value;
+            var courseId = courseSelect ? courseSelect.value : '';
+            var classId = classObjSelect ? classObjSelect.value : '';
+
+            var currentClassYear = classYearSelect ? classYearSelect.value : '';
+
+            var url = '/admin/academics/feestructure/api/options/?';
+            if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
+            if (courseId) url += 'course_id=' + encodeURIComponent(courseId) + '&';
+            if (classId) url += 'class_id=' + encodeURIComponent(classId);
+
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.class_years) {
+                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
+                    }
+                });
+        }
+
+        instituteSelect.addEventListener('change', function() {
+            loadOptionsForInstitute(false);
+        });
+
+        if (courseSelect) {
+            courseSelect.addEventListener('change', onCourseChange);
+        }
+
+        if (classObjSelect) {
+            classObjSelect.addEventListener('change', onClassObjChange);
+        }
+
+        if (instituteSelect.value) {
+            loadOptionsForInstitute(true);
+        }
+    });
+})();
+</script>
