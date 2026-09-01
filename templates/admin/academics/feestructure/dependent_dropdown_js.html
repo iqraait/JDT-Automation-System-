@@ -12,6 +12,8 @@
 
         if (!$institute.length) return;
 
+        var isUpdating = false;
+
         function setSelectState($select, items, selectedValue, placeholder, isDisabled) {
             if (!$select || !$select.length) return;
 
@@ -19,7 +21,13 @@
             $select.append(new Option(placeholder || '---------', '', false, false));
 
             if (items && items.length > 0) {
-                var valToSet = (selectedValue !== undefined && selectedValue !== null) ? String(selectedValue) : '';
+                var valToSet = (selectedValue !== undefined && selectedValue !== null && selectedValue !== '') ? String(selectedValue) : '';
+                
+                // If only 1 item is available and no current selection, auto-select it
+                if (valToSet === '' && items.length === 1) {
+                    valToSet = String(items[0].id);
+                }
+
                 var found = false;
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
@@ -27,7 +35,9 @@
                     if (isSel) found = true;
                     $select.append(new Option(item.name, item.id, isSel, isSel));
                 }
-                if (!found) {
+                if (!found && valToSet !== '' && items.length === 1) {
+                    $select.val(String(items[0].id));
+                } else if (!found) {
                     $select.val('');
                 } else {
                     $select.val(valToSet);
@@ -38,10 +48,12 @@
 
             $select.prop('disabled', !!isDisabled);
 
-            // Notify Select2 to rebuild its UI
+            // Notify Select2 to rebuild its UI by triggering standard change event with guard flag
+            isUpdating = true;
             try {
-                $select.trigger('change.select2');
+                $select.trigger('change');
             } catch(e) {}
+            isUpdating = false;
         }
 
         function loadOptionsForInstitute(preserveCurrent) {
@@ -60,7 +72,7 @@
             var currentClassObj = preserveCurrent ? $classObj.val() : '';
             var currentClassYear = preserveCurrent ? $classYear.val() : '';
 
-            // Show loading indicator in dropdowns while fetching
+            // Show loading state while fetching
             setSelectState($course, [], '', 'Loading courses...', true);
             setSelectState($classObj, [], '', 'Loading classes...', true);
             setSelectState($classYear, [], '', 'Loading class years...', true);
@@ -80,6 +92,11 @@
                     setSelectState($course, data.courses || [], currentCourse, '---------', false);
                     setSelectState($classObj, data.classes || [], currentClassObj, '---------', false);
                     setSelectState($classYear, data.class_years || [], currentClassYear, '---------', false);
+
+                    // If course was auto-selected or selected, trigger course change to fetch class objects if needed
+                    if ($course.val() && (!data.classes || data.classes.length === 0)) {
+                        onCourseChange();
+                    }
                 })
                 .catch(function(err) {
                     console.error('Error fetching institute options:', err);
@@ -110,6 +127,10 @@
                 .then(function(data) {
                     setSelectState($classObj, data.classes || [], currentClassObj, '---------', false);
                     setSelectState($classYear, data.class_years || [], currentClassYear, '---------', false);
+
+                    if ($classObj.val() && (!data.class_years || data.class_years.length === 0)) {
+                        onClassObjChange();
+                    }
                 })
                 .catch(function() {
                     setSelectState($classObj, [], '', '---------', false);
@@ -141,26 +162,30 @@
                 });
         }
 
-        // Bind jQuery change listeners (intercepts Select2 events reliably)
+        // Bind jQuery change listeners with isUpdating guard
         $(document).on('change', '#id_institute', function() {
+            if (isUpdating) return;
             loadOptionsForInstitute(false);
         });
 
         $(document).on('change', '#id_academic_year', function() {
+            if (isUpdating) return;
             if (!$institute.val()) {
                 loadOptionsForInstitute(false);
             }
         });
 
         $(document).on('change', '#id_course', function() {
+            if (isUpdating) return;
             onCourseChange();
         });
 
         $(document).on('change', '#id_class_obj', function() {
+            if (isUpdating) return;
             onClassObjChange();
         });
 
-        // Trigger initial filtering if values are pre-selected on page load
+        // Initial load execution
         if ($institute.val() || $academicYear.val()) {
             loadOptionsForInstitute(true);
         }
