@@ -236,7 +236,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
         if institute_id:
             try:
                 inst_id = int(institute_id)
-                ay_qs = AcademicYear.objects.filter(institute_id=inst_id, is_active=True).order_by('-id')
+                ay_qs = AcademicYear.objects.filter(institute_id=inst_id).order_by('-id')
                 data['academic_years'] = [{'id': obj.id, 'name': str(obj)} for obj in ay_qs]
 
                 c_qs = Course.objects.filter(institute_id=inst_id).order_by('name')
@@ -251,7 +251,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
                 cls_qs = cls_qs.order_by('name')
                 data['classes'] = [{'id': obj.id, 'name': str(obj), 'course_id': obj.course_id} for obj in cls_qs]
 
-                cy_qs = ClassYear.objects.filter(class_obj__institute_id=inst_id, is_active=True)
+                cy_qs = ClassYear.objects.filter(class_obj__institute_id=inst_id)
                 if class_id:
                     try:
                         cy_qs = cy_qs.filter(class_obj_id=int(class_id))
@@ -266,6 +266,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
                 data['class_years'] = [{'id': obj.id, 'name': str(obj), 'class_obj_id': obj.class_obj_id} for obj in cy_qs]
             except (ValueError, TypeError):
                 pass
+
         elif course_id:
             try:
                 c_id = int(course_id)

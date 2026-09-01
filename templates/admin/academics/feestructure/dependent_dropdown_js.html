@@ -2,69 +2,68 @@
 (function() {
     function initDependentDropdowns() {
         var $ = (window.django && window.django.jQuery) ? window.django.jQuery : (window.jQuery || null);
+        if (!$) return;
 
-        var instituteSelect = document.getElementById('id_institute');
-        var academicYearSelect = document.getElementById('id_academic_year');
-        var courseSelect = document.getElementById('id_course');
-        var classObjSelect = document.getElementById('id_class_obj');
-        var classYearSelect = document.getElementById('id_class_year');
+        var $institute = $('#id_institute');
+        var $academicYear = $('#id_academic_year');
+        var $course = $('#id_course');
+        var $classObj = $('#id_class_obj');
+        var $classYear = $('#id_class_year');
 
-        if (!instituteSelect) return;
+        if (!$institute.length) return;
 
-        var initialOptions = {
-            academic_year: academicYearSelect ? academicYearSelect.innerHTML : '',
-            course: courseSelect ? courseSelect.innerHTML : '',
-            class_obj: classObjSelect ? classObjSelect.innerHTML : '',
-            class_year: classYearSelect ? classYearSelect.innerHTML : ''
-        };
+        function setSelectState($select, items, selectedValue, placeholder, isDisabled) {
+            if (!$select || !$select.length) return;
 
-        function refreshSelectUI(selectEl) {
-            if (!selectEl) return;
-            if ($) {
-                try {
-                    $(selectEl).trigger('change.select2');
-                } catch(e) {}
-                try {
-                    $(selectEl).trigger('change');
-                } catch(e) {}
-            }
-        }
+            $select.empty();
+            $select.append(new Option(placeholder || '---------', '', false, false));
 
-        function updateSelectOptions(selectEl, items, selectedValue, placeholder) {
-            if (!selectEl) return;
-            var html = '<option value="">' + (placeholder || '---------') + '</option>';
-            var foundSelected = false;
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                var sel = (selectedValue && String(selectedValue) === String(item.id)) ? ' selected' : '';
-                if (sel) foundSelected = true;
-                html += '<option value="' + item.id + '"' + sel + '>' + item.name + '</option>';
-            }
-            selectEl.innerHTML = html;
-            if (foundSelected) {
-                selectEl.value = selectedValue;
+            if (items && items.length > 0) {
+                var valToSet = (selectedValue !== undefined && selectedValue !== null) ? String(selectedValue) : '';
+                var found = false;
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var isSel = (valToSet !== '' && String(item.id) === valToSet);
+                    if (isSel) found = true;
+                    $select.append(new Option(item.name, item.id, isSel, isSel));
+                }
+                if (!found) {
+                    $select.val('');
+                } else {
+                    $select.val(valToSet);
+                }
             } else {
-                selectEl.value = '';
+                $select.val('');
             }
-            refreshSelectUI(selectEl);
+
+            $select.prop('disabled', !!isDisabled);
+
+            // Notify Select2 to rebuild its UI
+            try {
+                $select.trigger('change.select2');
+            } catch(e) {}
         }
 
         function loadOptionsForInstitute(preserveCurrent) {
-            var instId = instituteSelect ? instituteSelect.value : '';
-            var ayId = academicYearSelect ? academicYearSelect.value : '';
+            var instId = $institute.val();
+            var ayId = $academicYear.val();
 
             if (!instId && !ayId) {
-                if (academicYearSelect) { academicYearSelect.innerHTML = initialOptions.academic_year; refreshSelectUI(academicYearSelect); }
-                if (courseSelect) { courseSelect.innerHTML = initialOptions.course; refreshSelectUI(courseSelect); }
-                if (classObjSelect) { classObjSelect.innerHTML = initialOptions.class_obj; refreshSelectUI(classObjSelect); }
-                if (classYearSelect) { classYearSelect.innerHTML = initialOptions.class_year; refreshSelectUI(classYearSelect); }
+                setSelectState($course, [], '', '---------', false);
+                setSelectState($classObj, [], '', '---------', false);
+                setSelectState($classYear, [], '', '---------', false);
                 return;
             }
 
-            var currentAY = preserveCurrent && academicYearSelect ? academicYearSelect.value : '';
-            var currentCourse = preserveCurrent && courseSelect ? courseSelect.value : '';
-            var currentClassObj = preserveCurrent && classObjSelect ? classObjSelect.value : '';
-            var currentClassYear = preserveCurrent && classYearSelect ? classYearSelect.value : '';
+            var currentAY = preserveCurrent ? $academicYear.val() : '';
+            var currentCourse = preserveCurrent ? $course.val() : '';
+            var currentClassObj = preserveCurrent ? $classObj.val() : '';
+            var currentClassYear = preserveCurrent ? $classYear.val() : '';
+
+            // Show loading indicator in dropdowns while fetching
+            setSelectState($course, [], '', 'Loading courses...', true);
+            setSelectState($classObj, [], '', 'Loading classes...', true);
+            setSelectState($classYear, [], '', 'Loading class years...', true);
 
             var url = '/admin/academics/feestructure/api/options/?';
             if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
@@ -76,31 +75,31 @@
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.academic_years && data.academic_years.length > 0) {
-                        updateSelectOptions(academicYearSelect, data.academic_years, currentAY, '---------');
+                        setSelectState($academicYear, data.academic_years, currentAY, '---------', false);
                     }
-                    if (data.courses) {
-                        updateSelectOptions(courseSelect, data.courses, currentCourse, '---------');
-                    }
-                    if (data.classes) {
-                        updateSelectOptions(classObjSelect, data.classes, currentClassObj, '---------');
-                    }
-                    if (data.class_years) {
-                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
-                    }
+                    setSelectState($course, data.courses || [], currentCourse, '---------', false);
+                    setSelectState($classObj, data.classes || [], currentClassObj, '---------', false);
+                    setSelectState($classYear, data.class_years || [], currentClassYear, '---------', false);
                 })
                 .catch(function(err) {
                     console.error('Error fetching institute options:', err);
+                    setSelectState($course, [], '', '---------', false);
+                    setSelectState($classObj, [], '', '---------', false);
+                    setSelectState($classYear, [], '', '---------', false);
                 });
         }
 
         function onCourseChange() {
-            var instId = instituteSelect ? instituteSelect.value : '';
-            var courseId = courseSelect ? courseSelect.value : '';
+            var instId = $institute.val();
+            var courseId = $course.val();
 
             if (!instId && !courseId) return;
 
-            var currentClassObj = classObjSelect ? classObjSelect.value : '';
-            var currentClassYear = classYearSelect ? classYearSelect.value : '';
+            var currentClassObj = $classObj.val();
+            var currentClassYear = $classYear.val();
+
+            setSelectState($classObj, [], '', 'Loading classes...', true);
+            setSelectState($classYear, [], '', 'Loading class years...', true);
 
             var url = '/admin/academics/feestructure/api/options/?';
             if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
@@ -109,21 +108,23 @@
             fetch(url)
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.classes) {
-                        updateSelectOptions(classObjSelect, data.classes, currentClassObj, '---------');
-                    }
-                    if (data.class_years) {
-                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
-                    }
+                    setSelectState($classObj, data.classes || [], currentClassObj, '---------', false);
+                    setSelectState($classYear, data.class_years || [], currentClassYear, '---------', false);
+                })
+                .catch(function() {
+                    setSelectState($classObj, [], '', '---------', false);
+                    setSelectState($classYear, [], '', '---------', false);
                 });
         }
 
         function onClassObjChange() {
-            var instId = instituteSelect ? instituteSelect.value : '';
-            var courseId = courseSelect ? courseSelect.value : '';
-            var classId = classObjSelect ? classObjSelect.value : '';
+            var instId = $institute.val();
+            var courseId = $course.val();
+            var classId = $classObj.val();
 
-            var currentClassYear = classYearSelect ? classYearSelect.value : '';
+            var currentClassYear = $classYear.val();
+
+            setSelectState($classYear, [], '', 'Loading class years...', true);
 
             var url = '/admin/academics/feestructure/api/options/?';
             if (instId) url += 'institute_id=' + encodeURIComponent(instId) + '&';
@@ -133,27 +134,34 @@
             fetch(url)
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.class_years) {
-                        updateSelectOptions(classYearSelect, data.class_years, currentClassYear, '---------');
-                    }
+                    setSelectState($classYear, data.class_years || [], currentClassYear, '---------', false);
+                })
+                .catch(function() {
+                    setSelectState($classYear, [], '', '---------', false);
                 });
         }
 
-        // Register handlers using jQuery if available (captures Select2 events), fallback to DOM listeners
-        if ($) {
-            $(document).on('change', '#id_institute', function() { loadOptionsForInstitute(false); });
-            $(document).on('change', '#id_academic_year', function() { loadOptionsForInstitute(false); });
-            $(document).on('change', '#id_course', function() { onCourseChange(); });
-            $(document).on('change', '#id_class_obj', function() { onClassObjChange(); });
-        } else {
-            instituteSelect.addEventListener('change', function() { loadOptionsForInstitute(false); });
-            if (academicYearSelect) academicYearSelect.addEventListener('change', function() { loadOptionsForInstitute(false); });
-            if (courseSelect) courseSelect.addEventListener('change', onCourseChange);
-            if (classObjSelect) classObjSelect.addEventListener('change', onClassObjChange);
-        }
+        // Bind jQuery change listeners (intercepts Select2 events reliably)
+        $(document).on('change', '#id_institute', function() {
+            loadOptionsForInstitute(false);
+        });
 
-        // Execute initial filter on load if institute or academic year has value
-        if (instituteSelect.value || (academicYearSelect && academicYearSelect.value)) {
+        $(document).on('change', '#id_academic_year', function() {
+            if (!$institute.val()) {
+                loadOptionsForInstitute(false);
+            }
+        });
+
+        $(document).on('change', '#id_course', function() {
+            onCourseChange();
+        });
+
+        $(document).on('change', '#id_class_obj', function() {
+            onClassObjChange();
+        });
+
+        // Trigger initial filtering if values are pre-selected on page load
+        if ($institute.val() || $academicYear.val()) {
             loadOptionsForInstitute(true);
         }
     }
