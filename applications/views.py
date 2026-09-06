@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
@@ -34,112 +35,121 @@ def dashboard(request):
             'message': form.notification_message
         })
         
-    # Fetch Relationship Notices (Announcements)
-    notices = []
-    
-    # Identify relevant institutes for the student
-    target_institutes = set()
-    if admission:
-        target_institutes.add(admission.application.institute)
-    else:
-        # Check all applications the student has made
-        user_apps = Application.objects.filter(student=request.user)
-        for app in user_apps:
-            target_institutes.add(app.institute)
+    # Fetch Notice Board Announcements (Guaranteed list for all logged-in users)
+    notices = list(NoticeBoard.objects.filter(is_active=True).order_by('-created_at')[:10])
 
-    from django.db.models import Q
-    if target_institutes:
-        # Base filter: Active notices from any relevant institute
-        notices_qs = NoticeBoard.objects.filter(is_active=True, institute__in=list(target_institutes))
-        
-        if admission:
-            # Full logic for admitted students: General + Course + Class specific
-            notices = notices_qs.filter(
-                Q(course=admission.assigned_class.course if admission.assigned_class else admission.application.course) | 
-                Q(assigned_class=admission.assigned_class) |
-                Q(course__isnull=True, assigned_class__isnull=True)
-            ).order_by('-created_at')[:10]
-        else:
-            # Logic for applicants: Only show General notices (no specific course/class targeting)
-            notices = notices_qs.filter(
-                course__isnull=True,
-                assigned_class__isnull=True
-            ).order_by('-created_at')[:10]
-    else:
-        # REQUIREMENT: Notices visible to all registered students even if no application
-        # Show all active general notices
-        notices = NoticeBoard.objects.filter(
-            is_active=True,
-            course__isnull=True,
-            assigned_class__isnull=True
-        ).order_by('-created_at')[:10]
+    # Calculate Attendance & Fee summary metrics for dashboard UI
+    from academics.models import StudentAttendance, StudentFeePayment, FeeHead
+    
+    total_days = StudentAttendance.objects.filter(admission=admission).count() if admission else 0
+    present_days = StudentAttendance.objects.filter(admission=admission, status='present').count() if admission else 0
+    half_days = StudentAttendance.objects.filter(admission=admission, status='half_day').count() if admission else 0
+    
+    attendance_pct = round(((present_days + 0.5 * half_days) / total_days * 100), 1) if total_days > 0 else 0
+
+    payments = StudentFeePayment.objects.filter(admission=admission, is_cancelled=False) if admission else []
+    total_paid = sum(p.amount_paid for p in payments)
+    fee_heads = FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True) if (admission and admission.application and admission.application.course) else []
+    total_tagged_fees = sum(fh.amount for fh in fee_heads)
+    fee_balance = max(0, total_tagged_fees - total_paid)
+
+    is_verified_or_enrolled = admission is not None
 
     return render(request, 'student/dashboard.html', {
         'admission': admission,
         'subjects': subjects,
-        'is_admitted': admission is not None,
+        'is_admitted': is_verified_or_enrolled,
+        'is_verified_or_enrolled': is_verified_or_enrolled,
         'notifications': notifications,
+        'notices': notices,
+        'total_days': total_days,
+        'attendance_percentage': attendance_pct,
+        'fee_balance': fee_balance,
+        'total_paid': total_paid,
+        'total_tagged_fees': total_tagged_fees,
+    })
+
+
+@login_required
+def student_attendance(request):
+    admission = Admission.objects.filter(application__student=request.user, status='active').select_related('assigned_class', 'application__course', 'application__institute').first()
+    if not admission:
+        messages.warning(request, "Attendance module is only available for enrolled students.")
+        return redirect('student_dashboard')
+    
+    from academics.models import StudentAttendance
+    attendances = list(StudentAttendance.objects.filter(admission=admission).order_by('-date')) if admission else []
+    
+    total_days = len(attendances)
+    present_count = sum(1 for a in attendances if a.status == 'present')
+    absent_count = sum(1 for a in attendances if a.status == 'absent')
+    half_day_count = sum(1 for a in attendances if a.status == 'half_day')
+    
+    calc_percent = round(((present_count + 0.5 * half_day_count) / total_days * 100), 1) if total_days > 0 else 0
+
+    import calendar
+    year = int(request.GET.get('year', datetime.date.today().year))
+    month = int(request.GET.get('month', datetime.date.today().month))
+    
+    cal = calendar.Calendar(firstweekday=6)
+    month_days_raw = cal.monthdatescalendar(year, month)
+    
+    att_by_date = {a.date.strftime('%Y-%m-%d'): a.status for a in attendances}
+    
+    month_calendar = []
+    for week in month_days_raw:
+        week_days = []
+        for d in week:
+            d_str = d.strftime('%Y-%m-%d')
+            is_current_month = (d.month == month)
+            status = att_by_date.get(d_str, 'none' if is_current_month else 'other')
+            week_days.append({
+                'day': d.day,
+                'date_str': d_str,
+                'is_current_month': is_current_month,
+                'status': status,
+                'is_today': (d == datetime.date.today())
+            })
+        month_calendar.append(week_days)
+
+    month_name = datetime.date(year, month, 1).strftime('%B %Y')
+
+    search_date = request.GET.get('search_date', '')
+    filtered_logs = attendances
+    if search_date:
+        filtered_logs = [a for a in attendances if search_date in a.date.strftime('%Y-%m-%d')]
+
+    return render(request, 'student/attendance.html', {
+        'admission': admission,
+        'attendances': filtered_logs,
+        'attendance_percentage': calc_percent,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'half_day_count': half_day_count,
+        'total_days': total_days,
+        'month_calendar': month_calendar,
+        'month_name': month_name,
+        'year': year,
+        'month': month,
+        'search_date': search_date,
+    })
+
+
+@login_required
+def student_news(request):
+    admission = Admission.objects.filter(application__student=request.user, status='active').select_related('assigned_class', 'application__course', 'application__institute').first()
+    notices = NoticeBoard.objects.filter(is_active=True).order_by('-created_at')
+    return render(request, 'student/news.html', {
+        'admission': admission,
         'notices': notices
     })
 
 
 @login_required
-def student_profile(request):
-    # Ensure student is admitted
-    admission = Admission.objects.filter(
-        application__student=request.user, 
-        status='active'
-    ).select_related('assigned_class', 'application__course', 'application__institute').first()
-
-    if not admission:
-        messages.error(request, "Academic Profile is only available after Admission.")
-        return redirect('dashboard')
-
-    # Fetch Relationship Data
-    notices = []
-    target_institutes = set()
-    if admission:
-        target_institutes.add(admission.application.institute)
-    else:
-        user_apps = Application.objects.filter(student=request.user)
-        for app in user_apps:
-            target_institutes.add(app.institute)
-
-    from django.db.models import Q
+def student_results(request):
+    admission = Admission.objects.filter(application__student=request.user, status='active').select_related('assigned_class', 'application__course').first()
+    results = AcademicResult.objects.filter(admission=admission).select_related('subject', 'period') if admission else []
     
-    # Base query: Active notices
-    notices_query = NoticeBoard.objects.filter(is_active=True)
-
-    if target_institutes:
-        # Student is linked to specific institutes
-        if admission:
-            notices = notices_query.filter(
-                Q(institute__in=list(target_institutes)),
-                Q(course=admission.assigned_class.course if admission.assigned_class else admission.application.course) | 
-                Q(assigned_class=admission.assigned_class) |
-                Q(course__isnull=True, assigned_class__isnull=True)
-            ).order_by('-created_at')[:10]
-        else:
-            notices = notices_query.filter(
-                Q(institute__in=list(target_institutes)),
-                Q(course__isnull=True),
-                Q(assigned_class__isnull=True)
-            ).order_by('-created_at')[:10]
-    else:
-        # Student has not applied yet: Show all general notices across all institutes
-        notices = notices_query.filter(
-            course__isnull=True,
-            assigned_class__isnull=True
-        ).order_by('-created_at')[:10]
-
-
-    timetable = None
-    if admission.assigned_class:
-        timetable = getattr(admission.assigned_class, 'timetable', None)
-
-    results = AcademicResult.objects.filter(admission=admission).select_related('subject', 'period')
-    
-    # Group results by period (semester)
     results_by_period = {}
     for res in results:
         period_name = res.period.name
@@ -147,15 +157,259 @@ def student_profile(request):
             results_by_period[period_name] = []
         results_by_period[period_name].append(res)
 
-    uploaded_docs = StudentDocument.objects.filter(admission=admission)
+    return render(request, 'student/results.html', {
+        'admission': admission,
+        'results_by_period': results_by_period
+    })
+
+
+@login_required
+def student_timetable(request):
+    admission = Admission.objects.filter(application__student=request.user, status='active').select_related('assigned_class').first()
+    timetable = getattr(admission.assigned_class, 'timetable', None) if admission and admission.assigned_class else None
+    return render(request, 'student/timetable.html', {
+        'admission': admission,
+        'timetable': timetable
+    })
+
+
+@login_required
+def student_fees(request):
+    admission = Admission.objects.filter(application__student=request.user).select_related('assigned_class', 'application__course').first()
+    
+    from academics.models import StudentFeePayment, FeeHead
+    payments = list(StudentFeePayment.objects.filter(admission=admission, is_cancelled=False).select_related('fee_head__fee_type').order_by('-payment_date')) if admission else []
+    
+    total_paid = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    fee_heads_raw = list(FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).select_related('fee_type')) if (admission and admission.application and admission.application.course) else []
+    
+    today = datetime.date.today()
+    fee_heads_detail = []
+    total_fee_tagged = 0.0
+    next_due_date = None
+
+    for fh in fee_heads_raw:
+        paid_for_head = float(sum(p.amount_paid for p in payments if p.fee_head_id == fh.id)) if payments else 0.0
+        due_for_head = max(0.0, float(fh.amount) - paid_for_head)
+        total_fee_tagged += float(fh.amount)
+        
+        is_overdue = False
+        if due_for_head > 0 and fh.due_date and today > fh.due_date:
+            is_overdue = True
+            
+        if due_for_head > 0 and fh.due_date:
+            if next_due_date is None or fh.due_date < next_due_date:
+                next_due_date = fh.due_date
+
+        fee_heads_detail.append({
+            'head': fh,
+            'amount': float(fh.amount),
+            'paid_amount': paid_for_head,
+            'due_amount': due_for_head,
+            'due_date': fh.due_date,
+            'is_overdue': is_overdue,
+            'is_fully_paid': due_for_head <= 0
+        })
+
+    balance_due = max(0.0, total_fee_tagged - total_paid)
+
+    return render(request, 'student/fees.html', {
+        'admission': admission,
+        'payments': payments,
+        'total_paid': total_paid,
+        'total_fee_tagged': total_fee_tagged,
+        'balance_due': balance_due,
+        'fee_heads': fee_heads_raw,
+        'fee_heads_detail': fee_heads_detail,
+        'next_due_date': next_due_date
+    })
+
+
+@login_required
+def student_settings(request):
+    admission = Admission.objects.filter(application__student=request.user, status='active').select_related('assigned_class', 'application__course', 'application__institute').first()
+    return render(request, 'student/settings.html', {
+        'admission': admission
+    })
+
+
+
+@login_required
+def student_profile(request):
+    admission = Admission.objects.filter(
+        application__student=request.user
+    ).select_related('assigned_class', 'application__course', 'application__institute').first()
+
+    app = Application.objects.filter(student=request.user).first()
+
+    if not admission and not app:
+        messages.error(request, "Academic Profile is only available after Application or Enrolment.")
+        return redirect('student_dashboard')
+
+    from academics.models import StudentAttendance, StudentFeePayment, FeeHead, NoticeBoard, AcademicResult, StudentDocument
+    from applications.models import ApplicationFieldValue
+
+    # Photo extraction logic: Check user.profile_photo first, then application form photo
+    student_photo_url = None
+    if getattr(request.user, 'profile_photo', None):
+        student_photo_url = request.user.profile_photo.url
+    elif app:
+        photo_fv = ApplicationFieldValue.objects.filter(
+            application=app
+        ).filter(
+            Q(field__is_photo=True) | Q(field__label__icontains='photo') | Q(field__label__icontains='passport')
+        ).first()
+        if photo_fv and photo_fv.value and photo_fv.value != '-':
+            val = str(photo_fv.value).strip()
+            if val.startswith('/media/'):
+                student_photo_url = val
+            elif val.startswith('media/'):
+                student_photo_url = '/' + val
+            elif val.startswith('http://') or val.startswith('https://'):
+                student_photo_url = val
+            else:
+                student_photo_url = f"/media/{val}"
+
+    # Attendance metrics
+    attendances = list(StudentAttendance.objects.filter(admission=admission).order_by('-date')) if admission else []
+    total_days = len(attendances)
+    present_count = sum(1 for a in attendances if a.status == 'present')
+    absent_count = sum(1 for a in attendances if a.status == 'absent')
+    half_day_count = sum(1 for a in attendances if a.status == 'half_day')
+    attendance_pct = round(((present_count + 0.5 * half_day_count) / total_days * 100), 1) if total_days > 0 else 0
+
+    # Fee metrics with itemized dues and due dates
+    payments = list(StudentFeePayment.objects.filter(admission=admission, is_cancelled=False).select_related('fee_head__fee_type').order_by('-payment_date')) if admission else []
+    total_paid = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    fee_heads_raw = list(FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).select_related('fee_type')) if (admission and admission.application and admission.application.course) else []
+    
+    today = datetime.date.today()
+    fee_heads_detail = []
+    total_fee_tagged = 0.0
+    next_due_date = None
+
+    for fh in fee_heads_raw:
+        paid_for_head = float(sum(p.amount_paid for p in payments if p.fee_head_id == fh.id)) if payments else 0.0
+        due_for_head = max(0.0, float(fh.amount) - paid_for_head)
+        total_fee_tagged += float(fh.amount)
+        
+        is_overdue = False
+        if due_for_head > 0 and fh.due_date and today > fh.due_date:
+            is_overdue = True
+            
+        if due_for_head > 0 and fh.due_date:
+            if next_due_date is None or fh.due_date < next_due_date:
+                next_due_date = fh.due_date
+
+        fee_heads_detail.append({
+            'head': fh,
+            'amount': float(fh.amount),
+            'paid_amount': paid_for_head,
+            'due_amount': due_for_head,
+            'due_date': fh.due_date,
+            'is_overdue': is_overdue,
+            'is_fully_paid': due_for_head <= 0
+        })
+
+    balance_due = max(0.0, total_fee_tagged - total_paid)
+
+    # Notices
+    notices = list(NoticeBoard.objects.filter(is_active=True).order_by('-created_at')[:10])
+
+    # Timetable
+    timetable = getattr(admission.assigned_class, 'timetable', None) if (admission and admission.assigned_class) else None
+
+    # Results
+    results = list(AcademicResult.objects.filter(admission=admission).select_related('subject', 'period')) if admission else []
+    results_by_period = {}
+    for res in results:
+        period_name = res.period.name
+        if period_name not in results_by_period:
+            results_by_period[period_name] = []
+        results_by_period[period_name].append(res)
+
+    # Uploaded Documents (Only show student-uploaded/public documents, hide teacher-uploaded documents)
+    uploaded_docs = list(StudentDocument.objects.filter(admission=admission, is_teacher_uploaded=False)) if admission else []
 
     return render(request, 'student/profile.html', {
         'admission': admission,
+        'application': app,
+        'student_photo_url': student_photo_url,
+        'attendance_percentage': attendance_pct,
+        'total_days': total_days,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'half_day_count': half_day_count,
+        'attendances': attendances[:15],
+        'fee_heads': fee_heads_raw,
+        'fee_heads_detail': fee_heads_detail,
+        'next_due_date': next_due_date,
+        'total_fee_tagged': total_fee_tagged,
+        'total_paid': total_paid,
+        'balance_due': balance_due,
+        'payments': payments,
         'notices': notices,
         'timetable': timetable,
         'results_by_period': results_by_period,
         'uploaded_docs': uploaded_docs
     })
+
+
+@login_required
+def upload_student_photo(request):
+    if request.method == 'POST' and request.FILES.get('photo'):
+        photo_file = request.FILES['photo']
+        request.user.profile_photo = photo_file
+        request.user.save()
+        messages.success(request, "Profile photo updated successfully!")
+    else:
+        messages.error(request, "Please select a valid image file.")
+    return redirect(request.META.get('HTTP_REFERER', 'student_profile'))
+
+
+@login_required
+def settle_student_fee(request):
+    if request.method == 'POST':
+        head_id = request.POST.get('head_id')
+        amount_paid = request.POST.get('amount')
+        payment_mode = request.POST.get('payment_mode', 'online')
+        
+        admission = Admission.objects.filter(application__student=request.user).first()
+        if not admission:
+            messages.error(request, "Enrolment record not found.")
+            return redirect('student_profile')
+            
+        from academics.models import FeeHead, StudentFeePayment
+        from institutes.views import generate_receipt_number
+        
+        try:
+            amt_val = float(amount_paid) if amount_paid else 0.0
+            if amt_val <= 0:
+                messages.error(request, "Invalid payment amount.")
+                return redirect('student_profile')
+                
+            fee_head = None
+            if head_id:
+                fee_head = FeeHead.objects.filter(id=head_id).first()
+            if not fee_head:
+                fee_head = FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).first()
+                
+            rcpt_no = generate_receipt_number()
+            StudentFeePayment.objects.create(
+                admission=admission,
+                fee_head=fee_head,
+                amount_paid=amt_val,
+                payment_mode=payment_mode,
+                reference_no=f"STU-{request.user.id}-{int(datetime.datetime.now().timestamp())}",
+                receipt_number=rcpt_no,
+                remarks="Payment settled via Student Portal",
+                payment_date=datetime.date.today()
+            )
+            messages.success(request, f"Payment of ₹{amt_val:.2f} settled successfully! Receipt #{rcpt_no} generated.")
+        except Exception as e:
+            messages.error(request, f"Failed to settle payment: {str(e)}")
+            
+    return redirect('student_profile')
 
 
 @login_required

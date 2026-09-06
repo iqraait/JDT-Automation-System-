@@ -9,7 +9,7 @@
 {% block content %}
 <div class="space-y-10 pb-20">
 
-    <!-- 🔍 SELECTION HEADER -->
+    <!--  SELECTION HEADER -->
     <div class="bg-slate-900 rounded-[3rem] p-10 md:p-12 text-white shadow-2xl relative overflow-hidden border border-white/5">
         <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-[100px] -mr-32 -mt-32"></div>
         
@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <!-- 📊 MARKS ENTRY TABLE -->
+    <!-- MARKS ENTRY TABLE -->
     {% if selected_class and selected_period and selected_subject %}
     <form method="POST" class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
         {% csrf_token %}
@@ -147,6 +147,7 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: none;
 }
 </style>
 {% endblock %}

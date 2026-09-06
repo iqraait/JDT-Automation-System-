@@ -1,0 +1,299 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Employee Privileges & Multi-Institute Access{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- PAGE HEADER CARD -->
+    <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <span class="px-3.5 py-1 bg-white/10 text-blue-200 text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10">System Administration</span>
+                <h2 class="text-3xl font-black mt-2 tracking-tight">Employee Privileges</h2>
+                <p class="text-slate-300 text-sm mt-1 max-w-2xl font-medium">
+                    Assign multi-institute access permissions, default organization tagging, and granular module level privileges for teachers and staff.
+                </p>
+            </div>
+            {% if selected_user %}
+            <div class="bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/15">
+                <span class="text-[10px] text-blue-200 uppercase font-black tracking-widest block">Selected Employee</span>
+                <span class="text-lg font-black text-white block">{{ selected_user.get_full_name|default:selected_user.username }}</span>
+                <span class="text-xs text-blue-200 font-bold">@{{ selected_user.username }} • Role: {{ selected_user.role|title }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- LEFT COLUMN: USER SELECTION & FILTER (4 Cols) -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-6 space-y-4">
+                
+                <h3 class="text-base font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    Select User / Staff
+                </h3>
+
+                <!-- SEARCH FORM -->
+                <form method="GET" action="" class="flex gap-2">
+                    <input type="text" name="user_search" value="{{ user_search }}" placeholder="Filter name or username..." 
+                           class="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-600 focus:bg-white transition-all">
+                    <button type="submit" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all shadow-md">
+                        Filter
+                    </button>
+                </form>
+
+                <!-- USER LIST -->
+                <div class="border border-slate-100 rounded-2xl overflow-hidden max-h-[500px] overflow-y-auto divide-y divide-slate-100">
+                    {% for u in users %}
+                    <a href="?user_id={{ u.id }}{% if user_search %}&user_search={{ user_search }}{% endif %}" 
+                       class="flex items-center justify-between p-4 transition-all hover:bg-slate-50 {% if selected_user and selected_user.id == u.id %}bg-blue-50/80 border-l-4 border-blue-600{% endif %}">
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-sm text-slate-800 truncate">
+                                {{ u.get_full_name|default:u.username }}
+                            </p>
+                            <p class="text-xs text-slate-400 font-medium">@{{ u.username }} {% if u.institute %}• {{ u.institute.name }}{% endif %}</p>
+                        </div>
+                        {% if selected_user and selected_user.id == u.id %}
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">✓</span>
+                        {% endif %}
+                    </a>
+                    {% empty %}
+                    <div class="p-8 text-center text-slate-400 font-medium text-xs">
+                        No users or staff members found matching query.
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: PRIVILEGES & MULTI-INSTITUTE TAGGING FORM (8 Cols) -->
+        <div class="lg:col-span-8 space-y-6">
+            {% if selected_user %}
+            <form method="POST" action="" class="space-y-6">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ selected_user.id }}">
+
+                <!-- 1. ORGANIZATION / INSTITUTE TAGGING PANEL -->
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"></path></svg>
+                                Institute Access & Primary Tagging
+                            </h3>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">Configure which institutes @{{ selected_user.username }} can switch between and view data for.</p>
+                        </div>
+                        <button type="button" onclick="selectAllInstitutes()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition-colors">
+                            Select All Institutes
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Primary Default Institute -->
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Primary / Default Institute *</label>
+                            <select name="default_institute" class="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-indigo-600 focus:bg-white outline-none">
+                                <option value="">-- Select Default Institute --</option>
+                                {% for inst in all_institutes %}
+                                <option value="{{ inst.id }}" {% if selected_user.institute and selected_user.institute.id == inst.id %}selected{% endif %}>
+                                    {{ inst.name }} ({{ inst.code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Tagged Multi-Institutes Checklist -->
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Accessible Tagged Institutes</label>
+                            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 max-h-48 overflow-y-auto space-y-2">
+                                {% for inst in all_institutes %}
+                                <label class="flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <input type="checkbox" name="tagged_institutes" value="{{ inst.id }}" class="inst-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                           {% if inst.id in user_tagged_inst_ids or selected_user.institute.id == inst.id %}checked{% endif %}>
+                                    <span class="text-xs font-bold text-slate-700">{{ inst.name }}</span>
+                                    <span class="text-[10px] font-black text-slate-400 uppercase ml-auto">({{ inst.code }})</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 2. MODULE PRIVILEGES MATRIX PANEL -->
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                Module Level Employee Privileges
+                            </h3>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">Control which modules and menu options are visible in the sidebar navigation for this user.</p>
+                        </div>
+                        
+                        <label class="flex items-center gap-2.5 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl cursor-pointer hover:bg-blue-100 transition-all">
+                            <input type="checkbox" id="selectAllPrivilegesToggle" onclick="toggleAllPrivileges(this)" class="w-4 h-4 text-blue-600 rounded border-blue-300 focus:ring-blue-500">
+                            <span class="text-xs font-black text-blue-800 uppercase tracking-wider">Select All Menu Options</span>
+                        </label>
+                    </div>
+
+                    <!-- PRIVILEGES MODULES GRID -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <!-- MODULE 1: ADMISSIONS MODULE -->
+                        <div class="border border-slate-100 bg-slate-50/50 rounded-2xl p-5 space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <span class="text-xs font-black text-blue-900 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                    Admissions Module
+                                </span>
+                            </div>
+                            <div class="space-y-2 pt-1">
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Admissions Overview</span>
+                                    <input type="checkbox" name="perm_admissions_overview" class="priv-checkbox w-4 h-4 text-blue-600 rounded border-slate-300" {% if user_priv.perm_admissions_overview %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Student Registration</span>
+                                    <input type="checkbox" name="perm_student_registration" class="priv-checkbox w-4 h-4 text-blue-600 rounded border-slate-300" {% if user_priv.perm_student_registration %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Student List & Doc Upload</span>
+                                    <input type="checkbox" name="perm_student_list" class="priv-checkbox w-4 h-4 text-blue-600 rounded border-slate-300" {% if user_priv.perm_student_list %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Rank List</span>
+                                    <input type="checkbox" name="perm_rank_list" class="priv-checkbox w-4 h-4 text-blue-600 rounded border-slate-300" {% if user_priv.perm_rank_list %}checked{% endif %}>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- MODULE 2: ACADEMIC OPERATIONS -->
+                        <div class="border border-slate-100 bg-slate-50/50 rounded-2xl p-5 space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <span class="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                                    Academic Operations
+                                </span>
+                            </div>
+                            <div class="space-y-2 pt-1">
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Attendance Marker</span>
+                                    <input type="checkbox" name="perm_attendance" class="priv-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300" {% if user_priv.perm_attendance %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• News & Notice Board</span>
+                                    <input type="checkbox" name="perm_notices" class="priv-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300" {% if user_priv.perm_notices %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Class Timetables</span>
+                                    <input type="checkbox" name="perm_timetables" class="priv-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300" {% if user_priv.perm_timetables %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Enter Academic Results</span>
+                                    <input type="checkbox" name="perm_academic_results" class="priv-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300" {% if user_priv.perm_academic_results %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Course Inventory</span>
+                                    <input type="checkbox" name="perm_course_inventory" class="priv-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300" {% if user_priv.perm_course_inventory %}checked{% endif %}>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- MODULE 3: FEE & FINANCIALS -->
+                        <div class="border border-slate-100 bg-slate-50/50 rounded-2xl p-5 space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <span class="text-xs font-black text-amber-900 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+                                    Fee & Financials
+                                </span>
+                            </div>
+                            <div class="space-y-2 pt-1">
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-amber-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Fee Reports & Dues</span>
+                                    <input type="checkbox" name="perm_fee_reports" class="priv-checkbox w-4 h-4 text-amber-600 rounded border-slate-300" {% if user_priv.perm_fee_reports %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-amber-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Fee Receipts</span>
+                                    <input type="checkbox" name="perm_fee_receipts" class="priv-checkbox w-4 h-4 text-amber-600 rounded border-slate-300" {% if user_priv.perm_fee_receipts %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-amber-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Payment Details</span>
+                                    <input type="checkbox" name="perm_payment_details" class="priv-checkbox w-4 h-4 text-amber-600 rounded border-slate-300" {% if user_priv.perm_payment_details %}checked{% endif %}>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- MODULE 4: SYSTEM ADMINISTRATION -->
+                        <div class="border border-slate-100 bg-slate-50/50 rounded-2xl p-5 space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <span class="text-xs font-black text-emerald-900 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                                    System Administration
+                                </span>
+                            </div>
+                            <div class="space-y-2 pt-1">
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-emerald-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Activity Logs</span>
+                                    <input type="checkbox" name="perm_activity_logs" class="priv-checkbox w-4 h-4 text-emerald-600 rounded border-slate-300" {% if user_priv.perm_activity_logs %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-emerald-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• System Backup</span>
+                                    <input type="checkbox" name="perm_system_backup" class="priv-checkbox w-4 h-4 text-emerald-600 rounded border-slate-300" {% if user_priv.perm_system_backup %}checked{% endif %}>
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 hover:border-emerald-200 cursor-pointer transition-all">
+                                    <span class="text-xs font-bold text-slate-700">• Employee Privileges</span>
+                                    <input type="checkbox" name="perm_employee_privileges" class="priv-checkbox w-4 h-4 text-emerald-600 rounded border-slate-300" {% if user_priv.perm_employee_privileges %}checked{% endif %}>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- SUBMIT BUTTON -->
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:shadow-2xl transition-all flex items-center gap-3 transform hover:-translate-y-0.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Save Employee Privileges & Access
+                    </button>
+                </div>
+
+            </form>
+            {% else %}
+            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-16 text-center space-y-4">
+                <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-black text-slate-800">No User Selected</h3>
+                <p class="text-slate-400 text-sm max-w-sm mx-auto font-medium">Please select a user or staff member from the left panel to configure institute access and module privileges.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function selectAllInstitutes() {
+    const checkboxes = document.querySelectorAll('.inst-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+}
+
+function toggleAllPrivileges(masterToggle) {
+    const checkboxes = document.querySelectorAll('.priv-checkbox');
+    checkboxes.forEach(cb => cb.checked = masterToggle.checked);
+}
+</script>
+{% endblock %}

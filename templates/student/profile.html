@@ -1,165 +1,380 @@
 {% extends "dashboard_base.html" %}
 
-{% block title %}My Academic Profile | {{ admission.application.student.username }}{% endblock %}
+{% block title %}My Academic Profile | {{ request.user.username }}{% endblock %}
 
 {% block sidebar_title %}Student Hub{% endblock %}
 
 {% block header_title %}Academic Profile{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-12 pb-20">
+<div class="max-w-7xl mx-auto space-y-8 pb-20">
 
-    <!-- 🌟 HERO PROFILE SECTION -->
-    <div class="bg-slate-900 rounded-[3rem] p-10 md:p-16 text-white shadow-2xl relative overflow-hidden border border-white/5">
-        <div class="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] -mr-48 -mt-48"></div>
-        <div class="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/10 rounded-full blur-[100px] -ml-32 -mb-32"></div>
+    <!-- 🌟 HERO PROFILE CARD -->
+    <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl border border-slate-800 space-y-6 relative overflow-hidden">
+        <!-- Ambient background glows -->
+        <div class="absolute top-0 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-[90px] -mr-20 -mt-20 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-72 h-72 bg-emerald-600/10 rounded-full blur-[90px] -ml-20 -mb-20 pointer-events-none"></div>
         
-        <div class="relative flex flex-col md:flex-row items-center gap-10">
-            <div class="w-40 h-40 rounded-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-1 shadow-2xl">
-                <div class="w-full h-full rounded-[2.3rem] bg-slate-800 flex items-center justify-center overflow-hidden">
-                    {% if admission.application.student.photo %}
-                        <img src="{{ admission.application.student.photo.url }}" class="w-full h-full object-cover">
+        <div class="relative flex flex-col md:flex-row items-center md:items-start gap-6">
+            <!-- Student Avatar Container with Self Photo Upload Hover -->
+            <div class="relative group shrink-0">
+                <div class="w-32 h-32 md:w-36 md:h-36 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-1 shadow-xl overflow-hidden">
+                    <div class="w-full h-full rounded-[0.9rem] bg-slate-800 flex items-center justify-center overflow-hidden relative">
+                        {% if student_photo_url %}
+                            <img src="{{ student_photo_url }}" alt="Student Photo" class="w-full h-full object-cover">
+                        {% else %}
+                            <svg class="w-14 h-14 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        {% endif %}
+
+                        <!-- Hover Upload Overlay -->
+                        <button onclick="openModal('photoUploadModal')" class="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white text-xs font-bold gap-1 cursor-pointer backdrop-blur-xs">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>Upload Photo</span>
+                        </button>
+                    </div>
+                </div>
+                <button onclick="openModal('photoUploadModal')" class="absolute -bottom-2 -right-2 w-9 h-9 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg border-2 border-slate-900 transition-transform group-hover:scale-110" title="Change Photo">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Details Column -->
+            <div class="text-center md:text-left flex-1 space-y-3">
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    {% if admission %}
+                    <span class="px-3 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Active Student</span>
+                    <span class="px-3 py-1 bg-blue-500/15 border border-blue-500/30 text-blue-400 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Batch {{ admission.application.academic_year.name }}</span>
                     {% else %}
-                        <svg class="w-20 h-20 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
+                    <span class="px-3 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Registered Applicant</span>
                     {% endif %}
                 </div>
-            </div>
-            
-            <div class="text-center md:text-left flex-1">
-                <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-4">
-                    <span class="px-4 py-1.5 bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Active Student</span>
-                    <span class="px-4 py-1.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Batch {{ admission.application.academic_year.name }}</span>
+
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white capitalize">
+                        {% if admission %}
+                            {{ admission.application.student.first_name|default:admission.application.student.username }}
+                        {% else %}
+                            {{ request.user.first_name|default:request.user.username }}
+                        {% endif %}
+                    </h1>
+                    <p class="text-slate-400 text-sm font-medium mt-0.5">
+                        {% if admission %}
+                            {{ admission.application.course.name }}
+                        {% elif application %}
+                            {{ application.course.name }} (Applied)
+                        {% else %}
+                            Student & Parent Academic Portal
+                        {% endif %}
+                    </p>
                 </div>
-                <h1 class="text-4xl md:text-5xl font-black mb-2 tracking-tight text-white">{{ admission.application.student.first_name|default:admission.application.student.username }}</h1>
-                <p class="text-slate-400 text-lg font-bold mb-6 italic">{{ admission.application.course.name }}</p>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                <!-- 2-Column Info Pills -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 max-w-lg">
+                    <div class="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Register No</p>
-                            <p class="font-black text-lg text-white">{{ admission.registration_id }}</p>
+                        <div class="min-w-0">
+                            <p class="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Register / Reg ID</p>
+                            <p class="font-bold text-xs text-white truncate">
+                                {% if admission %}
+                                    {{ admission.register_number|default:admission.registration_id }}
+                                {% else %}
+                                    {{ application.id|default:"Pending Enrolment" }}
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+
+                    <div class="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assigned Class</p>
-                            <p class="font-black text-lg text-white">{{ admission.assigned_class.name|default:"Not Assigned" }}</p>
+                        <div class="min-w-0">
+                            <p class="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Assigned Class</p>
+                            <p class="font-bold text-xs text-white truncate">{{ admission.assigned_class.name|default:"Not Assigned" }}</p>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="hidden lg:block w-px h-48 bg-white/10"></div>
-            
-            <div class="flex flex-col gap-4">
-                {% if timetable %}
-                <button onclick="document.getElementById('timetableModal').classList.remove('hidden'); document.getElementById('timetableModal').classList.add('flex')" class="px-8 py-5 bg-white text-slate-900 rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all shadow-xl">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    View Timetable
-                </button>
-                {% endif %}
-                <a href="mailto:{{ admission.application.institute.email }}" class="px-8 py-5 bg-white/10 border border-white/10 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-white/20 transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    Contact Support
-                </a>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        
-        <!-- 📢 NOTICE BOARD (LEFT) -->
-        <div class="lg:col-span-1 space-y-8">
-            <h3 class="text-2xl font-black text-slate-800 flex items-center gap-4">
-                <span class="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                </span>
-                Notice Board
-            </h3>
-            
-            <div class="space-y-4">
-                {% for notice in notices %}
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        {{ notice.created_at|date:"d M Y" }}
-                    </p>
-                    <h4 class="font-black text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">{{ notice.title }}</h4>
-                    <p class="text-sm text-slate-500 leading-relaxed">{{ notice.content|truncatewords:20 }}</p>
-                    {% if notice.file_attachment %}
-                    <a href="{{ notice.file_attachment.url }}" target="_blank" class="mt-4 inline-flex items-center gap-2 text-xs font-black text-blue-600 hover:underline">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Download Attachment
-                    </a>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <div class="bg-slate-50 p-10 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center">
-                    <p class="text-slate-400 font-bold italic">No notices posted yet.</p>
-                </div>
-                {% endfor %}
+    <!-- 🟢 ACADEMIC PROFILE GRID BOXES (Match Attachment Design) -->
+    <div class="bg-white/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="text-2xl">🎓</span> Academic Profile Dashboard
+                </h2>
+                <p class="text-xs text-slate-500 font-medium">Click any module tile to view details & management features</p>
             </div>
         </div>
 
-        <!-- 📊 ACADEMIC PROGRESS (RIGHT) -->
-        <div class="lg:col-span-2 space-y-8">
-            <h3 class="text-2xl font-black text-slate-800 flex items-center gap-4">
-                <span class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                </span>
-                Academic Performance
-            </h3>
+        <!-- 🎛️ GRID CONTAINER -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 md:gap-6">
+            
+            <!-- 1. ATTENDANCE TILE -->
+            <button onclick="openModal('attendanceModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    📋
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Attendance</h3>
+                    <p class="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-full mt-1">
+                        {% if admission %}{{ attendance_percentage }}% Logged{% else %}No Records{% endif %}
+                    </p>
+                </div>
+            </button>
 
+            <!-- 2. HOME WORK TILE -->
+            <button onclick="openModal('homeworkModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    🏠
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Home Work</h3>
+                    <p class="text-[10px] font-bold text-slate-600 bg-slate-500/10 px-2 py-0.5 rounded-full mt-1">Classwork</p>
+                </div>
+            </button>
+
+            <!-- 3. NEWS TILE -->
+            <button onclick="openModal('noticesModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    💡
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">News</h3>
+                    <p class="text-[10px] font-bold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full mt-1">{{ notices|length }} Bulletins</p>
+                </div>
+            </button>
+
+            <!-- 4. RESULT TILE -->
+            <button onclick="openModal('resultsModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    ☑️
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Result</h3>
+                    <p class="text-[10px] font-bold text-indigo-700 bg-indigo-500/10 px-2 py-0.5 rounded-full mt-1">Grade Cards</p>
+                </div>
+            </button>
+
+            <!-- 5. REPORT CARD TILE -->
+            <button onclick="openModal('reportCardModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    📝
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Report card</h3>
+                    <p class="text-[10px] font-bold text-teal-700 bg-teal-500/10 px-2 py-0.5 rounded-full mt-1">Performance</p>
+                </div>
+            </button>
+
+            <!-- 6. UNIT TEST TILE -->
+            <button onclick="openModal('unitTestModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    👨‍👩‍👧‍👦
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Unit Test</h3>
+                    <p class="text-[10px] font-bold text-blue-700 bg-blue-500/10 px-2 py-0.5 rounded-full mt-1">Assessments</p>
+                </div>
+            </button>
+
+            <!-- 7. HOLISTIC & FEES TILE -->
+            <button onclick="openModal('feeModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    💳
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Fees & Dues</h3>
+                    <p class="text-[10px] font-bold {% if balance_due > 0 %}text-rose-700 bg-rose-500/10{% else %}text-emerald-700 bg-emerald-500/10{% endif %} px-2 py-0.5 rounded-full mt-1">
+                        {% if balance_due > 0 %}₹ {{ balance_due|floatformat:0 }} Dues{% else %}All Settled{% endif %}
+                    </p>
+                </div>
+            </button>
+
+            <!-- 8. TIME TABLE TILE -->
+            <button onclick="openModal('timetableModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    📅
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Time Table</h3>
+                    <p class="text-[10px] font-bold text-purple-700 bg-purple-500/10 px-2 py-0.5 rounded-full mt-1">Class Schedule</p>
+                </div>
+            </button>
+
+            <!-- 9. DOCUMENT VAULT TILE -->
+            <button onclick="openModal('documentsModal')" class="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#e8f7d9] hover:bg-[#dbf3c6] border border-[#d2eeaf] shadow-xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] transition-all duration-200 cursor-pointer text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    📂
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 group-hover:text-slate-950">Documents</h3>
+                    <p class="text-[10px] font-bold text-slate-700 bg-slate-500/10 px-2 py-0.5 rounded-full mt-1">{{ uploaded_docs|length }} Files</p>
+                </div>
+            </button>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- 🖼️ MODALS FOR GRID BOXES (PAGE OVERLAYS) -->
+<!-- ========================================== -->
+
+<!-- 1. ATTENDANCE MODAL -->
+<div id="attendanceModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <span>📋</span> Attendance Log & Summary
+                </h3>
+                <p class="text-xs text-slate-400">Complete record of marked classroom sessions</p>
+            </div>
+            <button onclick="closeModal('attendanceModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-2xl">
+                <p class="text-[10px] font-black text-emerald-600 uppercase">Present</p>
+                <p class="text-xl font-black text-emerald-800">{{ present_count }} Days</p>
+            </div>
+            <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl">
+                <p class="text-[10px] font-black text-rose-600 uppercase">Absent</p>
+                <p class="text-xl font-black text-rose-800">{{ absent_count }} Days</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 p-3 rounded-2xl">
+                <p class="text-[10px] font-black text-amber-600 uppercase">Percentage</p>
+                <p class="text-xl font-black text-amber-800">{{ attendance_percentage }}%</p>
+            </div>
+        </div>
+
+        <div class="overflow-y-auto flex-1 pr-2 space-y-2">
+            {% for att in attendances %}
+            <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                <div>
+                    <p class="font-bold text-slate-800">{{ att.date|date:"d F Y (l)" }}</p>
+                    <p class="text-[10px] text-slate-400">Classroom Session</p>
+                </div>
+                {% if att.status == 'present' %}
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase">Present</span>
+                {% elif att.status == 'absent' %}
+                <span class="px-3 py-1 bg-rose-100 text-rose-800 text-[10px] font-black rounded-full uppercase">Absent</span>
+                {% else %}
+                <span class="px-3 py-1 bg-amber-100 text-amber-800 text-[10px] font-black rounded-full uppercase">Half Day</span>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400 italic text-center py-8">No attendance records registered yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- 2. HOME WORK MODAL -->
+<div id="homeworkModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>🏠</span> Class Homework & Assignments
+            </h3>
+            <button onclick="closeModal('homeworkModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+        <div class="space-y-4">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
+                <span class="text-[10px] font-black text-blue-600 uppercase">Assigned Classwork</span>
+                <h4 class="font-bold text-slate-800 text-sm">Subject Assignments & Coursework</h4>
+                <p class="text-xs text-slate-500">Check regular classroom tasks assigned by faculty. No pending submissions for today.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. NEWS & NOTICES MODAL -->
+<div id="noticesModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>💡</span> Notice Board & Campus News
+            </h3>
+            <button onclick="closeModal('noticesModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 pr-2 space-y-3.5">
+            {% for notice in notices %}
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 hover:bg-slate-100/60 transition">
+                <span class="text-[10px] font-black text-amber-600 uppercase tracking-wider">📰 {{ notice.created_at|date:"d M Y" }}</span>
+                <h4 class="font-bold text-slate-800 text-xs leading-snug">{{ notice.title }}</h4>
+                <p class="text-xs text-slate-500 leading-relaxed">{{ notice.content }}</p>
+                {% if notice.file_attachment %}
+                <a href="{{ notice.file_attachment.url }}" target="_blank" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:underline pt-1">
+                    📎 Download Attached File
+                </a>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400 italic text-center py-8">No active notices posted.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- 4. RESULTS MODAL -->
+<div id="resultsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>☑️</span> Examination Grade Card & Results
+            </h3>
+            <button onclick="closeModal('resultsModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 pr-2 space-y-6">
             {% if results_by_period %}
-                <div class="space-y-12">
                 {% for period, period_results in results_by_period.items %}
-                    <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                        <div class="bg-slate-50 px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-                            <h4 class="text-lg font-black text-slate-800">{{ period }} Results</h4>
-                            <span class="px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest">{{ period_results|length }} Subjects</span>
+                    <div class="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                        <div class="px-6 py-3.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between">
+                            <h4 class="text-xs font-black text-slate-800">{{ period }}</h4>
+                            <span class="px-3 py-0.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase">{{ period_results|length }} Subjects</span>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full">
+                            <table class="w-full text-left text-xs">
                                 <thead>
-                                    <tr class="text-left bg-slate-50/50">
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Marks</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Remarks</th>
+                                    <tr class="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                        <th class="p-3">Subject</th>
+                                        <th class="p-3">Marks</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3">Remarks</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
                                     {% for res in period_results %}
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-8 py-6">
-                                            <p class="font-bold text-slate-800">{{ res.subject.name }}</p>
-                                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{{ res.subject.subject_code }}</p>
+                                    <tr class="hover:bg-white transition-colors">
+                                        <td class="p-3 font-bold text-slate-800">
+                                            {{ res.subject.name }}
+                                            <span class="block text-[10px] text-slate-400 font-normal">{{ res.subject.subject_code }}</span>
                                         </td>
-                                        <td class="px-8 py-6">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-lg font-black text-slate-900">{{ res.marks_obtained|floatformat:0 }}</span>
-                                                <span class="text-slate-300">/</span>
-                                                <span class="text-sm font-bold text-slate-400">{{ res.max_marks }}</span>
-                                            </div>
+                                        <td class="p-3 font-bold text-slate-900">
+                                            {{ res.marks_obtained|floatformat:0 }} / {{ res.max_marks }}
                                         </td>
-                                        <td class="px-8 py-6">
+                                        <td class="p-3">
                                             {% if res.marks_obtained >= 35 %}
-                                                <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">Pass</span>
+                                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase rounded-md">Pass</span>
                                             {% else %}
-                                                <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100">Failed</span>
+                                                <span class="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black uppercase rounded-md">Failed</span>
                                             {% endif %}
                                         </td>
-                                        <td class="px-8 py-6">
-                                            <p class="text-sm text-slate-500 italic">{{ res.remarks|default:"-" }}</p>
-                                        </td>
+                                        <td class="p-3 text-slate-500 italic">{{ res.remarks|default:"-" }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -167,88 +382,358 @@
                         </div>
                     </div>
                 {% endfor %}
-                </div>
             {% else %}
-                <div class="bg-slate-50 p-20 rounded-[3rem] border-2 border-dashed border-slate-200 text-center">
-                    <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                        <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <h4 class="text-xl font-black text-slate-400">Results Awaiting</h4>
-                    <p class="text-slate-400 font-bold mt-2">Semester results will be posted here by the institute office.</p>
+                <div class="bg-slate-50 p-8 rounded-2xl border border-dashed border-slate-200 text-center space-y-2">
+                    <p class="text-slate-500 font-bold text-sm">No Published Results Available</p>
+                    <p class="text-slate-400 text-xs">Semester result cards will be displayed here once released by administration.</p>
                 </div>
             {% endif %}
+        </div>
+    </div>
+</div>
 
-            <!-- 📂 UPLOADED DOCUMENTS -->
-            <div class="space-y-6 pt-10 border-t border-slate-100">
-                <h3 class="text-2xl font-black text-slate-800 flex items-center gap-4">
-                    <span class="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    </span>
-                    Identity & Document Vault
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Upload Box -->
-                    <div class="p-6 bg-blue-50 border-2 border-dashed border-blue-200 rounded-[2rem] flex flex-col items-center justify-center text-center group hover:bg-white hover:border-blue-500 transition-all">
-                        <form action="{% url 'upload_document' %}" method="POST" enctype="multipart/form-data" class="space-y-4 w-full">
-                            {% csrf_token %}
-                            <input type="text" name="title" required placeholder="Document Title (e.g. ID Card)" class="w-full bg-white border border-blue-100 px-4 py-2 rounded-xl text-xs font-bold outline-none">
-                            <div class="flex items-center gap-2">
-                                <input type="file" name="file" required class="text-[10px] flex-1">
-                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all">Upload</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {% for doc in uploaded_docs %}
-                    <div class="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:border-blue-200 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-800">{{ doc.title }}</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Added {{ doc.uploaded_at|date:"d M Y" }}</p>
-                            </div>
-                        </div>
-                        <a href="{{ doc.file.url }}" target="_blank" class="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        </a>
-                    </div>
-                    {% empty %}
-                    <div class="md:col-span-2 py-12 text-center bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                        <p class="text-slate-400 font-bold italic">No additional documents uploaded to vault.</p>
-                    </div>
-                    {% endfor %}
+<!-- 5. REPORT CARD MODAL -->
+<div id="reportCardModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>📝</span> Comprehensive Report Card
+            </h3>
+            <button onclick="closeModal('reportCardModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+        <div class="space-y-4 text-center py-4">
+            <div class="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mx-auto text-2xl font-bold">
+                📜
+            </div>
+            <div>
+                <h4 class="font-bold text-slate-800 text-sm">Academic Performance Overview</h4>
+                <p class="text-xs text-slate-500 mt-1">Consolidated semester progress and conduct sheet.</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-left space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-slate-500 font-medium">Student Name:</span>
+                    <span class="font-bold text-slate-800">{{ request.user.first_name|default:request.user.username }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500 font-medium">Attendance Percentage:</span>
+                    <span class="font-bold text-emerald-600">{{ attendance_percentage }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500 font-medium">Status:</span>
+                    <span class="font-bold text-blue-600">Active Student</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 📅 TIMETABLE MODAL -->
-{% if timetable %}
-<div id="timetableModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md hidden items-center justify-center z-[500] p-4">
-    <div class="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
-        <div class="bg-slate-900 p-8 text-white flex items-center justify-between">
-            <div>
-                <h3 class="text-2xl font-black tracking-tight">Class Timetable</h3>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Ref: {{ admission.assigned_class.name }} | Updated {{ timetable.updated_at|date:"d M Y" }}</p>
-            </div>
-            <button onclick="document.getElementById('timetableModal').classList.add('hidden'); document.getElementById('timetableModal').classList.remove('flex')" class="w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-2xl flex items-center justify-center transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+<!-- 6. UNIT TEST MODAL -->
+<div id="unitTestModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>👨‍👩‍👧‍👦</span> Unit Test & Evaluations
+            </h3>
+            <button onclick="closeModal('unitTestModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
         </div>
-        <div class="p-4 bg-slate-50 flex-1 overflow-auto flex items-center justify-center">
-            <img src="{{ timetable.image_file.url }}" class="max-w-full h-auto rounded-2xl shadow-lg border border-slate-200">
-        </div>
-        <div class="p-8 bg-white border-t border-slate-100 text-center">
-            <a href="{{ timetable.image_file.url }}" download class="px-10 py-5 bg-blue-600 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
-                Download for Offline Use
-            </a>
+        <div class="p-6 bg-slate-50 rounded-2xl text-center space-y-2">
+            <p class="text-sm font-bold text-slate-700">Internal Unit Assessment Logs</p>
+            <p class="text-xs text-slate-400">Classroom unit test scores are integrated directly into your overall Result section.</p>
         </div>
     </div>
 </div>
-{% endif %}
+
+<!-- 7. FEES & DUES MODAL -->
+<div id="feeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <span>💳</span> Fee Structure & Instant Settlement
+                </h3>
+                <p class="text-xs text-slate-400">Itemized fee heads, paid receipts & UPI settlement</p>
+            </div>
+            <button onclick="closeModal('feeModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 pr-2 space-y-6">
+            <!-- Dues Header Banner -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-2xl text-white flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-200">Remaining Balance Dues</span>
+                    <p class="text-3xl font-black">₹ {{ balance_due|floatformat:0 }}</p>
+                </div>
+                {% if balance_due > 0 %}
+                <button onclick="openSettleModal('', 'Total Remaining Dues', '{{ balance_due }}')" class="px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition">
+                    💳 Pay Dues Now
+                </button>
+                {% else %}
+                <span class="px-4 py-2 bg-emerald-500/20 text-emerald-300 rounded-xl text-xs font-black uppercase">✓ All Fees Paid</span>
+                {% endif %}
+            </div>
+
+            <!-- Table of Fee Heads -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b border-slate-100">
+                            <th class="p-3">Fee Head</th>
+                            <th class="p-3">Due Date</th>
+                            <th class="p-3">Amount</th>
+                            <th class="p-3">Paid</th>
+                            <th class="p-3">Remaining</th>
+                            <th class="p-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in fee_heads_detail %}
+                        <tr>
+                            <td class="p-3 font-bold text-slate-800">{{ item.head.name }}</td>
+                            <td class="p-3 text-slate-600 font-semibold">{{ item.due_date|date:"d M Y"|default:"-" }}</td>
+                            <td class="p-3 font-bold">₹ {{ item.amount|floatformat:0 }}</td>
+                            <td class="p-3 font-bold text-emerald-600">₹ {{ item.paid_amount|floatformat:0 }}</td>
+                            <td class="p-3 font-bold {% if item.due_amount > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">₹ {{ item.due_amount|floatformat:0 }}</td>
+                            <td class="p-3 text-right">
+                                {% if item.due_amount > 0 %}
+                                <button onclick="openSettleModal('{{ item.head.id }}', '{{ item.head.name }}', '{{ item.due_amount }}')" class="px-3 py-1 bg-blue-600 text-white font-bold text-[10px] rounded-lg">Pay</button>
+                                {% else %}
+                                <span class="text-[10px] font-bold text-emerald-600 uppercase">Paid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="p-4 text-center text-slate-400 italic">No fee heads configured.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 8. TIME TABLE MODAL -->
+<div id="timetableModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+        <div class="bg-slate-900 p-6 text-white flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-black flex items-center gap-2">📅 Class Timetable Schedule</h3>
+                <p class="text-slate-400 text-xs font-semibold mt-0.5">Ref: {{ admission.assigned_class.name|default:"Class Schedule" }}</p>
+            </div>
+            <button onclick="closeModal('timetableModal')" class="w-9 h-9 bg-white/10 text-white rounded-xl flex items-center justify-center font-bold hover:bg-white/20">✕</button>
+        </div>
+        <div class="p-6 bg-slate-100 flex-1 overflow-auto flex items-center justify-center">
+            {% if timetable and timetable.image_file %}
+                <img src="{{ timetable.image_file.url }}" class="max-w-full h-auto rounded-2xl shadow-lg border border-slate-200">
+            {% else %}
+                <div class="text-center py-12 space-y-2">
+                    <p class="text-slate-500 font-bold text-sm">No Timetable Uploaded Yet</p>
+                    <p class="text-slate-400 text-xs">The timetable scan for your assigned class will appear here once published.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 9. DOCUMENTS MODAL -->
+<div id="documentsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>📂</span> Identity & Document Vault
+            </h3>
+            <button onclick="closeModal('documentsModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <form action="{% url 'upload_document' %}" method="POST" enctype="multipart/form-data" class="bg-slate-50 p-4 rounded-2xl border border-dashed border-blue-200 space-y-3">
+            {% csrf_token %}
+            <p class="text-[10px] font-black text-slate-500 uppercase">Upload Personal Document</p>
+            <input type="text" name="title" required placeholder="Document Title (e.g., Aadhaar, Certificate)" class="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500 font-medium">
+            <div class="flex items-center gap-2">
+                <input type="file" name="file" required class="text-[10px] flex-1 text-slate-500">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Upload</button>
+            </div>
+        </form>
+
+        <div class="overflow-y-auto flex-1 space-y-2">
+            {% for doc in uploaded_docs %}
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                <div>
+                    <p class="font-bold text-slate-800">{{ doc.title }}</p>
+                    <p class="text-[9px] text-slate-400">{{ doc.uploaded_at|date:"d M Y" }}</p>
+                </div>
+                <a href="{{ doc.file.url }}" target="_blank" class="p-2 bg-white text-blue-600 rounded-lg border border-slate-200 hover:bg-blue-600 hover:text-white transition">⬇</a>
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400 italic text-center py-4">No documents stored in vault.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- 🖼️ MODAL: PROFILE PHOTO SELF-UPLOAD -->
+<div id="photoUploadModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-black text-slate-800">Update Profile Photo</h3>
+            <button onclick="closeModal('photoUploadModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <form action="{% url 'upload_student_photo' %}" method="POST" enctype="multipart/form-data" class="space-y-5">
+            {% csrf_token %}
+            <div class="text-center space-y-3">
+                <div class="w-24 h-24 mx-auto rounded-full bg-slate-100 border-2 border-dashed border-blue-300 flex items-center justify-center overflow-hidden">
+                    {% if student_photo_url %}
+                        <img src="{{ student_photo_url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-3xl text-slate-400">👤</span>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-slate-500 font-medium">Select a clear passport-style photograph (JPG, PNG)</p>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <input type="file" name="photo" accept="image/*" required class="w-full text-xs text-slate-600">
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" onclick="closeModal('photoUploadModal')" class="w-1/2 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
+                <button type="submit" class="w-1/2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase shadow-md shadow-blue-200">Upload Photo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 💳 MODAL: SETTLE FEE DUES WITH DYNAMIC UPI QR CODE -->
+<div id="settleFeeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-800">Settle Student Dues</h3>
+                <p class="text-xs text-slate-400">Instant fee payment & dynamic UPI QR code</p>
+            </div>
+            <button onclick="closeModal('settleFeeModal')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <form action="{% url 'settle_student_fee' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Select Fee Item</label>
+                <select name="head_id" id="settleHeadId" onchange="onFeeHeadChange(this)" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-500">
+                    <option value="" data-amount="{{ balance_due|floatformat:0 }}">-- Total Outstanding Balance (₹ {{ balance_due|floatformat:0 }}) --</option>
+                    {% for item in fee_heads_detail %}
+                        {% if item.due_amount > 0 %}
+                        <option value="{{ item.head.id }}" data-amount="{{ item.due_amount|floatformat:0 }}">
+                            {{ item.head.name }} — Due: ₹{{ item.due_amount|floatformat:0 }}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Payment Amount (₹)</label>
+                <input type="number" step="0.01" name="amount" id="settleAmount" oninput="updateUpiQr()" required value="{{ balance_due|floatformat:0 }}" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Payment Method</label>
+                <select name="payment_mode" id="settlePaymentMode" onchange="togglePaymentMethodView()" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-500">
+                    <option value="online">📱 Instant UPI QR Code & Online App Payment</option>
+                    <option value="cash">💵 Counter Cash Settlement (Reference No)</option>
+                    <option value="bank_transfer">🏦 Direct Bank Transfer / NEFT</option>
+                </select>
+            </div>
+
+            <!-- DYNAMIC UPI QR CODE SECTION -->
+            <div id="upiQrBox" class="bg-slate-900 p-5 rounded-3xl text-white text-center space-y-3.5 border border-slate-800">
+                <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase border border-emerald-500/30">Scan QR Code to Pay</span>
+                
+                <div class="w-48 h-48 bg-white p-3 rounded-2xl mx-auto shadow-2xl flex items-center justify-center">
+                    <img id="upiQrImg" src="" alt="Dynamic UPI QR Code" class="w-full h-full object-contain">
+                </div>
+
+                <div class="space-y-1">
+                    <p class="text-xs text-slate-300 font-bold">Amount to Pay: <span id="qrAmountDisplay" class="text-emerald-400 font-black text-sm">₹ {{ balance_due|floatformat:0 }}</span></p>
+                    <p class="text-[10px] text-slate-400">Merchant UPI ID: <span class="font-mono text-emerald-300 font-bold">jdtcollege@upi</span></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" onclick="closeModal('settleFeeModal')" class="w-1/2 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
+                <button type="submit" class="w-1/2 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-xl text-xs uppercase shadow-md shadow-blue-200">Confirm & Settle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(modalId) {
+        closeModal('feeModal');
+        var modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function openSettleModal(headId, headName, dueAmt) {
+        var headSelect = document.getElementById('settleHeadId');
+        if (headId) {
+            headSelect.value = headId;
+        } else {
+            headSelect.selectedIndex = 0;
+        }
+        var amtInput = document.getElementById('settleAmount');
+        var parsedAmt = parseFloat(dueAmt) || 0;
+        amtInput.value = parsedAmt > 0 ? parsedAmt.toFixed(0) : "1000";
+        updateUpiQr();
+        openModal('settleFeeModal');
+    }
+
+    function onFeeHeadChange(selectEl) {
+        var selectedOpt = selectEl.options[selectEl.selectedIndex];
+        var amt = selectedOpt.getAttribute('data-amount');
+        if (amt) {
+            document.getElementById('settleAmount').value = parseFloat(amt).toFixed(0);
+            updateUpiQr();
+        }
+    }
+
+    function updateUpiQr() {
+        var amt = document.getElementById('settleAmount').value || "0";
+        var qrAmountDisplay = document.getElementById('qrAmountDisplay');
+        if (qrAmountDisplay) {
+            qrAmountDisplay.textContent = "₹ " + amt;
+        }
+        var qrImg = document.getElementById('upiQrImg');
+        if (qrImg) {
+            var upiData = encodeURIComponent("upi://pay?pa=jdtcollege@upi&pn=JDT+Automation+System&am=" + amt + "&cu=INR&tn=Fee+Payment");
+            qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + upiData;
+        }
+    }
+
+    function togglePaymentMethodView() {
+        var mode = document.getElementById('settlePaymentMode').value;
+        var qrBox = document.getElementById('upiQrBox');
+        if (mode === 'online') {
+            qrBox.classList.remove('hidden');
+            updateUpiQr();
+        } else {
+            qrBox.classList.add('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateUpiQr();
+    });
+</script>
 
 {% endblock %}

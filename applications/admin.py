@@ -118,4 +118,11 @@ class PaymentAdmin(admin.ModelAdmin):
             formatted = json.dumps(obj.gateway_response, indent=2)
             return format_html('<pre>{}</pre>', formatted)
         return "-"
-    formatted_response.short_description = "Bank Response Detail"
+from .models import Application, FeeCategory, Admission, Payment, PaymentConfig, ApplicationFieldValue, TrashedStudent
+
+@admin.register(TrashedStudent)
+class TrashedStudentAdmin(admin.ModelAdmin):
+    list_display = ['registration_id', 'student_name', 'course_name', 'institute_name', 'deletion_reason', 'deleted_by', 'deleted_at']
+    search_fields = ['registration_id', 'student_name', 'mobile', 'email', 'deletion_reason']
+    list_filter = ['institute_name', 'deleted_at']
+    readonly_fields = ['deleted_at', 'archived_data']

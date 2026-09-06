@@ -31,9 +31,15 @@ urlpatterns = [
     path('load-form-fields/', load_form_fields, name='load_form_fields'),
     path('load-exam-subjects/', load_exam_subjects, name='load_exam_subjects'),
 
-    # ✅ NEW: Student List
+    # ✅ NEW: Multi-Institute Switcher & Employee Privileges
+    path('switch-institute/<int:institute_id>/', switch_active_institute, name='switch_active_institute'),
+    path('employee-privileges/', employee_privileges_view, name='employee_privileges'),
+
+    # ✅ NEW: Student List & Teacher Student Document Upload
     path('student-list/', student_list_view, name='student_list'),
     path('student-list/export/', export_students_excel, name='export_students_excel'),
+    path('student/<int:admission_id>/documents/upload/', upload_student_document_by_teacher, name='upload_student_document_by_teacher'),
+    path('student/document/<int:doc_id>/delete/', delete_student_document_by_teacher, name='delete_student_document_by_teacher'),
 
     # ✅ NEW: Payment Details
     path('payment-list/', payment_list_view, name='payment_list'),
@@ -53,6 +59,7 @@ urlpatterns = [
     path('notices/', manage_notices, name='manage_notices'),
     path('timetables/', manage_timetables, name='manage_timetables'),
     path('academic-results/', enter_academic_results, name='enter_academic_results'),
+    path('attendance/', manage_attendance, name='manage_attendance'),
     
     # ✅ STUDENT FEE MANAGEMENT URLS
     path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),

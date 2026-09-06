@@ -6,7 +6,8 @@ class Institute(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='institute_profile'   # ✅ IMPORTANT FIX
+        related_name='institute_profile'   
+        
     )
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
@@ -25,7 +26,7 @@ class AcademicYear(models.Model):
         on_delete=models.CASCADE,
         related_name='academic_years'
     )
-    name = models.CharField(max_length=100)  # Example: 2025-2026
+    name = models.CharField(max_length=100)  
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)
@@ -43,6 +44,8 @@ class UserActivityLog(models.Model):
     module = models.CharField(max_length=100)
     activity = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+  
+
 
     class Meta:
         ordering = ['-created_at']

@@ -23,6 +23,7 @@
             {% if request.user.role == 'institute' or request.user.is_staff or request.user.is_superuser %}
 
             <!-- MODULE 1: ADMISSIONS MODULE -->
+            {% if user_privileges.perm_admissions_overview or user_privileges.perm_student_registration or user_privileges.perm_student_list or user_privileges.perm_rank_list %}
             <div class="space-y-1">
                 <button type="button" onclick="toggleSidebarModule('mod-admissions')" class="w-full flex items-center justify-between px-4 py-3 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group font-semibold text-sm">
                     <div class="flex items-center gap-3">
@@ -32,22 +33,32 @@
                     <span id="icon-mod-admissions" class="text-lg font-bold text-white/70 group-hover:text-white transition-transform duration-200">+</span>
                 </button>
                 <div id="mod-admissions" class="pl-4 space-y-1 hidden">
-                    <a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if request.path == '/institute/dashboard/' %}bg-white/10 font-bold text-white{% endif %}">
+                    {% if user_privileges.perm_admissions_overview %}
+                    <a href="/institute/dashboard/" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if request.path == '/institute/dashboard/' %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Admissions Overview</span>
                     </a>
-                    <a href="{% url 'admission_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'admission' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_student_registration %}
+                    <a href="{% url 'admission_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'admission' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Student Registration</span>
                     </a>
-                    <a href="{% url 'student_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'student-list' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_student_list %}
+                    <a href="{% url 'student_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'student-list' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Student List</span>
                     </a>
-                    <a href="{% url 'rank_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'rank-list' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_rank_list %}
+                    <a href="{% url 'rank_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'rank-list' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Rank List</span>
                     </a>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <!-- MODULE 2: ACADEMIC OPERATIONS -->
+            {% if user_privileges.perm_attendance or user_privileges.perm_notices or user_privileges.perm_timetables or user_privileges.perm_academic_results or user_privileges.perm_course_inventory %}
             <div class="space-y-1">
                 <button type="button" onclick="toggleSidebarModule('mod-academics')" class="w-full flex items-center justify-between px-4 py-3 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group font-semibold text-sm">
                     <div class="flex items-center gap-3">
@@ -57,19 +68,37 @@
                     <span id="icon-mod-academics" class="text-lg font-bold text-white/70 group-hover:text-white transition-transform duration-200">+</span>
                 </button>
                 <div id="mod-academics" class="pl-4 space-y-1 hidden">
-                    <a href="{% url 'manage_notices' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'notices' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% if user_privileges.perm_attendance %}
+                    <a href="{% url 'manage_attendance' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'attendance' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Attendance Marker</span>
+                    </a>
+                    {% endif %}
+                    {% if user_privileges.perm_notices %}
+                    <a href="{% url 'manage_notices' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'notices' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• News & Notice Board</span>
                     </a>
-                    <a href="{% url 'manage_timetables' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'timetables' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_timetables %}
+                    <a href="{% url 'manage_timetables' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'timetables' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Class Timetables</span>
                     </a>
-                    <a href="{% url 'enter_academic_results' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'academic-results' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_academic_results %}
+                    <a href="{% url 'enter_academic_results' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'academic-results' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Enter Results</span>
                     </a>
+                    {% endif %}
+                    {% if user_privileges.perm_course_inventory %}
+                    <a href="{% url 'course_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'academics' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Course Inventory</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <!-- MODULE 3: FEE & FINANCIALS -->
+            {% if user_privileges.perm_fee_reports or user_privileges.perm_fee_receipts or user_privileges.perm_payment_details %}
             <div class="space-y-1">
                 <button type="button" onclick="toggleSidebarModule('mod-fees')" class="w-full flex items-center justify-between px-4 py-3 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group font-semibold text-sm">
                     <div class="flex items-center gap-3">
@@ -79,16 +108,27 @@
                     <span id="icon-mod-fees" class="text-lg font-bold text-white/70 group-hover:text-white transition-transform duration-200">+</span>
                 </button>
                 <div id="mod-fees" class="pl-4 space-y-1 hidden">
-                    <a href="{% url 'receipt_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'receipt' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% if user_privileges.perm_fee_reports %}
+                    <a href="{% url 'fee_reports' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'fee-reports' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Fee Reports & Dues</span>
+                    </a>
+                    {% endif %}
+                    {% if user_privileges.perm_fee_receipts %}
+                    <a href="{% url 'receipt_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'receipt' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Fee Receipts</span>
                     </a>
-                    <a href="{% url 'payment_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'payment-list' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% endif %}
+                    {% if user_privileges.perm_payment_details %}
+                    <a href="{% url 'payment_list' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'payment-list' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Payment Details</span>
                     </a>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <!-- MODULE 4: SYSTEM ADMINISTRATION -->
+            {% if user_privileges.perm_activity_logs or user_privileges.perm_system_backup or user_privileges.perm_employee_privileges %}
             <div class="space-y-1">
                 <button type="button" onclick="toggleSidebarModule('mod-system')" class="w-full flex items-center justify-between px-4 py-3 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group font-semibold text-sm">
                     <div class="flex items-center gap-3">
@@ -98,13 +138,22 @@
                     <span id="icon-mod-system" class="text-lg font-bold text-white/70 group-hover:text-white transition-transform duration-200">+</span>
                 </button>
                 <div id="mod-system" class="pl-4 space-y-1 hidden">
-                    <a href="{% url 'activity_logs' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'activity-logs' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% if user_privileges.perm_activity_logs %}
+                    <a href="{% url 'activity_logs' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'activity-logs' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• Activity Logs</span>
                     </a>
+                    {% endif %}
+                    {% if user_privileges.perm_employee_privileges %}
+                    <a href="{% url 'employee_privileges' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'employee-privileges' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Employee Privileges</span>
+                    </a>
+                    {% endif %}
                     {% if request.user.is_superuser or request.user.is_staff %}
-                    <a href="{% url 'system_backup' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'backup' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    {% if user_privileges.perm_system_backup %}
+                    <a href="{% url 'system_backup' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'backup' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• System Backup</span>
                     </a>
+                    {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -143,7 +192,7 @@
                     <a href="{% url 'apply_course' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if '/apply/' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• New Application</span>
                     </a>
-                    <a href="{% url 'my_applications' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'my-applications' in request.path %}bg-white/10 font-bold text-white{% endif %}">
+                    <a href="{% url 'my_applications' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'my-applications' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
                         <span>• My Applications</span>
                     </a>
                 </div>
@@ -180,10 +229,48 @@
                 <button onclick="toggleSidebar()" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all flex-shrink-0 shadow-sm group lg:hidden">
                     <svg class="h-6 w-6 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
+                {% if request.user.role == 'student' and request.path != '/dashboard/' %}
+                <a href="{% url 'student_dashboard' %}" class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 flex items-center gap-1.5 transition shadow-xs">
+                    ← Back to Home
+                </a>
+                {% endif %}
                 <h1 class="text-sm md:text-xl font-bold text-slate-800 truncate tracking-tight uppercase md:normal-case">{% block header_title %}Dashboard{% endblock %}</h1>
             </div>
 
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4 md:gap-6">
+
+                <!-- MULTI-INSTITUTE SWITCHER DROPDOWN -->
+                {% if active_institute %}
+                <div class="relative group">
+                    <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl cursor-pointer transition-all">
+                        <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"></path></svg>
+                        <div class="text-left hidden md:block">
+                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest block leading-none">Active Institute</span>
+                            <span class="text-xs font-black text-slate-800 truncate block max-w-[160px]">{{ active_institute.name }}</span>
+                        </div>
+                        {% if has_multiple_institutes %}
+                        <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        {% endif %}
+                    </div>
+
+                    {% if has_multiple_institutes %}
+                    <!-- Dropdown Menu for Switching Institutes -->
+                    <div class="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top-right scale-95 group-hover:scale-100 p-2">
+                        <div class="px-3 py-2 border-b border-slate-100">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Switch Active Institute</p>
+                        </div>
+                        <div class="max-h-60 overflow-y-auto space-y-1 mt-1">
+                            {% for inst in accessible_institutes %}
+                            <a href="{% url 'switch_active_institute' inst.id %}" class="flex items-center justify-between px-3 py-2 text-xs rounded-xl font-bold transition-all {% if active_institute and active_institute.id == inst.id %}bg-blue-600 text-white shadow-sm{% else %}text-slate-700 hover:bg-slate-50{% endif %}">
+                                <span class="truncate">{{ inst.name }}</span>
+                                <span class="text-[10px] uppercase opacity-75 font-black">({{ inst.code }})</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
 
                 <!-- SEARCH (Global Student Search) -->
                 {% block topbar_search %}

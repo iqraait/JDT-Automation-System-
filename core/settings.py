@@ -64,6 +64,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
+                'accounts.context_processors.active_institute_context',
             ],
         },
     },
@@ -86,6 +87,7 @@ JAZZMIN_SETTINGS = {
     #  Navigation
     "topmenu_links": [
         {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Employee Privileges & Institute Access", "url": "/institute/employee-privileges/", "permissions": ["auth.view_user"]},
         {"name": "View Web Portal", "url": "/", "new_window": True},
         {"name": "Support", "url": "https://iqraa.it", "new_window": True},
     ],

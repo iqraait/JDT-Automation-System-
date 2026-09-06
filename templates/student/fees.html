@@ -1,0 +1,269 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Fee Status & Receipts | Student Portal{% endblock %}
+{% block header_title %}Fee Management & Receipts{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 pb-24">
+
+    <!-- TOP HEADER -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-black text-slate-800">Fee Structure & Receipts</h2>
+            <p class="text-xs text-slate-400">Tagged fee breakdown, due dates, paid history, and printable receipts</p>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if balance_due > 0 %}
+            <button onclick="openSettleModal('', 'All Remaining Dues', '{{ balance_due }}')" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-blue-200 transition-all flex items-center gap-2">
+                💳 Settle Dues Now
+            </button>
+            {% else %}
+            <span class="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black rounded-full">
+                ✓ All Dues Paid
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- SUMMARY METRICS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Tagged Fee</span>
+            <p class="text-xl font-black text-slate-800">₹ {{ total_fee_tagged|floatformat:0 }}</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-3xl text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-1">Total Amount Paid</span>
+            <p class="text-xl font-black text-emerald-700">₹ {{ total_paid|floatformat:0 }}</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 p-5 rounded-3xl text-center relative overflow-hidden">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 block mb-1">Balance Due</span>
+            <p class="text-xl font-black text-blue-700">₹ {{ balance_due|floatformat:0 }}</p>
+            {% if next_due_date %}
+            <p class="text-[9px] font-bold text-blue-500 uppercase mt-1">Next Due: {{ next_due_date|date:"d M Y" }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- TAGGED FEE HEADS BREAKDOWN WITH DUE DATES -->
+    {% if fee_heads_detail %}
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Tagged Fee Structure & Due Dates</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                        <th class="p-3">Fee Head</th>
+                        <th class="p-3">Due Date</th>
+                        <th class="p-3">Total Amount</th>
+                        <th class="p-3">Paid</th>
+                        <th class="p-3">Remaining Dues</th>
+                        <th class="p-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in fee_heads_detail %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-bold text-slate-800">
+                            {{ item.head.name }}
+                            {% if item.head.fee_type %}
+                            <span class="block text-[10px] text-slate-400 font-normal">{{ item.head.fee_type.name }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 font-medium">
+                            {% if item.due_date %}
+                                {% if item.is_overdue %}
+                                    <span class="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-md font-bold text-[10px]">Overdue: {{ item.due_date|date:"d M Y" }}</span>
+                                {% else %}
+                                    <span class="text-slate-600">{{ item.due_date|date:"d M Y" }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-slate-400 italic">No Due Date</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 font-bold text-slate-900">₹ {{ item.amount|floatformat:0 }}</td>
+                        <td class="p-3 font-bold text-emerald-600">₹ {{ item.paid_amount|floatformat:0 }}</td>
+                        <td class="p-3 font-bold {% if item.due_amount > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                            ₹ {{ item.due_amount|floatformat:0 }}
+                        </td>
+                        <td class="p-3 text-right">
+                            {% if item.due_amount > 0 %}
+                            <button onclick="openSettleModal('{{ item.head.id }}', '{{ item.head.name }}', '{{ item.due_amount }}')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-[11px] rounded-lg border border-blue-200 transition">
+                                Pay ₹{{ item.due_amount|floatformat:0 }}
+                            </button>
+                            {% else %}
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md uppercase">Paid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FEE PAYMENT RECEIPTS LOG -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Payment Transaction Receipts</h3>
+        {% if payments %}
+        <div class="space-y-3">
+            {% for payment in payments %}
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-800">
+                            {% if payment.fee_head %}{{ payment.fee_head.name }}{% else %}General Fee{% endif %}
+                        </span>
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-md uppercase">{{ payment.payment_mode }}</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px]">Receipt #: <span class="font-bold text-slate-600">{{ payment.receipt_number|default:payment.reference_no }}</span> | Date: {{ payment.payment_date|date:"d M Y" }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-base font-black text-emerald-600">₹ {{ payment.amount_paid|floatformat:0 }}</span>
+                    {% if payment.receipt_number %}
+                    <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm text-[11px]">
+                        🧾 Receipt PDF
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-slate-400 text-xs font-medium">
+            No fee payment receipts recorded yet.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- SETTLE FEE MODAL -->
+<div id="settleFeeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[500] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden space-y-6 p-8 relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-800">Settle Student Dues</h3>
+                <p class="text-xs text-slate-400">Instant fee payment & dynamic UPI QR code</p>
+            </div>
+            <button onclick="document.getElementById('settleFeeModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <form action="{% url 'settle_student_fee' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Select Fee Head</label>
+                <select name="head_id" id="settleHeadId" onchange="onFeeHeadChange(this)" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-500">
+                    <option value="" data-amount="{{ balance_due|floatformat:0 }}">-- Total Outstanding Balance (₹ {{ balance_due|floatformat:0 }}) --</option>
+                    {% for item in fee_heads_detail %}
+                        {% if item.due_amount > 0 %}
+                        <option value="{{ item.head.id }}" data-amount="{{ item.due_amount|floatformat:0 }}">
+                            {{ item.head.name }} — Due: ₹{{ item.due_amount|floatformat:0 }} {% if item.due_date %}(Due: {{ item.due_date|date:"d M Y" }}){% endif %}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Payment Amount (₹)</label>
+                <input type="number" step="0.01" name="amount" id="settleAmount" oninput="updateUpiQr()" required value="{{ balance_due|floatformat:0 }}" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Payment Method</label>
+                <select name="payment_mode" id="settlePaymentMode" onchange="togglePaymentMethodView()" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-500">
+                    <option value="online">📱 Instant UPI QR Code & Online App Payment</option>
+                    <option value="cash">💵 Counter Cash Settlement (Reference No)</option>
+                    <option value="bank_transfer">🏦 Direct Bank Transfer / NEFT</option>
+                </select>
+            </div>
+
+            <!-- DYNAMIC UPI QR CODE SECTION -->
+            <div id="upiQrBox" class="bg-slate-900 p-5 rounded-3xl text-white text-center space-y-3.5 border border-slate-800">
+                <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">Scan QR Code to Pay</span>
+                
+                <div class="w-48 h-48 bg-white p-3 rounded-2xl mx-auto shadow-2xl flex items-center justify-center">
+                    <img id="upiQrImg" src="" alt="Dynamic UPI QR Code" class="w-full h-full object-contain">
+                </div>
+
+                <div class="space-y-1">
+                    <p class="text-xs text-slate-300 font-bold">Amount to Pay: <span id="qrAmountDisplay" class="text-emerald-400 font-black text-sm">₹ {{ balance_due|floatformat:0 }}</span></p>
+                    <p class="text-[10px] text-slate-400">Merchant UPI ID: <span class="font-mono text-emerald-300 font-bold">jdtcollege@upi</span></p>
+                </div>
+
+                <div class="flex items-center justify-center gap-2 pt-1">
+                    <span class="px-2.5 py-1 bg-white/10 rounded-lg text-[10px] font-bold text-slate-300">GPay</span>
+                    <span class="px-2.5 py-1 bg-white/10 rounded-lg text-[10px] font-bold text-slate-300">PhonePe</span>
+                    <span class="px-2.5 py-1 bg-white/10 rounded-lg text-[10px] font-bold text-slate-300">Paytm</span>
+                    <span class="px-2.5 py-1 bg-white/10 rounded-lg text-[10px] font-bold text-slate-300">BHIM</span>
+                </div>
+            </div>
+
+            <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-xs text-blue-800 font-medium space-y-1">
+                <p class="font-bold">✓ Official Receipt Generation</p>
+                <p class="text-[11px] text-blue-600">Upon confirming, an official computer-generated fee receipt will be instantly issued and credited to your account.</p>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('settleFeeModal').classList.add('hidden')" class="w-1/2 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
+                <button type="submit" class="w-1/2 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-md shadow-blue-200">Confirm & Settle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openSettleModal(headId, headName, dueAmt) {
+        var headSelect = document.getElementById('settleHeadId');
+        if (headId) {
+            headSelect.value = headId;
+        } else {
+            headSelect.selectedIndex = 0;
+        }
+        var amtInput = document.getElementById('settleAmount');
+        var parsedAmt = parseFloat(dueAmt) || 0;
+        amtInput.value = parsedAmt > 0 ? parsedAmt.toFixed(0) : "1000";
+        updateUpiQr();
+        document.getElementById('settleFeeModal').classList.remove('hidden');
+    }
+
+    function onFeeHeadChange(selectEl) {
+        var selectedOpt = selectEl.options[selectEl.selectedIndex];
+        var amt = selectedOpt.getAttribute('data-amount');
+        if (amt) {
+            document.getElementById('settleAmount').value = parseFloat(amt).toFixed(0);
+            updateUpiQr();
+        }
+    }
+
+    function updateUpiQr() {
+        var amt = document.getElementById('settleAmount').value || "0";
+        var qrAmountDisplay = document.getElementById('qrAmountDisplay');
+        if (qrAmountDisplay) {
+            qrAmountDisplay.textContent = "₹ " + amt;
+        }
+        var qrImg = document.getElementById('upiQrImg');
+        if (qrImg) {
+            var upiData = encodeURIComponent("upi://pay?pa=jdtcollege@upi&pn=JDT+Automation+System&am=" + amt + "&cu=INR&tn=Fee+Payment");
+            qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + upiData;
+        }
+    }
+
+    function togglePaymentMethodView() {
+        var mode = document.getElementById('settlePaymentMode').value;
+        var qrBox = document.getElementById('upiQrBox');
+        if (mode === 'online') {
+            qrBox.classList.remove('hidden');
+            updateUpiQr();
+        } else {
+            qrBox.classList.add('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateUpiQr();
+    });
+</script>
+
+{% endblock %}

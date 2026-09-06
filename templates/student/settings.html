@@ -1,0 +1,128 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Account & Settings | Portal{% endblock %}
+{% block header_title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6 pb-24">
+
+    <!-- PROFILE HERO BANNER (Image 3) -->
+    <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 text-white shadow-xl space-y-4">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-2xl border-2 border-white/20 shadow-inner">
+                {{ request.user.username|first|upper }}
+            </div>
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-black">{{ request.user.get_full_name|default:request.user.username }}</h2>
+                    <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded-full border border-emerald-500/30">✓ Active</span>
+                </div>
+                <p class="text-xs text-slate-300 font-medium">{{ request.user.email }}</p>
+                <div class="flex items-center gap-2 pt-1">
+                    <span class="px-2.5 py-0.5 bg-white/10 rounded-lg text-[10px] font-bold text-blue-200 uppercase tracking-wider">
+                        Parent & Student Account
+                    </span>
+                    <span class="px-2.5 py-0.5 bg-white/10 rounded-lg text-[10px] font-bold text-blue-200 uppercase tracking-wider">
+                        Batch 2026-2027
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT ACADEMIC INFO CARD -->
+    {% if admission %}
+    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Enrolled Academic Details</h3>
+        <div class="grid grid-cols-2 gap-4 text-xs">
+            <div class="p-3 bg-slate-50 rounded-2xl">
+                <span class="text-slate-400 font-bold block mb-1">Registration ID</span>
+                <span class="font-black text-slate-800">{{ admission.registration_id|default:admission.id }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-2xl">
+                <span class="text-slate-400 font-bold block mb-1">Course</span>
+                <span class="font-black text-slate-800">{{ admission.application.course.name }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-2xl">
+                <span class="text-slate-400 font-bold block mb-1">Assigned Class</span>
+                <span class="font-black text-slate-800">{{ admission.assigned_class.name|default:"Not Assigned" }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-2xl">
+                <span class="text-slate-400 font-bold block mb-1">Institute</span>
+                <span class="font-black text-slate-800">{{ admission.application.institute.name }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SETTINGS ACTION LIST (Matching Image 3) -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden divide-y divide-slate-100">
+        <a href="{% url 'student_profile' %}" class="flex items-center justify-between p-4 hover:bg-slate-50 transition">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">👤</span>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800">Academic Profile</h4>
+                    <p class="text-[11px] text-slate-400">View student registration details & documents</p>
+                </div>
+            </div>
+            <span class="text-slate-400 font-bold">→</span>
+        </a>
+
+        <a href="{% url 'forgot_password' %}" class="flex items-center justify-between p-4 hover:bg-slate-50 transition">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">🔒</span>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800">Security & Password</h4>
+                    <p class="text-[11px] text-slate-400">Update account password and security details</p>
+                </div>
+            </div>
+            <span class="text-slate-400 font-bold">→</span>
+        </a>
+
+        <div class="flex items-center justify-between p-4">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">🔔</span>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800">Push Notifications</h4>
+                    <p class="text-[11px] text-slate-400">Receive exam and attendance updates</p>
+                </div>
+            </div>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full">Enabled</span>
+        </div>
+
+        <a href="/logout/" class="flex items-center justify-between p-4 hover:bg-rose-50 transition group">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">🚪</span>
+                <div>
+                    <h4 class="text-xs font-bold text-rose-600">Sign Out</h4>
+                    <p class="text-[11px] text-slate-400">Safely log out from this session</p>
+                </div>
+            </div>
+            <span class="text-rose-400 font-bold">→</span>
+        </a>
+    </div>
+
+</div>
+
+<!-- BOTTOM BAR FOR EASY NAVIGATION -->
+<div class="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 p-3 z-40">
+    <div class="max-w-md mx-auto flex items-center justify-around">
+        <a href="{% url 'student_dashboard' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[10px] font-bold">Home</span>
+        </a>
+        <a href="{% url 'student_attendance' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-bold">Attendance</span>
+        </a>
+        <a href="{% url 'student_fees' %}" class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span class="text-[10px] font-bold">Fees</span>
+        </a>
+        <a href="{% url 'student_settings' %}" class="flex flex-col items-center gap-1 text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+            <span class="text-[10px] font-bold">Profile</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

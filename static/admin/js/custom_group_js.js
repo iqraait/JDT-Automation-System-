@@ -10,6 +10,9 @@ window.addEventListener('load', function() {
         
         selects.forEach(select => {
             const options = Array.from(select.options);
+            const hasAppSeparator = options.some(opt => opt.text.includes('|'));
+            if (!hasAppSeparator) return;
+
             // Sort by text to group by App | Model
             options.sort((a, b) => a.text.localeCompare(b.text));
             
