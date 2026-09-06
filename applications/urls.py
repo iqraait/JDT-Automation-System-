@@ -11,6 +11,8 @@ urlpatterns = [
     path('fees/', student_fees, name='student_fees'),
     path('settings/', student_settings, name='student_settings'),
     path('upload-document/', upload_document, name='upload_document'),
+    path('upload-photo/', upload_student_photo, name='upload_student_photo'),
+    path('settle-fee/', settle_student_fee, name='settle_student_fee'),
     path('apply/', apply_course, name='apply_course'),
     path('my-applications/', my_applications, name='my_applications'),
 

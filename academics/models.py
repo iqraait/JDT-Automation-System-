@@ -331,11 +331,18 @@ class AcademicResult(models.Model):
 class StudentDocument(models.Model):
     admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='uploaded_documents')
     title = models.CharField(max_length=255) # e.g. "Identity Card Copy"
+    doc_type = models.CharField(max_length=100, default='Other', blank=True, null=True, help_text="Category: Student ID Card, Marksheet, TC, etc.")
     file = models.FileField(upload_to='student_docs/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_student_documents')
+    is_teacher_uploaded = models.BooleanField(default=False, db_index=True, help_text="True if uploaded by teacher/institute staff")
+
+    class Meta:
+        ordering = ['-uploaded_at']
 
     def __str__(self):
-        return f"{self.title} - {self.admission.application.student.username}"
+        return f"{self.title} ({self.doc_type}) - {self.admission.application.student.username}"
+
 
 
 class ClassYear(models.Model):

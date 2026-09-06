@@ -10,11 +10,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
 from academics.models import (
-    Course, FormField, FormSection, CourseCategory, CourseSubCategory, 
+    Course, FormField, FormSection, CourseCategory, CourseSubCategory, ApplicationFeeType,
     ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument,
     ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment
 )
-from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission
+from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission, TrashedStudent
 from .models import Institute, AcademicYear
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -270,7 +270,7 @@ def admission_list(request):
 
     # Paginate Applications QuerySet FIRST
     from django.core.paginator import Paginator
-    paginator = Paginator(applications, 20)
+    paginator = Paginator(applications, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -942,6 +942,7 @@ def register_manual(request):
         discount_reason = request.POST.get('discount_reason')
         final_fee = request.POST.get('final_fee')
         
+        admission_quota = request.POST.get('admission_quota', 'Merit')
         care_of = request.POST.get('care_of', '') or ''
         guardian_name = request.POST.get('guardian_name', '') or ''
         guardian_mobile = request.POST.get('guardian_mobile', '') or ''
@@ -961,6 +962,7 @@ def register_manual(request):
         adm = Admission.objects.create(
             application=application,
             registration_id=registration_id,
+            admission_quota=admission_quota,
             date_of_join=doj_obj,
             selected_course_id=course_id,
             fee_category=app_fee_cat,
@@ -977,6 +979,17 @@ def register_manual(request):
             guardian_mobile=guardian_mobile,
             relationship=relationship,
             guardian_address=guardian_address
+        )
+
+        # Create Payment record with status 'success' for student register & dashboard integration
+        Payment.objects.get_or_create(
+            application=application,
+            defaults={
+                'amount': final_fee if final_fee else (app_fee_cat.total_fee if app_fee_cat else 0.00),
+                'status': 'success',
+                'payment_mode': 'CASH',
+                'payment_date': doj_obj
+            }
         )
         
         
@@ -1009,9 +1022,18 @@ def register_manual(request):
 
 
 # =========================
-# LOGIN
+# LOGIN & ROOT REDIRECT
 # =========================
+def root_institute_view(request):
+    if request.user.is_authenticated and (getattr(request.user, 'role', '') == 'institute' or hasattr(request.user, 'institute')):
+        return redirect('/institute/dashboard/')
+    return redirect('/institute/login/')
+
+
 def institute_login(request):
+    if request.user.is_authenticated and getattr(request.user, 'role', '') == 'institute':
+        return redirect('/institute/dashboard/')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -1969,7 +1991,7 @@ def institute_dashboard(request):
         )
 
     # Performance: Pagination
-    paginator = Paginator(apps, 20)
+    paginator = Paginator(apps, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -2368,34 +2390,7 @@ def edit_application(request, app_id):
         'subjects': subjects,
     })
 
-# ✅ STUDENT STATUS UPDATE (AJAX)
-@login_required
-def update_student_status(request, admission_id):
-    if request.method == 'POST':
-        admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
-        status = request.POST.get('status')
-        reason = request.POST.get('reason') # Dashboard JS sends 'reason'
-
-        if status:
-            old_status = admission.status
-            admission.status = status
-            admission.status_reason = reason
-            admission.save()
-            
-            # Trigger Email if status changed
-            if old_status != status:
-                from .models import log_activity
-                log_activity(
-                    user=request.user,
-                    module="Admissions",
-                    activity=f"Updated status of student {admission.application.display_name} from {old_status} to {status} (Reason: {reason or 'none'})",
-                    institute=admission.application.institute
-                )
-                send_admission_status_email(admission, status)
-                
-            return JsonResponse({'status': 'success', 'message': 'Status updated successfully'})
-        
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+# Note: update_student_status is defined below under Student List section
 
 
 # ✅ EXCEL TEMPLATE DOWNLOAD
@@ -2406,13 +2401,14 @@ def download_excel_template(request):
     ws.title = "Student Import Template"
     
     headers = [
-        "Student Name (*)", "Mobile (*)", "Email (*)", "Registration ID (*)", 
-        "Course Code (*)", "Academic Year (*)", "Date of Join (YYYY-MM-DD) (*)", 
-        "Fee Category Name (*)", "Joining Period (Optional)", 
-        "Guardian Name (*)", "Guardian Mobile (*)", "Relationship (*)", "Guardian Address (*)"
+        "Full Name *", "Mobile Number *", "Email Address *", "Registration ID *", 
+        "Date of Join *", "Admission Quota *", "Academic Session *", "Select Course *",
+        "Fee Category", "Assign Student to Class", "Assign Student to Class Year / Semester",
+        "Joining Period (Excludes Previous Fees)",
+        "Care Of", "Guardian Name", "Guardian Mobile", "Relationship", "Guardian Address"
     ]
     
-    # Add dynamic form fields as columns
+    # Add dynamic form fields as extra columns if available
     dynamic_fields = FormField.objects.filter(form__course__institute=request.user.institute).values_list('label', flat=True).distinct()
     for field_label in dynamic_fields:
         if field_label not in headers:
@@ -2420,6 +2416,15 @@ def download_excel_template(request):
 
     ws.append(headers)
     
+    # Add sample row matching requested fields
+    sample_row = [
+        "ABC", "9856565656", "abc@gmail.com", "123",
+        "01-06-2026", "Management", "2026-27", "Bachelor of Pharmacy",
+        "GENERAL", "B.Pharm", "1 SEMESTER", "1st Year",
+        "", "", "", "", ""
+    ]
+    ws.append(sample_row)
+
     # Adjust column widths
     for i, _ in enumerate(headers, 1):
         ws.column_dimensions[get_column_letter(i)].width = 25
@@ -2439,72 +2444,300 @@ def excel_import_students(request):
             return JsonResponse({'status': 'error', 'message': 'No file uploaded'}, status=400)
 
         try:
-            wb = load_workbook(excel_file)
+            wb = load_workbook(excel_file, data_only=True)
             ws = wb.active
-            # Identify headers for dynamic fields
-            headers = [cell.value for cell in ws[1]]
-            field_cols = {}
-            for i, header in enumerate(headers):
-                if header and header.startswith("Field: "):
-                    field_cols[header.replace("Field: ", "")] = i
-
-            rows = list(ws.iter_rows(min_row=2, values_only=True))
             
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows or len(rows) < 2:
+                return JsonResponse({'status': 'error', 'message': 'The Excel file contains no data rows.'}, status=400)
+
+            raw_headers = rows[0]
+            header_map = {}
+            field_cols = {}
+
+            for idx, h in enumerate(raw_headers):
+                if not h:
+                    continue
+                h_str = str(h).strip()
+                h_clean = h_str.lower().replace('*', '').replace('(', '').replace(')', '').strip()
+                
+                if h_str.startswith("Field: "):
+                    field_cols[h_str.replace("Field: ", "").strip()] = idx
+                elif 'full name' in h_clean or 'student name' in h_clean:
+                    header_map['full_name'] = idx
+                elif 'mobile' in h_clean or 'phone' in h_clean:
+                    header_map['mobile'] = idx
+                elif 'email' in h_clean:
+                    header_map['email'] = idx
+                elif 'registration' in h_clean or 'reg id' in h_clean or 'reg_id' in h_clean:
+                    header_map['registration_id'] = idx
+                elif 'date of join' in h_clean or 'join' in h_clean or 'doj' in h_clean:
+                    header_map['date_of_join'] = idx
+                elif 'quota' in h_clean:
+                    header_map['admission_quota'] = idx
+                elif 'academic session' in h_clean or 'academic year' in h_clean or 'session' in h_clean:
+                    header_map['academic_session'] = idx
+                elif 'select course' in h_clean or 'course' in h_clean:
+                    header_map['course'] = idx
+                elif 'fee category' in h_clean:
+                    header_map['fee_category'] = idx
+                elif 'joining period' in h_clean or 'period' in h_clean:
+                    header_map['joining_period'] = idx
+                elif 'class year' in h_clean or 'semester' in h_clean:
+                    header_map['class_year'] = idx
+                elif 'class' in h_clean:
+                    header_map['class'] = idx
+                elif 'care of' in h_clean:
+                    header_map['care_of'] = idx
+                elif 'guardian name' in h_clean:
+                    header_map['guardian_name'] = idx
+                elif 'guardian mobile' in h_clean:
+                    header_map['guardian_mobile'] = idx
+                elif 'relationship' in h_clean:
+                    header_map['relationship'] = idx
+                elif 'guardian address' in h_clean or 'address' in h_clean:
+                    header_map['guardian_address'] = idx
+
+            data_rows = rows[1:]
             report = {'success': 0, 'errors': []}
             institute = request.user.institute
+            seen_reg_ids_in_batch = set()
 
-            for row_idx, row in enumerate(rows, 2):
-                if not any(row): continue # Skip empty rows
+            def get_val(row_tuple, key, default_idx=None):
+                if key in header_map and header_map[key] < len(row_tuple):
+                    v = row_tuple[header_map[key]]
+                    if v is not None and str(v).strip() != "":
+                        return v
+                if default_idx is not None and default_idx < len(row_tuple):
+                    v = row_tuple[default_idx]
+                    if v is not None and str(v).strip() != "":
+                        return v
+                return None
+
+            for row_idx, row in enumerate(data_rows, start=2):
+                if not any(row):
+                    continue # Skip blank rows
 
                 try:
-                    # Unpack base fields (ensure we have enough columns)
-                    if len(row) < 13:
-                        report['errors'].append(f"Row {row_idx}: Insufficient columns.")
-                        continue
-                        
-                    name, mobile, email, reg_id, c_code, a_year, doj, f_cat, period, g_name, g_mobile, rel, g_addr = row[:13]
-                    
-                    # Validation & Mapping
-                    if not all([name, mobile, email, reg_id, c_code, a_year, doj, f_cat, g_name, g_mobile, rel, g_addr]):
-                        report['errors'].append(f"Row {row_idx}: Missing mandatory fields.")
+                    full_name = str(get_val(row, 'full_name', 0) or '').strip()
+                    mobile_raw = get_val(row, 'mobile', 1)
+                    if isinstance(mobile_raw, (float, int)):
+                        mobile = str(int(mobile_raw)).strip()
+                    else:
+                        mobile = str(mobile_raw or '').strip()
+
+                    email = str(get_val(row, 'email', 2) or '').strip()
+                    reg_id = str(get_val(row, 'registration_id', 3) or '').strip()
+                    doj_raw = get_val(row, 'date_of_join', 4)
+                    quota_raw = str(get_val(row, 'admission_quota', 5) or '').strip()
+                    session_raw = str(get_val(row, 'academic_session', 6) or '').strip()
+                    course_raw = str(get_val(row, 'course', 7) or '').strip()
+                    fee_cat_raw = str(get_val(row, 'fee_category', 8) or '').strip()
+                    class_raw = str(get_val(row, 'class', 9) or '').strip()
+                    class_year_raw = str(get_val(row, 'class_year', 10) or '').strip()
+                    joining_period_raw = str(get_val(row, 'joining_period', 11) or '').strip()
+
+                    care_of = str(get_val(row, 'care_of', 12) or '').strip()
+                    g_name = str(get_val(row, 'guardian_name', 13) or '').strip()
+                    g_mobile_raw = get_val(row, 'guardian_mobile', 14)
+                    if isinstance(g_mobile_raw, (float, int)):
+                        g_mobile = str(int(g_mobile_raw)).strip()
+                    else:
+                        g_mobile = str(g_mobile_raw or '').strip()
+                    rel = str(get_val(row, 'relationship', 15) or '').strip()
+                    g_addr = str(get_val(row, 'guardian_address', 16) or '').strip()
+
+                    if not full_name:
+                        report['errors'].append(f"Row {row_idx}: Missing Full Name.")
                         continue
 
-                    # Unique Registration ID check
-                    if Admission.objects.filter(registration_id=reg_id).exists():
-                        report['errors'].append(f"Row {row_idx}: Registration ID '{reg_id}' already exists.")
+                    if not mobile:
+                        mobile = f"STU{row_idx}{datetime.datetime.now().strftime('%M%S')}"
+
+                    if not reg_id:
+                        reg_id = f"REG_{mobile}"
+
+                    # Strict Registration ID duplicate validation
+                    if Admission.objects.filter(registration_id=reg_id).exists() or reg_id in seen_reg_ids_in_batch:
+                        report['errors'].append(f"Row {row_idx}: Duplicate Registration ID '{reg_id}'. This Registration ID already exists in the system or is duplicated in the file.")
                         continue
 
-                    course = Course.objects.filter(institute=institute, course_code=c_code).first()
+                    seen_reg_ids_in_batch.add(reg_id)
+
+                    # Course lookup with flexible fallback
+                    course = None
+                    if course_raw:
+                        course = Course.objects.filter(institute=institute).filter(
+                            Q(name__iexact=course_raw) | Q(course_code__iexact=course_raw)
+                        ).first()
+                        if not course:
+                            course = Course.objects.filter(institute=institute).filter(
+                                Q(name__icontains=course_raw) | Q(course_code__icontains=course_raw)
+                            ).first()
+                        if not course:
+                            cls_match = Class.objects.filter(institute=institute, name__icontains=course_raw).first()
+                            if cls_match and cls_match.course:
+                                course = cls_match.course
+
                     if not course:
-                        report['errors'].append(f"Row {row_idx}: Course code '{c_code}' not found.")
+                        course = Course.objects.filter(institute=institute).first()
+
+                    if not course:
+                        report['errors'].append(f"Row {row_idx}: No course found for institute.")
                         continue
 
-                    fee_cat = FeeCategory.objects.filter(institute=institute, name=f_cat).first()
-                    if not fee_cat:
-                        report['errors'].append(f"Row {row_idx}: Fee Category '{f_cat}' not found.")
-                        continue
-                    
-                    year_obj = AcademicYear.objects.filter(name=a_year).first()
+                    # Academic Year lookup
+                    year_obj = None
+                    if session_raw:
+                        year_obj = AcademicYear.objects.filter(institute=institute).filter(
+                            Q(name__iexact=session_raw) | Q(id__iexact=session_raw) | Q(name__icontains=session_raw)
+                        ).first()
                     if not year_obj:
-                        report['errors'].append(f"Row {row_idx}: Academic Year '{a_year}' not found.")
-                        continue
+                        year_obj = AcademicYear.objects.filter(institute=institute, is_active=True).first()
 
-                    # Create Records
-                    user, _ = User.objects.get_or_create(
+                    # Date of Join parsing
+                    if isinstance(doj_raw, (datetime.date, datetime.datetime)):
+                        doj_obj = doj_raw.date() if isinstance(doj_raw, datetime.datetime) else doj_raw
+                    elif isinstance(doj_raw, (int, float)):
+                        try:
+                            from openpyxl.utils.datetime import from_excel
+                            doj_obj = from_excel(doj_raw).date()
+                        except Exception:
+                            doj_obj = datetime.date.today()
+                    elif doj_raw:
+                        doj_str = str(doj_raw).strip()
+                        parsed_date = None
+                        for fmt in ['%d-%m-%Y', '%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d.%m.%Y']:
+                            try:
+                                parsed_date = datetime.datetime.strptime(doj_str, fmt).date()
+                                break
+                            except ValueError:
+                                pass
+                        doj_obj = parsed_date or datetime.date.today()
+                    else:
+                        doj_obj = datetime.date.today()
+
+                    # Quota
+                    admission_quota = quota_raw if quota_raw in ['Merit', 'Management', 'NRI'] else 'Merit'
+
+                    # Fee Category lookup
+                    fee_cat_master = None
+                    app_fee_cat = None
+                    app_fee_type = None
+                    if fee_cat_raw:
+                        fee_cat_master = FeeCategoryMaster.objects.filter(is_active=True).filter(
+                            Q(name__iexact=fee_cat_raw) | Q(name__icontains=fee_cat_raw)
+                        ).first()
+                        app_fee_cat = FeeCategory.objects.filter(course=course).filter(
+                            Q(name__iexact=fee_cat_raw) | Q(name__icontains=fee_cat_raw)
+                        ).first()
+                        app_fee_type = ApplicationFeeType.objects.filter(form__course=course).filter(
+                            Q(name__iexact=fee_cat_raw) | Q(name__icontains=fee_cat_raw)
+                        ).first()
+
+                    if not app_fee_cat and course:
+                        app_fee_cat = FeeCategory.objects.filter(course=course).first()
+
+                    # Joining Period lookup
+                    joining_period_obj = None
+                    if joining_period_raw:
+                        jp_qs = CourseSubCategory.objects.filter(
+                            Q(name__iexact=joining_period_raw) | Q(name__icontains=joining_period_raw)
+                        )
+                        if course and course.category:
+                            jp_qs = jp_qs.filter(category=course.category)
+                        joining_period_obj = jp_qs.first()
+
+                    # Class lookup
+                    assigned_class = None
+                    if class_raw:
+                        assigned_class = Class.objects.filter(institute=institute).filter(
+                            Q(name__iexact=class_raw) | Q(name__icontains=class_raw)
+                        ).first()
+                    if not assigned_class and course:
+                        assigned_class = Class.objects.filter(institute=institute, course=course).first()
+
+                    # Class Year / Semester lookup
+                    assigned_class_year = None
+                    if class_year_raw:
+                        cy_qs = ClassYear.objects.filter(is_active=True)
+                        if assigned_class:
+                            cy_qs = cy_qs.filter(class_obj=assigned_class)
+                        assigned_class_year = cy_qs.filter(
+                            Q(name__iexact=class_year_raw) | Q(name__icontains=class_year_raw)
+                        ).first()
+
+                    # Create/get User
+                    user, created = User.objects.get_or_create(
                         username=mobile,
-                        defaults={'email': email, 'role': 'student', 'first_name': name}
+                        defaults={'email': email or f"{mobile}@jdt.local", 'role': 'student', 'first_name': full_name}
                     )
-                    
+                    if not created:
+                        if full_name and user.first_name != full_name:
+                            user.first_name = full_name
+                        if email and user.email != email:
+                            user.email = email
+                        user.role = 'student'
+                        user.save()
+
+                    # Create Application
                     app = Application.objects.create(
-                        student=user, institute=institute, academic_year=year_obj, course=course, status='selected'
+                        student=user,
+                        institute=institute,
+                        academic_year=year_obj,
+                        course=course,
+                        selected_fee_type=app_fee_type,
+                        status='selected'
                     )
 
-                    # Save Dynamic Fields
+                    # Calculate total fee
+                    total_fee_val = app_fee_cat.total_fee if app_fee_cat else (app_fee_type.amount if app_fee_type else 0.00)
+
+                    # Create Payment record with status 'success'
+                    Payment.objects.get_or_create(
+                        application=app,
+                        defaults={
+                            'amount': total_fee_val,
+                            'status': 'success',
+                            'payment_mode': 'CASH',
+                            'payment_date': doj_obj
+                        }
+                    )
+
+                    # Snapshot standard & dynamic field values for application audit & searching
+                    standard_field_snapshots = [
+                        ("Full Name", full_name),
+                        ("Mobile Number", mobile),
+                        ("Email Address", email),
+                        ("Registration ID", reg_id),
+                        ("Date of Join", str(doj_obj)),
+                        ("Admission Quota", admission_quota),
+                        ("Academic Session", session_raw or (year_obj.name if year_obj else '')),
+                        ("Course", course.name if course else course_raw),
+                        ("Fee Category", fee_cat_raw),
+                        ("Assign Student to Class", assigned_class.name if assigned_class else class_raw),
+                        ("Assign Student to Class Year / Semester", assigned_class_year.name if assigned_class_year else class_year_raw),
+                        ("Joining Period", joining_period_obj.name if joining_period_obj else joining_period_raw),
+                    ]
+
+                    for label, val in standard_field_snapshots:
+                        if val:
+                            matching_form_field = FormField.objects.filter(form__course=course, label__iexact=label).first()
+                            ApplicationFieldValue.objects.create(
+                                application=app,
+                                field=matching_form_field,
+                                field_label=matching_form_field.label if matching_form_field else label,
+                                field_type=matching_form_field.field_type if matching_form_field else 'text',
+                                value=str(val)
+                            )
+
+                    # Save Extra Dynamic Fields if present
                     form_fields = FormField.objects.filter(form__course=course)
+                    standard_labels = [s[0].lower() for s in standard_field_snapshots]
                     for f in form_fields:
-                        if f.label in field_cols:
+                        if f.label in field_cols and f.label.lower() not in standard_labels:
                             val = row[field_cols[f.label]]
-                            if val:
+                            if val is not None:
                                 ApplicationFieldValue.objects.create(
                                     application=app,
                                     field=f,
@@ -2512,14 +2745,29 @@ def excel_import_students(request):
                                     field_type=f.field_type,
                                     value=str(val)
                                 )
-                    
+
+                    # Create Admission Record
                     Admission.objects.create(
-                        application=app, registration_id=reg_id, date_of_join=doj,
-                        selected_course=course, fee_category=fee_cat,
-                        calculated_fee=fee_cat.total_fee, final_fee=fee_cat.total_fee,
-                        guardian_name=g_name, guardian_mobile=g_mobile,
-                        relationship=rel, guardian_address=g_addr
+                        application=app,
+                        registration_id=reg_id,
+                        admission_quota=admission_quota,
+                        date_of_join=doj_obj,
+                        selected_course=course,
+                        joining_period=joining_period_obj,
+                        fee_category=app_fee_cat,
+                        assigned_fee_category=fee_cat_master,
+                        assigned_class=assigned_class,
+                        assigned_class_year=assigned_class_year,
+                        calculated_fee=total_fee_val,
+                        discount_amount=0.00,
+                        final_fee=total_fee_val,
+                        care_of=care_of,
+                        guardian_name=g_name or full_name,
+                        guardian_mobile=g_mobile or mobile,
+                        relationship=rel or '',
+                        guardian_address=g_addr or ''
                     )
+
                     report['success'] += 1
 
                 except Exception as e:
@@ -2546,7 +2794,7 @@ def user_logout(request):
 @login_required
 def student_list_view(request):
     institute = request.user.institute
-    admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course')
+    admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course').prefetch_related('uploaded_documents__uploaded_by')
 
     # Filters
     form_id = request.GET.get('form_id') # Search by Admission No / Register Number
@@ -2596,7 +2844,7 @@ def student_list_view(request):
     class_years = ClassYear.objects.filter(class_obj__in=classes, is_active=True)
 
     from django.core.paginator import Paginator
-    paginator = Paginator(admissions, 20)
+    paginator = Paginator(admissions, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -2613,8 +2861,8 @@ def student_list_view(request):
 def update_student_status(request, admission_id):
     admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
     
-    new_status = request.GET.get('status')
-    reason = request.GET.get('reason', '')
+    new_status = request.POST.get('status') or request.GET.get('status')
+    reason = request.POST.get('reason') or request.POST.get('deletion_reason') or request.GET.get('reason', '').strip()
 
     if new_status in dict(Admission.ADMISSION_STATUS):
         old_status = admission.status
@@ -2623,6 +2871,34 @@ def update_student_status(request, admission_id):
             admission.status_reason = reason
         admission.save()
         
+        # If moving to Trash, create entry in TrashedStudent trust table for backend archiving
+        if new_status == 'trashed':
+            archived_info = {
+                'registration_id': admission.registration_id,
+                'student_name': admission.application.display_name,
+                'mobile': admission.application.student.username,
+                'email': admission.application.student.email,
+                'course': admission.selected_course.name if admission.selected_course else None,
+                'date_of_join': str(admission.date_of_join) if admission.date_of_join else None,
+                'guardian_name': admission.guardian_name,
+                'guardian_mobile': admission.guardian_mobile,
+                'care_of': admission.care_of,
+                'deletion_reason': reason,
+                'deleted_by': request.user.username,
+            }
+            TrashedStudent.objects.create(
+                admission=admission,
+                registration_id=admission.registration_id or f"ADM_{admission.id}",
+                student_name=admission.application.display_name or admission.application.student.username,
+                mobile=admission.application.student.username,
+                email=admission.application.student.email,
+                course_name=admission.selected_course.name if admission.selected_course else "N/A",
+                institute_name=admission.application.institute.name if admission.application.institute else "N/A",
+                deletion_reason=reason or "Moved to Trash",
+                deleted_by=request.user,
+                archived_data=json.dumps(archived_info)
+            )
+
         if old_status != new_status:
             from .models import log_activity
             log_activity(
@@ -2631,9 +2907,19 @@ def update_student_status(request, admission_id):
                 activity=f"Updated status of student {admission.application.display_name} from {old_status} to {new_status} (Reason: {reason or 'none'})",
                 institute=admission.application.institute
             )
+            try:
+                send_admission_status_email(admission, new_status)
+            except Exception:
+                pass
             
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (hasattr(request, 'is_ajax') and request.is_ajax()):
+            return JsonResponse({'status': 'success', 'message': f"Student status updated to {new_status}"})
+
         messages.success(request, f"Status updated for {admission.application.student.first_name or admission.application.student.username}")
+        return redirect(request.META.get('HTTP_REFERER', 'student_list'))
     
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (hasattr(request, 'is_ajax') and request.is_ajax()):
+        return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
     return redirect('student_list')
 
 @login_required
@@ -4234,4 +4520,260 @@ def activity_logs_view(request):
         'date_from': date_from,
         'date_to': date_to,
     })
+
+
+@login_required
+def manage_attendance(request):
+    institute = request.user.institute if hasattr(request.user, 'institute') else None
+    if not institute:
+        messages.error(request, "No Institute context found.")
+        return redirect('/')
+
+    from academics.models import Class, StudentAttendance
+    classes = Class.objects.filter(institute=institute).select_related('course')
+    
+    selected_class_id = request.GET.get('class_id')
+    selected_date_str = request.GET.get('date', datetime.date.today().strftime('%Y-%m-%d'))
+    
+    try:
+        selected_date = datetime.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    except Exception:
+        selected_date = datetime.date.today()
+        selected_date_str = selected_date.strftime('%Y-%m-%d')
+
+    selected_class = None
+    admissions = []
+    
+    if selected_class_id:
+        selected_class = classes.filter(id=selected_class_id).first()
+        if selected_class:
+            admissions = list(Admission.objects.filter(
+                assigned_class=selected_class, status='active'
+            ).select_related('application__student'))
+
+    if request.method == 'POST' and selected_class:
+        att_date_str = request.POST.get('attendance_date', selected_date_str)
+        try:
+            att_date = datetime.datetime.strptime(att_date_str, '%Y-%m-%d').date()
+        except Exception:
+            att_date = datetime.date.today()
+
+        for adm in admissions:
+            status_val = request.POST.get(f'status_{adm.id}', 'present')
+            remarks_val = request.POST.get(f'remarks_{adm.id}', '')
+            StudentAttendance.objects.update_or_create(
+                admission=adm,
+                date=att_date,
+                defaults={
+                    'status': status_val,
+                    'remarks': remarks_val,
+                    'marked_by': request.user
+                }
+            )
+        messages.success(request, f"Attendance for {selected_class.name} on {att_date} saved successfully!")
+        return redirect(f"{request.path}?class_id={selected_class.id}&date={att_date_str}")
+
+    # Fetch existing attendance logs for the selected date
+    existing_att = {}
+    if selected_class and selected_date:
+        logs = StudentAttendance.objects.filter(
+            admission__assigned_class=selected_class,
+            date=selected_date
+        )
+        for log in logs:
+            existing_att[log.admission_id] = log
+
+    student_rows = []
+    for adm in admissions:
+        log = existing_att.get(adm.id)
+        student_rows.append({
+            'admission': adm,
+            'status': log.status if log else 'present',
+            'remarks': log.remarks if log else ''
+        })
+
+    return render(request, 'institute/manage_attendance.html', {
+        'classes': classes,
+        'selected_class': selected_class,
+        'selected_class_id': selected_class_id,
+        'selected_date_str': selected_date_str,
+        'student_rows': student_rows
+    })
+
+
+# =========================
+# TEACHER STUDENT DOCUMENT MANAGEMENT
+# =========================
+
+@login_required
+def upload_student_document_by_teacher(request, admission_id):
+    """
+    Allows institute staff/teachers to upload internal student documents
+    (e.g., Student ID Card, Previous Marksheet, Transfer Certificate, etc.)
+    Hidden from student portal login.
+    """
+    if request.user.role != 'institute':
+        messages.error(request, "Access denied.")
+        return redirect('institute_root')
+
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        doc_type = request.POST.get('doc_type', 'Other').strip()
+        doc_file = request.FILES.get('document_file')
+
+        if not title or not doc_file:
+            messages.error(request, "Please provide both document title and file.")
+        else:
+            doc = StudentDocument.objects.create(
+                admission=admission,
+                title=title,
+                doc_type=doc_type,
+                file=doc_file,
+                uploaded_by=request.user,
+                is_teacher_uploaded=True
+            )
+            messages.success(request, f"Document '{doc.title}' ({doc.doc_type}) uploaded successfully for {admission.application.display_name}!")
+
+    return redirect(request.META.get('HTTP_REFERER', 'student_list'))
+
+
+@login_required
+def delete_student_document_by_teacher(request, doc_id):
+    """
+    Allows teachers/staff to delete an uploaded student document.
+    """
+    if request.user.role != 'institute':
+        messages.error(request, "Access denied.")
+        return redirect('institute_root')
+
+    doc = get_object_or_404(StudentDocument, id=doc_id, admission__application__institute=request.user.institute)
+    title = doc.title
+    if doc.file:
+        doc.file.delete(save=False)
+    doc.delete()
+    messages.success(request, f"Document '{title}' deleted successfully.")
+
+    return redirect(request.META.get('HTTP_REFERER', 'student_list'))
+
+
+# =========================
+# HELPER & MULTI-INSTITUTE SWITCHER
+# =========================
+
+def get_current_institute(request):
+    """
+    Helper function to retrieve the active institute for the logged-in user.
+    Falls back to request.user.institute if not set.
+    """
+    if hasattr(request.user, 'get_active_institute'):
+        inst = request.user.get_active_institute(request)
+        if inst:
+            return inst
+    return getattr(request.user, 'institute', None)
+
+
+@login_required
+def switch_active_institute(request, institute_id):
+    """
+    Switches the active institute context for multi-tagged staff/admin users.
+    """
+    from .models import Institute
+    target_inst = get_object_or_404(Institute, id=institute_id)
+    accessible = request.user.get_accessible_institutes() if hasattr(request.user, 'get_accessible_institutes') else [request.user.institute]
+
+    if request.user.is_superuser or target_inst in accessible:
+        request.session['active_institute_id'] = target_inst.id
+        messages.success(request, f"Switched active institute to '{target_inst.name}'")
+    else:
+        messages.error(request, "You do not have access to that institute.")
+
+    return redirect(request.META.get('HTTP_REFERER', '/institute/dashboard/'))
+
+
+# =========================
+# EMPLOYEE PRIVILEGES & MULTI-INSTITUTE TAGGING MANAGEMENT
+# =========================
+
+@login_required
+def employee_privileges_view(request):
+    """
+    Admin control panel to tag institutes and set module privileges for staff/teachers.
+    """
+    if not (request.user.is_superuser or request.user.is_staff or request.user.has_privilege('perm_employee_privileges')):
+        messages.error(request, "Access denied. Employee Privileges Management requires administrative rights.")
+        return redirect('institute_root')
+
+    from accounts.models import User, UserPrivilege
+    from .models import Institute
+
+    # Search & Filter Users (Only staff/institute role users)
+    user_search = request.GET.get('user_search', '').strip()
+
+    users_qs = User.objects.filter(Q(role='institute') | Q(is_staff=True) | Q(is_superuser=True)).order_by('username')
+    if user_search:
+        users_qs = users_qs.filter(
+            Q(username__icontains=user_search) |
+            Q(first_name__icontains=user_search) |
+            Q(last_name__icontains=user_search) |
+            Q(email__icontains=user_search)
+        )
+
+    selected_user_id = request.GET.get('user_id') or request.POST.get('user_id')
+    selected_user = None
+    if selected_user_id:
+        selected_user = User.objects.filter(id=selected_user_id).first()
+    if not selected_user and users_qs.exists():
+        selected_user = users_qs.first()
+
+    all_institutes = Institute.objects.all().order_by('name')
+
+    # Fetch or create UserPrivilege object
+    user_priv = None
+    if selected_user:
+        user_priv, _ = UserPrivilege.objects.get_or_create(user=selected_user)
+
+    if request.method == 'POST' and selected_user:
+        # 1. Update Primary Default Institute
+        default_inst_id = request.POST.get('default_institute')
+        if default_inst_id:
+            default_inst = Institute.objects.filter(id=default_inst_id).first()
+            if default_inst:
+                selected_user.institute = default_inst
+                selected_user.save()
+
+        # 2. Update Tagged Multi-Institutes
+        tagged_inst_ids = request.POST.getlist('tagged_institutes')
+        tagged_institutes = Institute.objects.filter(id__in=tagged_inst_ids)
+        selected_user.accessible_institutes.set(tagged_institutes)
+
+        # 3. Update Module Privileges
+        perm_fields = [
+            'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
+            'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
+            'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details',
+            'perm_activity_logs', 'perm_system_backup', 'perm_employee_privileges'
+        ]
+
+        for p_field in perm_fields:
+            setattr(user_priv, p_field, request.POST.get(p_field) == 'on')
+        user_priv.save()
+
+        messages.success(request, f"Employee Privileges and Tagged Institutes updated successfully for {selected_user.username}!")
+        return redirect(f"{request.path}?user_id={selected_user.id}")
+
+    # Tagged institutes for selected user
+    user_tagged_inst_ids = list(selected_user.accessible_institutes.values_list('id', flat=True)) if selected_user else []
+
+    return render(request, 'institute/employee_privileges.html', {
+        'users': users_qs,
+        'selected_user': selected_user,
+        'user_priv': user_priv,
+        'all_institutes': all_institutes,
+        'user_tagged_inst_ids': user_tagged_inst_ids,
+        'user_search': user_search,
+    })
+
+
 

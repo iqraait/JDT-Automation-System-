@@ -1,84 +1,115 @@
-/* Pro-Level Permissions Management Styles */
+/* Pro-Level Permissions & Institute Management Styles */
 
-/* 1. Expand the container to show full permission names */
+.form-row.field-accessible_institutes,
+.form-row.field-groups,
+.form-row.field-user_permissions,
+.form-row.field-permissions {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+}
+
+/* 1. Expand the container to show full permission/institute names */
 .selector {
     width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
-    gap: 20px !important;
-    margin: 20px 0 40px 0 !important;
-    background: #fff;
-    padding: 20px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin: 15px 0 25px 0 !important;
+    background: #ffffff !important;
+    padding: 15px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #e2e8f0 !important;
+    box-sizing: border-box !important;
 }
 
 .selector-available, .selector-chosen {
-    flex: 1 !important;
-    width: auto !important;
+    flex: 1 1 0 !important;
+    width: 44% !important;
+    max-width: 45% !important;
+    min-width: 250px !important;
     float: none !important;
+    box-sizing: border-box !important;
 }
 
 /* 2. Style the headers */
 .selector h2 {
-    background: #1a73e8 !important; /* Modern Google Blue */
+    background: #1a73e8 !important; /* Modern Blue */
     color: white !important;
-    padding: 12px 20px !important;
-    border-radius: 12px 12px 0 0 !important;
-    font-size: 12px !important;
+    padding: 10px 16px !important;
+    border-radius: 10px 10px 0 0 !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 0.5px !important;
     margin: 0 !important;
 }
 
-/* 3. Improve the search filter */
+/* 3. Improve search filter */
 .selector .selector-filter {
-    background: #f8f9fa !important;
-    border: 1px solid #e0e0e0 !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
     border-top: none !important;
-    padding: 12px !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
 }
 
 .selector .selector-filter input {
     border-radius: 8px !important;
-    border: 1px solid #ced4da !important;
+    border: 1px solid #cbd5e1 !important;
     padding: 8px 12px !important;
     width: 100% !important;
     font-size: 13px !important;
+    box-sizing: border-box !important;
 }
 
-/* 4. The main permission boxes */
+/* 4. Select boxes - Expand width and text visibility */
 .selector select {
     width: 100% !important;
-    height: 450px !important; /* Taller box */
-    border: 1px solid #e0e0e0 !important;
-    border-radius: 0 0 12px 12px !important;
-    padding: 10px !important;
+    min-width: 100% !important;
+    height: 380px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0 0 10px 10px !important;
+    padding: 8px !important;
     font-size: 13px !important;
-    line-height: 1.8 !important;
-    color: #495057 !important;
+    font-weight: 500 !important;
+    line-height: 1.6 !important;
+    color: #1e293b !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important; /* Enable horizontal scrolling if text is very wide */
 }
 
 .selector select option {
-    padding: 10px 15px !important;
+    padding: 8px 12px !important;
     border-radius: 6px !important;
     margin-bottom: 2px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
 }
 
 .selector select option:hover {
-    background-color: #f1f3f4 !important;
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
 }
 
-/* 5. Center and style the action buttons */
+/* 5. Center chooser action buttons */
 .selector-chooser {
+    flex: 0 0 45px !important;
+    width: 45px !important;
     float: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 15px !important;
-    padding: 0 10px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 0 !important;
     margin: 0 !important;
     list-style: none !important;
+    align-self: center !important;
 }
 
 .selector-chooser li {
@@ -87,16 +118,19 @@
 }
 
 .selector-chooser a {
-    display: block !important;
-    width: 40px !important;
-    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
     background-color: #ffffff !important;
     border: 2px solid #1a73e8 !important;
     border-radius: 50% !important;
-    text-indent: -9999px !important;
+    text-indent: 0 !important;
     position: relative !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08) !important;
+    text-decoration: none !important;
 }
 
 .selector-chooser a:hover {
@@ -104,7 +138,6 @@
     transform: scale(1.1);
 }
 
-/* Custom Arrows for the buttons */
 .selector-add::after {
     content: "→";
     position: absolute;
@@ -114,7 +147,7 @@
     text-indent: 0;
     color: #1a73e8;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .selector-remove::after {
@@ -126,7 +159,7 @@
     text-indent: 0;
     color: #1a73e8;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .selector-chooser a:hover::after {
@@ -136,7 +169,7 @@
 /* footer links */
 .selector .selector-available a, .selector .selector-chosen a {
     display: inline-block !important;
-    margin-top: 15px !important;
+    margin-top: 10px !important;
     font-weight: bold !important;
     color: #1a73e8 !important;
     text-decoration: none !important;

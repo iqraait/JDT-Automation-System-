@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    path('', root_institute_view, name='institute_root'),
     path('login/', institute_login, name='institute_login'),
     path('logout/', user_logout, name='institute_logout'),
     path('dashboard/', institute_dashboard),
@@ -30,9 +31,15 @@ urlpatterns = [
     path('load-form-fields/', load_form_fields, name='load_form_fields'),
     path('load-exam-subjects/', load_exam_subjects, name='load_exam_subjects'),
 
-    # ✅ NEW: Student List
+    # ✅ NEW: Multi-Institute Switcher & Employee Privileges
+    path('switch-institute/<int:institute_id>/', switch_active_institute, name='switch_active_institute'),
+    path('employee-privileges/', employee_privileges_view, name='employee_privileges'),
+
+    # ✅ NEW: Student List & Teacher Student Document Upload
     path('student-list/', student_list_view, name='student_list'),
     path('student-list/export/', export_students_excel, name='export_students_excel'),
+    path('student/<int:admission_id>/documents/upload/', upload_student_document_by_teacher, name='upload_student_document_by_teacher'),
+    path('student/document/<int:doc_id>/delete/', delete_student_document_by_teacher, name='delete_student_document_by_teacher'),
 
     # ✅ NEW: Payment Details
     path('payment-list/', payment_list_view, name='payment_list'),

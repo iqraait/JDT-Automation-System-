@@ -533,6 +533,53 @@
         if (input.files[0]) info.innerHTML = `<p class="text-blue-600 font-black">${input.files[0].name}</p>`;
     }
 
+    const importFormEl = document.getElementById('importForm');
+    if (importFormEl) {
+        importFormEl.onsubmit = function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('excel_file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Please select an Excel file to upload.");
+                return;
+            }
+            const formData = new FormData();
+            formData.append('excel_file', fileInput.files[0]);
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Processing File...";
+
+            fetch("{% url 'excel_import_students' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+                if (data.status === 'success') {
+                    let msg = `Successfully imported ${data.report.success} student(s).`;
+                    if (data.report.errors && data.report.errors.length > 0) {
+                        msg += `\n\nNotes/Errors:\n` + data.report.errors.join('\n');
+                    }
+                    alert(msg);
+                    window.location.href = "{% url 'student_list' %}";
+                } else {
+                    alert('Import Failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+                alert('An error occurred during upload: ' + err.message);
+            });
+        };
+    }
+
     // Modal close logic
     window.onkeydown = (e) => { if(e.key === "Escape") document.getElementById('importModal').classList.add('hidden'); };
 

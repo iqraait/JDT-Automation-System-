@@ -429,3 +429,27 @@ class Admission(models.Model):
 
     def __str__(self):
         return f"{self.register_number or self.registration_id} - {self.guardian_name}"
+
+
+# ✅ TRASHED STUDENT TRUST TABLE (BACKEND ARCHIVE FOR READMISSION)
+class TrashedStudent(models.Model):
+    admission = models.ForeignKey(Admission, on_delete=models.SET_NULL, related_name='trash_archives', null=True, blank=True)
+    registration_id = models.CharField(max_length=100)
+    student_name = models.CharField(max_length=255)
+    mobile = models.CharField(max_length=50, blank=True, null=True)
+    email = models.CharField(max_length=255, blank=True, null=True)
+    course_name = models.CharField(max_length=255, blank=True, null=True)
+    institute_name = models.CharField(max_length=255, blank=True, null=True)
+    deletion_reason = models.TextField()
+    deleted_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True)
+    deleted_at = models.DateTimeField(auto_now_add=True)
+    
+    archived_data = models.TextField(blank=True, null=True, help_text="JSON snapshot of student details for future readmission")
+
+    class Meta:
+        verbose_name = "Trashed Student Archive"
+        verbose_name_plural = "Trashed Student Archives"
+        ordering = ['-deleted_at']
+
+    def __str__(self):
+        return f"Trashed: {self.student_name} ({self.registration_id}) - Reason: {self.deletion_reason[:30]}"
