@@ -4597,27 +4597,22 @@ def manage_attendance(request):
     existing_att = {}
     if selected_class and selected_date:
         logs = StudentAttendance.objects.filter(
-            admission__assigned_class=selected_class,
             date=selected_date
         )
         for log in logs:
             existing_att[log.admission_id] = log
 
-    student_rows = []
     for adm in admissions:
         log = existing_att.get(adm.id)
-        student_rows.append({
-            'admission': adm,
-            'status': log.status if log else 'present',
-            'remarks': log.remarks if log else ''
-        })
+        adm.current_attendance_status = log.status if log else 'present'
+        adm.current_attendance_remarks = log.remarks if log else ''
 
     return render(request, 'institute/manage_attendance.html', {
         'classes': classes,
         'selected_class': selected_class,
         'selected_class_id': selected_class_id,
         'selected_date_str': selected_date_str,
-        'student_rows': student_rows
+        'admissions': admissions,
     })
 
 
