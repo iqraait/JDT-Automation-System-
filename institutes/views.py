@@ -3163,16 +3163,16 @@ def enter_academic_results(request):
     subjects = []
 
     if request.GET.get('class_id'):
-        selected_class = get_object_or_404(Class, id=request.GET.get('class_id'), institute=institute)
-        subjects = selected_class.subjects.all()
-        if not subjects.exists():
-            subjects = Subject.objects.filter(
-                Q(classes=selected_class) | Q(course=selected_class.course, institute=institute)
-            ).distinct()
-        students = Admission.objects.filter(
-            Q(assigned_class=selected_class) | Q(assigned_class__isnull=True, selected_course=selected_class.course),
-            application__institute=institute
-        ).exclude(status='trashed').select_related('application__student')
+        selected_class = Class.objects.filter(id=request.GET.get('class_id')).first()
+        if selected_class:
+            subjects = selected_class.subjects.all()
+            if not subjects.exists():
+                subjects = Subject.objects.filter(
+                    Q(classes=selected_class) | Q(course=selected_class.course)
+                ).distinct()
+            students = Admission.objects.filter(
+                Q(assigned_class=selected_class) | Q(assigned_class__isnull=True, selected_course=selected_class.course)
+            ).exclude(status='trashed').select_related('application__student')
 
     if request.GET.get('period_id'):
         selected_period = get_object_or_404(CourseSubCategory, id=request.GET.get('period_id'))
@@ -4565,11 +4565,10 @@ def manage_attendance(request):
     admissions = []
     
     if selected_class_id:
-        selected_class = classes.filter(id=selected_class_id).first()
+        selected_class = Class.objects.filter(id=selected_class_id).first()
         if selected_class:
             admissions = list(Admission.objects.filter(
-                Q(assigned_class=selected_class) | Q(assigned_class__isnull=True, selected_course=selected_class.course),
-                application__institute=institute
+                Q(assigned_class=selected_class) | Q(assigned_class__isnull=True, selected_course=selected_class.course)
             ).exclude(status='trashed').select_related('application__student'))
 
     if request.method == 'POST' and selected_class:
