@@ -34,6 +34,27 @@ from core.utils import generate_application_pdf
 User = get_user_model()
 
 
+def get_current_institute(request):
+    """
+    Helper function to retrieve the active institute for the logged-in user.
+    Respects active_institute_id stored in session when switching institutes.
+    Falls back to request.user.institute or Institute.objects.first().
+    """
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
+        return None
+    if hasattr(request.user, 'get_active_institute'):
+        inst = request.user.get_active_institute(request)
+        if inst:
+            return inst
+    inst = getattr(request.user, 'institute', None)
+    if not inst and (getattr(request.user, 'is_staff', False) or getattr(request.user, 'is_superuser', False)):
+        from .models import Institute
+        inst = Institute.objects.first()
+    return inst
+
+
+
+
 # =========================
 # EMAIL CONFIGURATION (SMTP)
 # =========================
@@ -3041,10 +3062,7 @@ def manage_notices(request):
     if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
     
-    institute = getattr(request.user, 'institute', None)
-    if not institute and request.user.is_staff:
-        institute = Institute.objects.first()
-
+    institute = get_current_institute(request)
     if not institute:
         messages.error(request, "No Institute context found.")
         return redirect('/')
@@ -3099,10 +3117,7 @@ def manage_timetables(request):
     if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
         
-    institute = getattr(request.user, 'institute', None)
-    if not institute and request.user.is_staff:
-        institute = Institute.objects.first()
-
+    institute = get_current_institute(request)
     if not institute:
         return redirect('/')
     classes = Class.objects.filter(institute=institute).select_related('course', 'timetable')
@@ -3134,10 +3149,7 @@ def enter_academic_results(request):
     if request.user.role != 'institute' and not request.user.is_staff:
         return redirect('/')
         
-    institute = getattr(request.user, 'institute', None)
-    if not institute and request.user.is_staff:
-        institute = Institute.objects.first()
-
+    institute = get_current_institute(request)
     if not institute:
         return redirect('/')
     
@@ -3153,7 +3165,7 @@ def enter_academic_results(request):
     if request.GET.get('class_id'):
         selected_class = get_object_or_404(Class, id=request.GET.get('class_id'), institute=institute)
         subjects = selected_class.subjects.all()
-        students = Admission.objects.filter(assigned_class=selected_class, status='active').select_related('application__student')
+        students = Admission.objects.filter(assigned_class=selected_class).exclude(status='trashed').select_related('application__student')
 
     if request.GET.get('period_id'):
         selected_period = get_object_or_404(CourseSubCategory, id=request.GET.get('period_id'))
@@ -4525,7 +4537,7 @@ def activity_logs_view(request):
 
 @login_required
 def manage_attendance(request):
-    institute = request.user.institute if hasattr(request.user, 'institute') else None
+    institute = get_current_institute(request)
     if not institute:
         messages.error(request, "No Institute context found.")
         return redirect('/')
@@ -4549,8 +4561,8 @@ def manage_attendance(request):
         selected_class = classes.filter(id=selected_class_id).first()
         if selected_class:
             admissions = list(Admission.objects.filter(
-                assigned_class=selected_class, status='active'
-            ).select_related('application__student'))
+                assigned_class=selected_class
+            ).exclude(status='trashed').select_related('application__student'))
 
     if request.method == 'POST' and selected_class:
         att_date_str = request.POST.get('attendance_date', selected_date_str)

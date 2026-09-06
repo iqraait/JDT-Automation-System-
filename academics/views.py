@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect
 from .models import Course, ApplicationForm, FormField
 from .forms import CourseForm
 from institutes.models import Institute
+from institutes.views import get_current_institute
 
 
 # ✅ CREATE COURSE
 def create_course(request):
-    institute = Institute.objects.get(user=request.user)
+    institute = get_current_institute(request)
 
     if request.method == 'POST':
         form = CourseForm(request.POST)
@@ -56,7 +57,7 @@ def create_form(request, course_id):
 
 # ✅ COURSE LIST
 def course_list(request):
-    institute = Institute.objects.get(user=request.user)
+    institute = get_current_institute(request)
     courses = Course.objects.filter(institute=institute)
 
     return render(request, 'academics/course_list.html', {
