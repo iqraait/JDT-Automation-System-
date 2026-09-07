@@ -248,7 +248,7 @@ def get_allotment_memo_defaults(app):
 # =========================
 @login_required
 def admission_list(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     
     # Only "Selected" applications
     applications = Application.objects.filter(institute=institute, status='selected').select_related(
@@ -387,7 +387,7 @@ def admission_list(request):
 @login_required
 def generate_allotment_memo(request, app_id):
     app = get_object_or_404(Application, id=app_id)
-    institute = request.user.institute
+    institute = get_current_institute(request)
     
     include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
     memo_def = get_allotment_memo_defaults(app)
@@ -422,7 +422,7 @@ def send_allotment_memo_email(request, app_id):
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
 
-    app = get_object_or_404(Application, id=app_id, institute=request.user.institute)
+    app = get_object_or_404(Application, id=app_id, institute=get_current_institute(request))
     student_email = app.student.email if app.student else None
     
     if not student_email:
@@ -767,7 +767,7 @@ def load_classes(request):
     period_id = request.GET.get('period_id')
     category_id = request.GET.get('category_id') # New filter
     
-    classes = Class.objects.filter(institute=request.user.institute)
+    classes = Class.objects.filter(institute=get_current_institute(request))
     
     if course_id:
         classes = classes.filter(course_id=course_id)
@@ -897,7 +897,7 @@ def register_manual(request):
             return redirect('register_manual')
 
         # 2. Create Application
-        institute = request.user.institute
+        institute = get_current_institute(request)
         course_id = request.POST.get('course_id')
         academic_year_id = request.POST.get('academic_year_id')
         
@@ -1022,8 +1022,8 @@ def register_manual(request):
         
         return redirect('student_list')
     institutes = [request.user.institute]
-    academic_years = AcademicYear.objects.filter(institute=request.user.institute, is_active=True)
-    courses = Course.objects.filter(institute=request.user.institute)
+    academic_years = AcademicYear.objects.filter(institute=get_current_institute(request), is_active=True)
+    courses = Course.objects.filter(institute=get_current_institute(request))
     
     fee_cats = []
     for cat in FeeCategoryMaster.objects.filter(is_active=True):
@@ -1140,7 +1140,7 @@ def view_application(request, app_id):
     """
     if request.user.role == 'institute':
         # Ensure institute user is only viewing applications for their institute
-        application = get_object_or_404(Application, id=app_id, institute=request.user.institute)
+        application = get_object_or_404(Application, id=app_id, institute=get_current_institute(request))
     else:
         # Students can only view their own applications
         application = get_object_or_404(Application, id=app_id, student=request.user)
@@ -1470,7 +1470,7 @@ def calculate_total_and_percentage(application):
 
 def rank_list_view(request):
 
-    institute = request.user.institute
+    institute = get_current_institute(request)
     course_id = request.GET.get('course')
     year_id = request.GET.get('year')
     quota_id = request.GET.get('quota')
@@ -1652,7 +1652,7 @@ def get_student_quota(application):
 
 @login_required
 def export_rank_excel(request):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         return HttpResponse("Unauthorized", status=401)
     course_id = request.GET.get('course')
@@ -1861,7 +1861,7 @@ def export_rank_excel(request):
 # =========================
 @login_required
 def excel_export_students(request):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         return HttpResponse("Unauthorized", status=401)
 
@@ -1949,7 +1949,7 @@ def institute_register(request):
 # =========================
 @login_required
 def institute_dashboard(request):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         if request.user.is_staff or request.user.is_superuser:
             institute = Institute.objects.first()
@@ -2431,7 +2431,7 @@ def download_excel_template(request):
     ]
     
     # Add dynamic form fields as extra columns if available
-    dynamic_fields = FormField.objects.filter(form__course__institute=request.user.institute).values_list('label', flat=True).distinct()
+    dynamic_fields = FormField.objects.filter(form__course__institute=get_current_institute(request)).values_list('label', flat=True).distinct()
     for field_label in dynamic_fields:
         if field_label not in headers:
             headers.append(f"Field: {field_label}")
@@ -2522,7 +2522,7 @@ def excel_import_students(request):
 
             data_rows = rows[1:]
             report = {'success': 0, 'errors': []}
-            institute = request.user.institute
+            institute = get_current_institute(request)
             seen_reg_ids_in_batch = set()
 
             def get_val(row_tuple, key, default_idx=None):
@@ -2815,7 +2815,7 @@ def user_logout(request):
 
 @login_required
 def student_list_view(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course').prefetch_related('uploaded_documents__uploaded_by')
 
     # Filters
@@ -2881,7 +2881,7 @@ def student_list_view(request):
     })
 @login_required
 def update_student_status(request, admission_id):
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=get_current_institute(request))
     
     new_status = request.POST.get('status') or request.GET.get('status')
     reason = request.POST.get('reason') or request.POST.get('deletion_reason') or request.GET.get('reason', '').strip()
@@ -2946,7 +2946,7 @@ def update_student_status(request, admission_id):
 
 @login_required
 def export_students_excel(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course', 'fee_category')
     # Apply same filters as list view
     form_id = request.GET.get('form_id')
@@ -3230,7 +3230,7 @@ from applications.models import Payment
 
 @login_required
 def payment_list_view(request):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         return HttpResponse("Unauthorized", status=401)
         
@@ -3275,7 +3275,7 @@ def payment_list_view(request):
 
 @login_required
 def export_payments_excel(request):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         return HttpResponse("Unauthorized", status=401)
         
@@ -3482,7 +3482,7 @@ def group_payments_by_receipt(payments_qs):
 
 @login_required
 def receipt_list(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     from django.utils import timezone
     
     academic_years = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
@@ -3555,7 +3555,7 @@ def receipt_list(request):
 
 @login_required
 def cancel_fee_receipt(request, receipt_number):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     from django.utils import timezone
     if request.method == 'POST':
         reason = request.POST.get('cancellation_reason', 'Cancelled by administrator').strip()
@@ -3582,7 +3582,7 @@ def cancel_fee_receipt(request, receipt_number):
 # =============================================================================
 @login_required
 def manage_student_fees(request, admission_id):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     admission = get_object_or_404(Admission, id=admission_id, application__institute=institute)
     
     if request.method == 'POST':
@@ -3704,7 +3704,7 @@ def manage_student_fees(request, admission_id):
 
 @login_required
 def collect_student_fee(request, admission_id, head_id):
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=get_current_institute(request))
     head = get_object_or_404(FeeHead, id=head_id)
     
     if request.method == 'POST':
@@ -3748,7 +3748,7 @@ def collect_student_fee(request, admission_id, head_id):
 
 @login_required
 def print_fee_receipt(request, receipt_number):
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute and request.user.is_staff:
         institute = Institute.objects.first()
 
@@ -3825,7 +3825,7 @@ def clean_id_param(val):
 
 @login_required
 def fee_reports(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     
     academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
     course_id = clean_id_param(request.GET.get('course_id'))
@@ -3955,7 +3955,7 @@ def fee_reports(request):
 
 @login_required
 def collect_multiple_fees(request, admission_id):
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=get_current_institute(request))
     
     if request.method == 'POST':
         head_ids = request.POST.getlist('head_ids')
@@ -4090,7 +4090,7 @@ def download_backup_view(request):
 # =============================================================================
 @login_required
 def export_fee_reports_excel(request):
-    institute = request.user.institute
+    institute = get_current_institute(request)
     report_type = request.GET.get('report_type', 'entire')
     
     academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
@@ -4230,7 +4230,7 @@ def export_fee_reports_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
     
-    institute = request.user.institute
+    institute = get_current_institute(request)
     report_type = request.GET.get('report_type', 'entire')
     
     academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
@@ -4410,7 +4410,7 @@ def export_payments_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
     
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute:
         return HttpResponse("Unauthorized", status=401)
         
@@ -4498,7 +4498,7 @@ def activity_logs_view(request):
     if request.user.role != 'institute' and not request.user.is_staff and not request.user.is_superuser:
         return redirect('/')
         
-    institute = getattr(request.user, 'institute', None)
+    institute = get_current_institute(request)
     if not institute and (request.user.is_staff or request.user.is_superuser):
         institute = Institute.objects.first()
 
@@ -4631,7 +4631,7 @@ def upload_student_document_by_teacher(request, admission_id):
         messages.error(request, "Access denied.")
         return redirect('institute_root')
 
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=request.user.institute)
+    admission = get_object_or_404(Admission, id=admission_id, application__institute=get_current_institute(request))
     
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
