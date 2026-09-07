@@ -694,6 +694,7 @@ def register_student(request, app_id):
         })
     
     # Fetch Dynamic Fields for the specific course form
+    course_form = get_course_form(course)
     form_fields = FormField.objects.filter(form=course_form).order_by('section__order', 'order') if course_form else FormField.objects.none()
     sections = {}
     for f in form_fields:
