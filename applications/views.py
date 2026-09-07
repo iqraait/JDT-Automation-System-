@@ -14,6 +14,17 @@ import datetime
 from io import BytesIO
 from institutes.models import Institute, AcademicYear
 from academics.models import Course, ApplicationForm, ExamSubject, FormField, NoticeBoard, Timetable, AcademicResult, StudentDocument, ApplicationFeeType, QualifyingExam
+from django.core.exceptions import ObjectDoesNotExist
+
+
+def get_course_form(course):
+    if not course:
+        return None
+    try:
+        return course.form
+    except (ObjectDoesNotExist, AttributeError):
+        return None
+
 
 
 @login_required
@@ -1076,7 +1087,8 @@ def view_application(request, app_id):
 
     # 3. Fetch ALL fields defined for this form to include non-filled ones
     from academics.models import FormField
-    all_form_fields = FormField.objects.filter(form=application.course.form).select_related('section').order_by('section__order', 'order')
+    course_form = get_course_form(application.course)
+    all_form_fields = FormField.objects.filter(form=course_form).select_related('section').order_by('section__order', 'order') if course_form else FormField.objects.none()
     
     # Map existing values to fields for easy lookup
     field_to_values = {}
@@ -1086,6 +1098,7 @@ def view_application(request, app_id):
         field_to_values[fv.field_id].append(fv)
 
     # Process all fields for structured display
+    added_fv_ids = set()
     for field in all_form_fields:
         values = field_to_values.get(field.id, [])
         
@@ -1101,6 +1114,8 @@ def view_application(request, app_id):
             values = [mock_fv]
 
         for fv in values:
+            if fv.id:
+                added_fv_ids.add(fv.id)
             if fv.id and fv.id in processed_fv_ids:
                 continue
 
@@ -1130,6 +1145,17 @@ def view_application(request, app_id):
                 else:
                     fv.display_value = val
             
+            normal_fields.append(fv)
+
+    # Fallback: include any field_values not associated with form fields or already processed
+    for fv in field_values:
+        if fv.id and fv.id not in processed_fv_ids and fv.id not in added_fv_ids:
+            label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if ":" in str(fv.value) and ("mark" in label_lower or "subject" in label_lower):
+                continue
+            val = str(fv.value or "").strip()
+            if not hasattr(fv, 'display_value'):
+                fv.display_value = val if val else '-'
             normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0

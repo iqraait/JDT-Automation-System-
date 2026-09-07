@@ -9,10 +9,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.core.files.storage import FileSystemStorage
 from academics.models import (
     Course, FormField, FormSection, CourseCategory, CourseSubCategory, ApplicationFeeType,
     ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument,
-    ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment
+    ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment, QualifyingExam
 )
 from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission, TrashedStudent
 from .models import Institute, AcademicYear
@@ -29,9 +30,21 @@ from openpyxl.utils import get_column_letter
 import json
 import datetime
 from core.utils import generate_application_pdf
+from django.core.exceptions import ObjectDoesNotExist
 
 
 User = get_user_model()
+
+
+def get_course_form(course):
+    """Safely return course.form or None if Course has no ApplicationForm attached."""
+    if not course:
+        return None
+    try:
+        return course.form
+    except (ObjectDoesNotExist, AttributeError):
+        return None
+
 
 
 def get_current_institute(request):
@@ -577,7 +590,8 @@ def register_student(request, app_id):
             )
 
         # 2. Save Dynamic Form Fields
-        fields = FormField.objects.filter(form=course.form)
+        course_form = get_course_form(course)
+        fields = FormField.objects.filter(form=course_form) if course_form else FormField.objects.none()
         for field in fields:
             key = f"field_{field.id}"
             if field.field_type == 'file':
@@ -619,9 +633,9 @@ def register_student(request, app_id):
         # 3. Save Qualifying Exam Marks
         # Only target fields in the 'Qualifying Examination' section
         qe_field = FormField.objects.filter(
-            form=course.form, 
+            form=course_form, 
             section__name__icontains="Qualifying Examination"
-        ).first()
+        ).first() if course_form else None
         if qe_field:
             # Delete old marks for this field before re-saving
             ApplicationFieldValue.objects.filter(application=app, field=qe_field, value__contains=":").delete()
@@ -680,7 +694,7 @@ def register_student(request, app_id):
         })
     
     # Fetch Dynamic Fields for the specific course form
-    form_fields = FormField.objects.filter(form=course.form).order_by('section__order', 'order')
+    form_fields = FormField.objects.filter(form=course_form).order_by('section__order', 'order') if course_form else FormField.objects.none()
     sections = {}
     for f in form_fields:
         if f.section not in sections:
@@ -1250,7 +1264,8 @@ def view_application(request, app_id):
 
     # 3. Fetch ALL fields defined for this form to include non-filled ones
     from academics.models import FormField
-    all_form_fields = FormField.objects.filter(form=application.course.form).select_related('section').order_by('section__order', 'order')
+    course_form = get_course_form(application.course)
+    all_form_fields = FormField.objects.filter(form=course_form).select_related('section').order_by('section__order', 'order') if course_form else FormField.objects.none()
     
     # Map existing values to fields for easy lookup
     field_to_values = {}
@@ -1261,6 +1276,7 @@ def view_application(request, app_id):
 
     # Process all fields for structured display
     normal_fields = []
+    added_fv_ids = set()
     for field in all_form_fields:
         values = field_to_values.get(field.id, [])
         
@@ -1276,6 +1292,8 @@ def view_application(request, app_id):
             values = [mock_fv]
 
         for fv in values:
+            if fv.id:
+                added_fv_ids.add(fv.id)
             if fv.id and fv.id in processed_fv_ids:
                 continue
 
@@ -1306,6 +1324,17 @@ def view_application(request, app_id):
                 else:
                     fv.display_value = val
             
+            normal_fields.append(fv)
+
+    # Fallback: include any field_values not associated with form fields or already processed
+    for fv in field_values:
+        if fv.id and fv.id not in processed_fv_ids and fv.id not in added_fv_ids:
+            label_lower = (fv.field.label if fv.field else fv.field_label or "").lower()
+            if ":" in str(fv.value) and ("mark" in label_lower or "subject" in label_lower):
+                continue
+            val = str(fv.value or "").strip()
+            if not hasattr(fv, 'display_value'):
+                fv.display_value = val if val else '-'
             normal_fields.append(fv)
 
     percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
@@ -2155,9 +2184,10 @@ def edit_application(request, app_id):
     # GET FORM FIELDS
     # =========================
     fields = []
-    if hasattr(app.course, 'form') and app.course.form:
+    course_form = get_course_form(app.course)
+    if course_form:
         fields = FormField.objects.filter(
-            form=app.course.form
+            form=course_form
         ).select_related('section').order_by('section__order', 'order')
 
     # ATTACH VALUES TO FIELDS
@@ -2258,11 +2288,13 @@ def edit_application(request, app_id):
         ).delete()
 
         # Only target fields in the 'Qualifying Examination' section or similar
-        qe_field = FormField.objects.filter(form=app.course.form, section__name__icontains="Qualifi").first()
-        if not qe_field:
-            qe_field = FormField.objects.filter(form=app.course.form, label__icontains="Qualifi").first()
-        if not qe_field:
-            qe_field = FormField.objects.filter(form=app.course.form, section__name__icontains="mark").first()
+        qe_field = None
+        if course_form:
+            qe_field = FormField.objects.filter(form=course_form, section__name__icontains="Qualifi").first()
+            if not qe_field:
+                qe_field = FormField.objects.filter(form=course_form, label__icontains="Qualifi").first()
+            if not qe_field:
+                qe_field = FormField.objects.filter(form=course_form, section__name__icontains="mark").first()
 
         for key in request.POST:
             if key.startswith("subject_"):
