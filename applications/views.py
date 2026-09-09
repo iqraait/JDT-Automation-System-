@@ -248,10 +248,17 @@ def student_settings(request):
 @login_required
 def student_profile(request):
     admission = Admission.objects.filter(
-        application__student=request.user
+        application__student=request.user, status='active'
     ).select_related('assigned_class', 'application__course', 'application__institute').first()
 
-    app = Application.objects.filter(student=request.user).first()
+    if not admission:
+        admission = Admission.objects.filter(
+            application__student=request.user
+        ).exclude(status='trashed').select_related('assigned_class', 'application__course', 'application__institute').order_by('-id').first()
+
+    app = Application.objects.filter(student=request.user).order_by('-id').first()
+    if app and not admission:
+        admission = getattr(app, 'admission', None)
 
     if not admission and not app:
         messages.error(request, "Academic Profile is only available after Application or Enrolment.")

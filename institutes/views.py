@@ -2194,32 +2194,64 @@ def edit_application(request, app_id):
     # ATTACH VALUES TO FIELDS
     # Use order_by('id') so that if duplicates exist, the latest one (highest ID) is kept in the dictionary
     # CRITICAL: Exclude snapshot values (containing :) from field_values used for form rendering
-    field_values = {}
-    for v in app.field_values.filter(field__isnull=False).order_by('id'):
+    field_values_by_id = {}
+    field_values_by_label = {}
+    for v in app.field_values.all().order_by('id'):
         val_str = str(v.value or "")
         if ":" not in val_str: 
-            field_values[v.field_id] = v.value
+            if v.field_id:
+                field_values_by_id[v.field_id] = v.value
+            lbl = (v.field.label if v.field else v.field_label or "").lower().replace('*', '').strip()
+            if lbl:
+                field_values_by_label[lbl] = v.value
+
+    adm = getattr(app, 'admission', None) or Admission.objects.filter(application=app).first()
 
     for f in fields:
-        f.current_value = field_values.get(f.id, "")
-        label_lower = f.label.lower()
+        val = field_values_by_id.get(f.id, "")
+        clean_lbl = f.label.lower().replace('*', '').strip()
 
-        # FIX: Ensure Full Name shows student name, not corrupted subject marks
-        if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
-            f.current_value = app.student.first_name
-        
+        if not val or ":" in str(val):
+            val = field_values_by_label.get(clean_lbl, "")
+
+        if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
+            if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name", "name"]):
+                val = app.student.first_name if app.student and app.student.first_name else (app.student.username if app.student else "")
+            elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]):
+                val = app.student.username if app.student and app.student.username else (app.student.mobile_number if app.student else "")
+                if not val and adm:
+                    val = adm.guardian_mobile
+            elif "email" in clean_lbl:
+                val = app.student.email if app.student and app.student.email else ""
+            elif any(x in clean_lbl for x in ["registration", "reg id", "reg_id", "admission no"]):
+                val = adm.registration_id if adm else ""
+            elif any(x in clean_lbl for x in ["date of join", "joining date", "doj"]):
+                val = str(adm.date_of_join) if (adm and adm.date_of_join) else ""
+            elif any(x in clean_lbl for x in ["admission quota", "quota"]):
+                val = adm.admission_quota if adm else ""
+            elif "care of" in clean_lbl:
+                val = adm.care_of if adm else ""
+            elif "guardian name" in clean_lbl or "father name" in clean_lbl:
+                val = adm.guardian_name if adm else ""
+            elif "guardian mobile" in clean_lbl or "father mobile" in clean_lbl:
+                val = adm.guardian_mobile if adm else ""
+            elif "relationship" in clean_lbl:
+                val = adm.relationship if adm else ""
+            elif "address" in clean_lbl:
+                val = adm.guardian_address if adm else ""
+
         # Resolve Field Options for non-choice fields (e.g. text fields used as ID holders)
-        if f.field_type not in ['select', 'radio', 'checkbox'] and f.current_value:
+        if f.field_type not in ['select', 'radio', 'checkbox'] and val:
             from academics.models import FieldOption
-            opt = FieldOption.objects.filter(field=f, value=f.current_value).first()
+            opt = FieldOption.objects.filter(field=f, value=val).first()
             if opt:
-                f.current_value = opt.display_text
-        
-        # REQUIREMENT: Choice 3 must remain blank if not filled
-        if not f.current_value or str(f.current_value).lower() in ['none', 'null', 'select', '', '-', 'empty']:
-            f.current_value = ""
+                val = opt.display_text
 
-        f.value = f.current_value  # Support templates using .value or .current_value
+        if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
+            val = ""
+
+        f.current_value = val
+        f.value = val  # Support templates using .value or .current_value
 
     # =========================
     # SAVE (POST)
@@ -2228,6 +2260,7 @@ def edit_application(request, app_id):
 
         for field in fields:    
             key = f'field_{field.id}'
+            clean_lbl = field.label.lower().replace('*', '').strip()
             
             # FILE FIELD
             if field.field_type == 'file':
@@ -2236,6 +2269,7 @@ def edit_application(request, app_id):
                 if file_obj:
                     # Clean up duplicates to avoid MultipleObjectsReturned
                     ApplicationFieldValue.objects.filter(application=app, field=field).delete()
+                    ApplicationFieldValue.objects.filter(application=app, field_label__iexact=field.label).delete()
                     from django.core.files.storage import FileSystemStorage
                     fs = FileSystemStorage()
                     filename = fs.save(file_obj.name, file_obj)
@@ -2253,7 +2287,7 @@ def edit_application(request, app_id):
                 if val is not None:
                     # Clean up duplicates to avoid MultipleObjectsReturned
                     # and ensure we only have one record per field
-                    fvs = ApplicationFieldValue.objects.filter(application=app, field=field)
+                    fvs = ApplicationFieldValue.objects.filter(Q(application=app, field=field) | Q(application=app, field_label__iexact=field.label))
                     if fvs.count() > 1:
                         fvs.delete()
                         ApplicationFieldValue.objects.create(
@@ -2273,6 +2307,56 @@ def edit_application(request, app_id):
                                 'field_type': field.field_type
                             }
                         )
+
+                    # SYNC BASIC DETAILS BACK TO USER AND ADMISSION MODELS
+                    if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name"]) and val:
+                        if app.student:
+                            app.student.first_name = val
+                            app.student.save()
+                    elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]) and val:
+                        if app.student:
+                            app.student.username = val
+                            app.student.mobile_number = val
+                            app.student.save()
+                    elif "email" in clean_lbl and val:
+                        if app.student:
+                            app.student.email = val
+                            app.student.save()
+                    elif any(x in clean_lbl for x in ["registration", "reg id", "reg_id", "admission no"]) and val:
+                        if adm:
+                            adm.registration_id = val
+                            adm.save()
+                    elif any(x in clean_lbl for x in ["date of join", "joining date", "doj"]) and val:
+                        if adm:
+                            try:
+                                adm.date_of_join = datetime.datetime.strptime(val, '%Y-%m-%d').date()
+                                adm.save()
+                            except Exception:
+                                pass
+                    elif any(x in clean_lbl for x in ["admission quota", "quota"]) and val:
+                        if adm:
+                            adm.admission_quota = val
+                            adm.save()
+                    elif "care of" in clean_lbl and val:
+                        if adm:
+                            adm.care_of = val
+                            adm.save()
+                    elif ("guardian name" in clean_lbl or "father name" in clean_lbl) and val:
+                        if adm:
+                            adm.guardian_name = val
+                            adm.save()
+                    elif ("guardian mobile" in clean_lbl or "father mobile" in clean_lbl) and val:
+                        if adm:
+                            adm.guardian_mobile = val
+                            adm.save()
+                    elif "relationship" in clean_lbl and val:
+                        if adm:
+                            adm.relationship = val
+                            adm.save()
+                    elif "address" in clean_lbl and val:
+                        if adm:
+                            adm.guardian_address = val
+                            adm.save()
 
         # =========================
         #  UPDATE SUBJECTS (FIXED)
