@@ -289,7 +289,10 @@ def student_profile(request):
                 student_photo_url = f"/media/{val}"
 
     # Attendance metrics
-    attendances = list(StudentAttendance.objects.filter(admission=admission).order_by('-date')) if admission else []
+    user_admissions = Admission.objects.filter(application__student=request.user).exclude(status='trashed')
+    attendances = list(StudentAttendance.objects.filter(
+        Q(admission__in=user_admissions) | Q(admission=admission) | Q(admission__application__student=request.user)
+    ).order_by('-date').distinct()) if (admission or user_admissions.exists()) else []
     total_days = len(attendances)
     present_count = sum(1 for a in attendances if a.status == 'present')
     absent_count = sum(1 for a in attendances if a.status == 'absent')
