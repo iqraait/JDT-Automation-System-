@@ -695,7 +695,8 @@ def register_student(request, app_id):
     
     # Fetch Dynamic Fields for the specific course form
     course_form = get_course_form(course)
-    form_fields = FormField.objects.filter(form=course_form).order_by('section__order', 'order') if course_form else FormField.objects.none()
+    form_fields = list(FormField.objects.filter(form=course_form).order_by('section__order', 'order')) if course_form else []
+    
     sections = {}
     for f in form_fields:
         if f.section not in sections:
@@ -710,19 +711,40 @@ def register_student(request, app_id):
         if ":" not in val_str: 
             if v.field_id:
                 field_values_by_id[v.field_id] = v.value
-            lbl = (v.field.label if v.field else v.field_label or "").lower()
+            lbl = (v.field.label if v.field else v.field_label or "").lower().replace('*', '').strip()
             if lbl:
                 field_values_by_label[lbl] = v.value
     
+    adm_record = getattr(app, 'admission', None) or Admission.objects.filter(application=app).first()
+
     for f in form_fields:
-        f.current_value = field_values_by_id.get(f.id, "")
-        if not f.current_value:
-            f.current_value = field_values_by_label.get(f.label.lower(), "")
-            
-        # FIX: Ensure Full Name shows student name, not corrupted subject marks
-        if f.label == "Full Name" and (not f.current_value or ":" in str(f.current_value)):
-            f.current_value = app.student.first_name
-        f.value = f.current_value  # Support templates using .value or .current_value
+        val = field_values_by_id.get(f.id, "")
+        clean_lbl = f.label.lower().replace('*', '').strip()
+
+        if not val or ":" in str(val):
+            val = field_values_by_label.get(clean_lbl, "")
+
+        if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
+            if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name", "name"]):
+                val = app.student.first_name if app.student and app.student.first_name else (app.student.username if app.student else "")
+            elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]):
+                val = app.student.username if app.student and app.student.username else (app.student.mobile_number if app.student else "")
+                if not val and adm_record:
+                    val = adm_record.guardian_mobile
+            elif "email" in clean_lbl:
+                val = app.student.email if app.student and app.student.email else ""
+            elif any(x in clean_lbl for x in ["registration", "reg id", "reg_id", "admission no"]):
+                val = adm_record.registration_id if adm_record else ""
+            elif any(x in clean_lbl for x in ["date of join", "joining date", "doj"]):
+                val = str(adm_record.date_of_join) if (adm_record and adm_record.date_of_join) else ""
+            elif any(x in clean_lbl for x in ["admission quota", "quota"]):
+                val = adm_record.admission_quota if adm_record else ""
+
+        if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
+            val = ""
+
+        f.current_value = val
+        f.value = val  # Support templates using .value or .current_value
 
     # Fetch marks for display
     subjects = []
@@ -4695,6 +4717,7 @@ def manage_attendance(request):
         except Exception:
             att_date = datetime.date.today()
 
+        marked_names = []
         for adm in admissions:
             status_val = request.POST.get(f'status_{adm.id}', 'present')
             remarks_val = request.POST.get(f'remarks_{adm.id}', '')
@@ -4707,7 +4730,11 @@ def manage_attendance(request):
                     'marked_by': request.user
                 }
             )
-        messages.success(request, f"Attendance for {selected_class.name} on {att_date} saved successfully!")
+            st_name = get_student_name(adm.application) if (adm.application and hasattr(adm.application, 'student')) else (adm.guardian_name or f"Student #{adm.id}")
+            marked_names.append(st_name)
+
+        names_str = ", ".join(marked_names) if marked_names else "students"
+        messages.success(request, f"You are successfully marked attendance of {names_str} for {selected_class.name} on {att_date}!")
         return redirect(f"{request.path}?class_id={selected_class.id}&date={att_date_str}")
 
     # Fetch existing attendance logs for the selected date
