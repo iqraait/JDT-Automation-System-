@@ -725,7 +725,11 @@ def register_student(request, app_id):
             val = field_values_by_label.get(clean_lbl, "")
 
         if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
-            if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name", "name"]):
+            if any(x in clean_lbl for x in ["guardian mobile", "father mobile", "mother mobile", "parent mobile", "guardian phone", "father phone", "mother phone", "parent phone", "guardian contact", "emergency contact"]):
+                val = adm_record.guardian_mobile if adm_record else ""
+            elif any(x in clean_lbl for x in ["guardian name", "father name", "mother name", "parent name"]):
+                val = adm_record.guardian_name if adm_record else ""
+            elif any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name"]) or clean_lbl == "name":
                 val = app.student.first_name if app.student and app.student.first_name else (app.student.username if app.student else "")
             elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]):
                 val = app.student.username if app.student and app.student.username else (app.student.mobile_number if app.student else "")
@@ -2237,7 +2241,13 @@ def edit_application(request, app_id):
             val = field_values_by_label.get(clean_lbl, "")
 
         if not val or str(val).lower() in ['none', 'null', 'select', '', '-', 'empty']:
-            if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name", "name"]):
+            if any(x in clean_lbl for x in ["guardian mobile", "father mobile", "mother mobile", "parent mobile", "guardian phone", "father phone", "mother phone", "parent phone", "guardian contact", "emergency contact"]):
+                val = adm.guardian_mobile if adm else ""
+            elif any(x in clean_lbl for x in ["guardian name", "father name", "mother name", "parent name"]):
+                val = adm.guardian_name if adm else ""
+            elif "care of" in clean_lbl:
+                val = adm.care_of if adm else ""
+            elif any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name"]) or clean_lbl == "name":
                 val = app.student.first_name if app.student and app.student.first_name else (app.student.username if app.student else "")
             elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]):
                 val = app.student.username if app.student and app.student.username else (app.student.mobile_number if app.student else "")
@@ -2251,12 +2261,6 @@ def edit_application(request, app_id):
                 val = str(adm.date_of_join) if (adm and adm.date_of_join) else ""
             elif any(x in clean_lbl for x in ["admission quota", "quota"]):
                 val = adm.admission_quota if adm else ""
-            elif "care of" in clean_lbl:
-                val = adm.care_of if adm else ""
-            elif "guardian name" in clean_lbl or "father name" in clean_lbl:
-                val = adm.guardian_name if adm else ""
-            elif "guardian mobile" in clean_lbl or "father mobile" in clean_lbl:
-                val = adm.guardian_mobile if adm else ""
             elif "relationship" in clean_lbl:
                 val = adm.relationship if adm else ""
             elif "address" in clean_lbl:
@@ -2331,19 +2335,46 @@ def edit_application(request, app_id):
                         )
 
                     # SYNC BASIC DETAILS BACK TO USER AND ADMISSION MODELS
-                    if any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name"]) and val:
+                    if any(x in clean_lbl for x in ["guardian mobile", "father mobile", "mother mobile", "parent mobile", "guardian phone", "father phone", "mother phone", "parent phone", "guardian contact", "emergency contact"]) and val:
+                        if adm:
+                            adm.guardian_mobile = val
+                            adm.save()
+                    elif any(x in clean_lbl for x in ["guardian name", "father name", "mother name", "parent name"]) and val:
+                        if adm:
+                            adm.guardian_name = val
+                            adm.save()
+                    elif "care of" in clean_lbl and val:
+                        if adm:
+                            adm.care_of = val
+                            adm.save()
+                    elif (any(x in clean_lbl for x in ["full name", "candidate name", "student name", "first name"]) or clean_lbl == "name") and val:
                         if app.student:
                             app.student.first_name = val
-                            app.student.save()
+                            try:
+                                app.student.save()
+                            except Exception:
+                                pass
                     elif any(x in clean_lbl for x in ["mobile", "phone", "contact"]) and val:
                         if app.student:
-                            app.student.username = val
-                            app.student.mobile_number = val
-                            app.student.save()
+                            from accounts.models import User
+                            user_with_mobile = User.objects.filter(mobile_number=val).exclude(id=app.student.id).exists()
+                            user_with_username = User.objects.filter(username=val).exclude(id=app.student.id).exists()
+                            
+                            try:
+                                if not user_with_username:
+                                    app.student.username = val
+                                if not user_with_mobile:
+                                    app.student.mobile_number = val
+                                app.student.save()
+                            except Exception:
+                                pass
                     elif "email" in clean_lbl and val:
                         if app.student:
                             app.student.email = val
-                            app.student.save()
+                            try:
+                                app.student.save()
+                            except Exception:
+                                pass
                     elif any(x in clean_lbl for x in ["registration", "reg id", "reg_id", "admission no"]) and val:
                         if adm:
                             adm.registration_id = val
@@ -2358,18 +2389,6 @@ def edit_application(request, app_id):
                     elif any(x in clean_lbl for x in ["admission quota", "quota"]) and val:
                         if adm:
                             adm.admission_quota = val
-                            adm.save()
-                    elif "care of" in clean_lbl and val:
-                        if adm:
-                            adm.care_of = val
-                            adm.save()
-                    elif ("guardian name" in clean_lbl or "father name" in clean_lbl) and val:
-                        if adm:
-                            adm.guardian_name = val
-                            adm.save()
-                    elif ("guardian mobile" in clean_lbl or "father mobile" in clean_lbl) and val:
-                        if adm:
-                            adm.guardian_mobile = val
                             adm.save()
                     elif "relationship" in clean_lbl and val:
                         if adm:
