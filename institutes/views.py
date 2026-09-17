@@ -397,6 +397,24 @@ def admission_list(request):
 # =========================
 # ALLOTMENT MEMO
 # =========================
+def format_time_am_pm(time_str):
+    if not time_str:
+        return '10:00 AM'
+    time_str = str(time_str).strip()
+    if 'AM' in time_str.upper() or 'PM' in time_str.upper():
+        return time_str
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(time_str, "%H:%M")
+        return dt.strftime("%I:%M %p")
+    except ValueError:
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(time_str, "%H:%M:%S")
+            return dt.strftime("%I:%M %p")
+        except ValueError:
+            return time_str
+
 @login_required
 def generate_allotment_memo(request, app_id):
     app = get_object_or_404(Application, id=app_id)
@@ -414,7 +432,7 @@ def generate_allotment_memo(request, app_id):
         'quota': request.GET.get('quota') or memo_def['quota'],
         'place': request.GET.get('place') or memo_def['place'],
         'rank': request.GET.get('rank', ''),
-        'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
+        'reporting_time': format_time_am_pm(request.GET.get('reporting_time', '10:00 AM')),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
         'fee_details': request.GET.get('fee_details', ''),
@@ -454,7 +472,7 @@ def send_allotment_memo_email(request, app_id):
         'quota': request.GET.get('quota') or memo_def['quota'],
         'place': request.GET.get('place') or memo_def['place'],
         'rank': request.GET.get('rank', ''),
-        'reporting_time': request.GET.get('reporting_time', '10:00 AM'),
+        'reporting_time': format_time_am_pm(request.GET.get('reporting_time', '10:00 AM')),
         'report_from': request.GET.get('report_from'),
         'report_to': request.GET.get('report_to'),
         'fee_details': request.GET.get('fee_details', ''),
