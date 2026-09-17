@@ -38,24 +38,31 @@ def student_signup(request):
     return render(request, 'student/register.html')
 
 
+from django.db.models import Q
+
 # ✅ STUDENT LOGIN
 def student_login(request):
     error = None
     if request.method == 'POST':
-        identifier = request.POST.get('username')
-        password = request.POST.get('password')
+        identifier = (request.POST.get('username') or '').strip()
+        password = request.POST.get('password') or ''
 
-        # Try authenticating with username
-        user = authenticate(request, username=identifier, password=password)
+        user = None
+        if identifier and password:
+            # Try authenticating directly with identifier as username
+            user = authenticate(request, username=identifier, password=password)
 
-        # Fallback: Try authenticating with email
-        if not user:
-            from .models import User
-            try:
-                user_obj = User.objects.get(email=identifier)
-                user = authenticate(request, username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                pass
+            # Fallback: Safely check all matching accounts (Email, Username, Mobile)
+            # Handles duplicate user accounts gracefully without throwing MultipleObjectsReturned
+            if not user:
+                matching_users = User.objects.filter(
+                    Q(email__iexact=identifier) | Q(username__iexact=identifier) | Q(mobile_number=identifier)
+                )
+                for u in matching_users:
+                    authenticated_user = authenticate(request, username=u.username, password=password)
+                    if authenticated_user:
+                        user = authenticated_user
+                        break
 
         if user:
             login(request, user)

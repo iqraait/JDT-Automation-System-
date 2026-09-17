@@ -47,10 +47,9 @@
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between px-1">
-                        <label class="text-[10px] font-black text-white/50 uppercase tracking-widest">Username / ID</label>
-                        <a href="{% url 'forgot_password' %}" class="text-[9px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors">Forgot?</a>
+                        <label class="text-[10px] font-black text-white/50 uppercase tracking-widest">Registered Email ID</label>
                     </div>
-                    <input name="username" type="text" placeholder="Admission ID" required
+                    <input name="username" type="text" placeholder="Enter Registered Email ID" required
                            class="w-full bg-white/90 backdrop-blur-sm px-6 py-4 rounded-xl shadow-2xl shadow-black/20 focus:ring-4 focus:ring-white/10 outline-none font-bold text-slate-700 text-left text-lg placeholder:text-slate-300">
                 </div>
 
@@ -58,6 +57,9 @@
                     <label class="text-[10px] font-black text-white/50 uppercase tracking-widest ml-1">Password</label>
                     <input type="password" name="password" placeholder="********" required
                            class="w-full bg-white/90 backdrop-blur-sm px-6 py-4 rounded-xl shadow-2xl shadow-black/20 focus:ring-4 focus:ring-white/10 outline-none font-bold text-slate-700 text-left text-lg placeholder:text-slate-300">
+                    <div class="text-right pt-1">
+                        <a href="{% url 'forgot_password' %}" class="text-[9px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors">Forgot Password?</a>
+                    </div>
                 </div>
 
                 <div class="pt-4">
