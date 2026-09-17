@@ -21,6 +21,9 @@ def student_signup(request):
         if User.objects.filter(username=username).exists():
             return render(request, 'student/register.html', {'error': 'Username already exists'})
         
+        if email and User.objects.filter(email__iexact=email).exists():
+            return render(request, 'student/register.html', {'error': 'Email address is already registered. Please use a unique email or log in.'})
+
         if User.objects.filter(mobile_number=mobile).exists():
             return render(request, 'student/register.html', {'error': 'Mobile number already registered'})
 
