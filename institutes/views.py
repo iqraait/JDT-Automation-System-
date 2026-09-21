@@ -955,6 +955,11 @@ def register_manual(request):
             messages.error(request, f"Registration ID {registration_id} is already in use. Please use a unique ID.")
             return redirect('register_manual')
 
+        gender = request.POST.get('gender', '').strip()
+        date_of_birth = request.POST.get('date_of_birth', '').strip()
+        religion = request.POST.get('religion', '').strip()
+        aadhaar_no = request.POST.get('aadhaar_no', '').strip()
+
         # 2. Create Application
         institute = get_current_institute(request)
         course_id = request.POST.get('course_id')
@@ -968,9 +973,36 @@ def register_manual(request):
             status='selected' # Manual registration usually means they are already selected
         )
 
+        # Save standard field values for manual entry
+        manual_snapshots = [
+            ("Full Name", student_name),
+            ("Mobile Number", mobile),
+            ("Email Address", email),
+            ("Gender", gender),
+            ("Date of birth", date_of_birth),
+            ("Religion", religion),
+            ("Aadhaar No.", aadhaar_no),
+            ("Registration ID", registration_id),
+            ("Date of Join", request.POST.get('date_of_join')),
+            ("Admission Quota", request.POST.get('admission_quota', 'Merit')),
+        ]
+
+        for label, val in manual_snapshots:
+            if val:
+                matching_form_field = FormField.objects.filter(form__course_id=course_id, label__iexact=label).first()
+                ApplicationFieldValue.objects.create(
+                    application=application,
+                    field=matching_form_field,
+                    field_label=matching_form_field.label if matching_form_field else label,
+                    field_type=matching_form_field.field_type if matching_form_field else 'text',
+                    value=str(val)
+                )
+
         # 3. Save Form Fields (Similar to apply_course)
         fields = FormField.objects.filter(form__course_id=course_id)
         for field in fields:
+            if ApplicationFieldValue.objects.filter(application=application, field=field).exists():
+                continue
             key = f'field_{field.id}'
             if field.field_type == 'file':
                 file_obj = request.FILES.get(key)
@@ -2599,7 +2631,8 @@ def download_excel_template(request):
     ws.title = "Student Import Template"
     
     headers = [
-        "Full Name *", "Mobile Number *", "Email Address *", "Registration ID *", 
+        "Full Name *", "Mobile Number *", "Email Address *", "Gender *",
+        "Date of birth *", "Religion *", "Aadhaar No. *", "Registration ID *", 
         "Date of Join *", "Admission Quota *", "Academic Session *", "Select Course *",
         "Fee Category", "Assign Student to Class", "Assign Student to Class Year / Semester",
         "Joining Period (Excludes Previous Fees)",
@@ -2616,7 +2649,8 @@ def download_excel_template(request):
     
     # Add sample row matching requested fields
     sample_row = [
-        "ABC", "9856565656", "abc@gmail.com", "123",
+        "ABC", "9856565656", "abc@gmail.com", "Male",
+        "2000-01-15", "Islam", "123456789012", "123",
         "01-06-2026", "Management", "2026-27", "Bachelor of Pharmacy",
         "GENERAL", "B.Pharm", "1 SEMESTER", "1st Year",
         "", "", "", "", ""
@@ -2667,6 +2701,14 @@ def excel_import_students(request):
                     header_map['mobile'] = idx
                 elif 'email' in h_clean:
                     header_map['email'] = idx
+                elif 'gender' in h_clean:
+                    header_map['gender'] = idx
+                elif 'date of birth' in h_clean or 'dob' in h_clean or 'birth' in h_clean:
+                    header_map['date_of_birth'] = idx
+                elif 'religion' in h_clean:
+                    header_map['religion'] = idx
+                elif 'aadhaar' in h_clean or 'aadhar' in h_clean:
+                    header_map['aadhaar_no'] = idx
                 elif 'registration' in h_clean or 'reg id' in h_clean or 'reg_id' in h_clean:
                     header_map['registration_id'] = idx
                 elif 'date of join' in h_clean or 'join' in h_clean or 'doj' in h_clean:
@@ -2902,11 +2944,33 @@ def excel_import_students(request):
                         }
                     )
 
+                    gender_raw = str(get_val(row, 'gender') or '').strip()
+                    dob_raw = get_val(row, 'date_of_birth')
+                    religion_raw = str(get_val(row, 'religion') or '').strip()
+                    aadhaar_raw = str(get_val(row, 'aadhaar_no') or '').strip()
+
+                    if isinstance(dob_raw, (datetime.date, datetime.datetime)):
+                        dob_str = (dob_raw.date() if isinstance(dob_raw, datetime.datetime) else dob_raw).strftime('%Y-%m-%d')
+                    elif isinstance(dob_raw, (int, float)):
+                        try:
+                            from openpyxl.utils.datetime import from_excel
+                            dob_str = from_excel(dob_raw).date().strftime('%Y-%m-%d')
+                        except Exception:
+                            dob_str = str(dob_raw or '').strip()
+                    elif dob_raw:
+                        dob_str = str(dob_raw).strip()
+                    else:
+                        dob_str = ''
+
                     # Snapshot standard & dynamic field values for application audit & searching
                     standard_field_snapshots = [
                         ("Full Name", full_name),
                         ("Mobile Number", mobile),
                         ("Email Address", email),
+                        ("Gender", gender_raw),
+                        ("Date of birth", dob_str),
+                        ("Religion", religion_raw),
+                        ("Aadhaar No.", aadhaar_raw),
                         ("Registration ID", reg_id),
                         ("Date of Join", str(doj_obj)),
                         ("Admission Quota", admission_quota),

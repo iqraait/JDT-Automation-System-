@@ -66,6 +66,42 @@
                             class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
                     </div>
 
+                    <!-- Gender -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Gender <span class="text-red-500">*</span></label>
+                        <select name="gender" required
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Date of birth <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" name="date_of_birth" id="dob_picker" required placeholder="YYYY-MM-DD"
+                                class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                            <svg class="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Religion -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Religion <span class="text-red-500">*</span></label>
+                        <input type="text" name="religion" required placeholder="Religion"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                    </div>
+
+                    <!-- Aadhaar No. -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Aadhaar No. <span class="text-red-500">*</span></label>
+                        <input type="text" name="aadhaar_no" required placeholder="12-digit Aadhaar number"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-6 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-mono font-bold">
+                    </div>
+
                     <!-- Registration ID -->
                     <div>
                         <label class="block text-sm font-bold text-slate-600 mb-3 ml-2">Registration ID <span class="text-red-500">*</span></label>
@@ -280,6 +316,7 @@
     let selectedStartIndex = 0;
     
     flatpickr("#date_join_picker", { defaultDate: "today" });
+    flatpickr("#dob_picker", { maxDate: "today" });
 
     // --- DYNAMIC FIELD LOADING (Refined Structure) ---
     function loadManualCourseData() {
