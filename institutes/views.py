@@ -2744,10 +2744,13 @@ def excel_import_students(request):
             seen_reg_ids_in_batch = set()
 
             def get_val(row_tuple, key, default_idx=None):
-                if key in header_map and header_map[key] < len(row_tuple):
-                    v = row_tuple[header_map[key]]
-                    if v is not None and str(v).strip() != "":
-                        return v
+                if key in header_map:
+                    col_idx = header_map[key]
+                    if col_idx < len(row_tuple):
+                        v = row_tuple[col_idx]
+                        if v is not None and str(v).strip() != "":
+                            return v
+                    return None
                 if default_idx is not None and default_idx < len(row_tuple):
                     v = row_tuple[default_idx]
                     if v is not None and str(v).strip() != "":
@@ -2767,25 +2770,29 @@ def excel_import_students(request):
                         mobile = str(mobile_raw or '').strip()
 
                     email = str(get_val(row, 'email', 2) or '').strip()
-                    reg_id = str(get_val(row, 'registration_id', 3) or '').strip()
-                    doj_raw = get_val(row, 'date_of_join', 4)
-                    quota_raw = str(get_val(row, 'admission_quota', 5) or '').strip()
-                    session_raw = str(get_val(row, 'academic_session', 6) or '').strip()
-                    course_raw = str(get_val(row, 'course', 7) or '').strip()
-                    fee_cat_raw = str(get_val(row, 'fee_category', 8) or '').strip()
-                    class_raw = str(get_val(row, 'class', 9) or '').strip()
-                    class_year_raw = str(get_val(row, 'class_year', 10) or '').strip()
-                    joining_period_raw = str(get_val(row, 'joining_period', 11) or '').strip()
+                    gender_raw = str(get_val(row, 'gender', 3) or '').strip()
+                    dob_raw = get_val(row, 'date_of_birth', 4)
+                    religion_raw = str(get_val(row, 'religion', 5) or '').strip()
+                    aadhaar_raw = str(get_val(row, 'aadhaar_no', 6) or '').strip()
+                    reg_id = str(get_val(row, 'registration_id', 7) or '').strip()
+                    doj_raw = get_val(row, 'date_of_join', 8)
+                    quota_raw = str(get_val(row, 'admission_quota', 9) or '').strip()
+                    session_raw = str(get_val(row, 'academic_session', 10) or '').strip()
+                    course_raw = str(get_val(row, 'course', 11) or '').strip()
+                    fee_cat_raw = str(get_val(row, 'fee_category', 12) or '').strip()
+                    class_raw = str(get_val(row, 'class', 13) or '').strip()
+                    class_year_raw = str(get_val(row, 'class_year', 14) or '').strip()
+                    joining_period_raw = str(get_val(row, 'joining_period', 15) or '').strip()
 
-                    care_of = str(get_val(row, 'care_of', 12) or '').strip()
-                    g_name = str(get_val(row, 'guardian_name', 13) or '').strip()
-                    g_mobile_raw = get_val(row, 'guardian_mobile', 14)
+                    care_of = str(get_val(row, 'care_of', 16) or '').strip()
+                    g_name = str(get_val(row, 'guardian_name', 17) or '').strip()
+                    g_mobile_raw = get_val(row, 'guardian_mobile', 18)
                     if isinstance(g_mobile_raw, (float, int)):
                         g_mobile = str(int(g_mobile_raw)).strip()
                     else:
                         g_mobile = str(g_mobile_raw or '').strip()
-                    rel = str(get_val(row, 'relationship', 15) or '').strip()
-                    g_addr = str(get_val(row, 'guardian_address', 16) or '').strip()
+                    rel = str(get_val(row, 'relationship', 19) or '').strip()
+                    g_addr = str(get_val(row, 'guardian_address', 20) or '').strip()
 
                     if not full_name:
                         report['errors'].append(f"Row {row_idx}: Missing Full Name.")
@@ -2943,11 +2950,6 @@ def excel_import_students(request):
                             'payment_date': doj_obj
                         }
                     )
-
-                    gender_raw = str(get_val(row, 'gender') or '').strip()
-                    dob_raw = get_val(row, 'date_of_birth')
-                    religion_raw = str(get_val(row, 'religion') or '').strip()
-                    aadhaar_raw = str(get_val(row, 'aadhaar_no') or '').strip()
 
                     if isinstance(dob_raw, (datetime.date, datetime.datetime)):
                         dob_str = (dob_raw.date() if isinstance(dob_raw, datetime.datetime) else dob_raw).strftime('%Y-%m-%d')
