@@ -435,7 +435,7 @@ def settle_student_fee(request):
 
 @login_required
 def my_applications(request):
-    apps = Application.objects.filter(student=request.user).select_related('course')
+    apps = Application.objects.filter(student=request.user).select_related('course', 'course__form')
     return render(request, 'student/my_applications.html', {'apps': apps})
 
 @login_required
@@ -635,6 +635,9 @@ def payment_page(request, app_id):
     from .payment_handlers import CCAvenueHandler, PhiCommerceHandler
     
     application = get_object_or_404(Application, id=app_id, student=request.user)
+    if not application.is_form_active:
+        messages.error(request, "This application form is currently inactive. Payment cannot be processed.")
+        return redirect('/my-applications/')
     try:
         payment = Payment.objects.get(application=application)
     except Payment.DoesNotExist:

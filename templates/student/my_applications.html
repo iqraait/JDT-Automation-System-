@@ -73,14 +73,26 @@
                                         <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                                         Payment Failed
                                     </div>
-                                    <button type="button" onclick="showRetryModal('{{ app.id }}')" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-100 w-fit">
-                                        Retry Payment
-                                    </button>
+                                    {% if app.is_form_active %}
+                                        <button type="button" onclick="showRetryModal('{{ app.id }}')" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-100 w-fit">
+                                            Retry Payment
+                                        </button>
+                                    {% else %}
+                                        <button type="button" disabled class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-200 text-slate-400 cursor-not-allowed rounded-xl text-[10px] font-black uppercase tracking-widest opacity-60 w-fit" title="Form Inactive">
+                                            Retry Payment
+                                        </button>
+                                    {% endif %}
                                 </div>
                             {% else %}
-                                <button type="button" onclick="showRetryModal('{{ app.id }}')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-100">
-                                    Pay/Check Status
-                                </button>
+                                {% if app.is_form_active %}
+                                    <button type="button" onclick="showRetryModal('{{ app.id }}')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-100">
+                                        Pay/Check Status
+                                    </button>
+                                {% else %}
+                                    <button type="button" disabled class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-200 text-slate-400 cursor-not-allowed rounded-xl text-xs font-bold opacity-60" title="Form Inactive">
+                                        Pay/Check Status
+                                    </button>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td class="px-8 py-5">

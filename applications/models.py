@@ -36,8 +36,18 @@ class Application(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['-created_at']
+    @property
+    def is_form_active(self):
+        """
+        Returns True if the application form linked to this application's course is active.
+        """
+        if not self.course:
+            return False
+        try:
+            form = getattr(self.course, 'form', None)
+            return bool(form and form.is_active)
+        except Exception:
+            return False
 
     @property
     def display_name(self):
