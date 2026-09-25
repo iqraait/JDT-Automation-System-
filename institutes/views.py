@@ -4426,12 +4426,16 @@ def fee_refund_request(request):
     if selected_class_id:
         admissions_qs = admissions_qs.filter(assigned_class_id=selected_class_id)
     if search_query:
-        admissions_qs = admissions_qs.filter(
+        search_filter = (
             Q(registration_id__icontains=search_query) |
-            Q(application__form_no__icontains=search_query) |
+            Q(register_number__icontains=search_query) |
             Q(application__student__first_name__icontains=search_query) |
-            Q(application__student__last_name__icontains=search_query)
+            Q(application__student__last_name__icontains=search_query) |
+            Q(application__student__username__icontains=search_query)
         )
+        if search_query.isdigit():
+            search_filter |= Q(application__id=int(search_query)) | Q(id=int(search_query))
+        admissions_qs = admissions_qs.filter(search_filter)
         
     students_list = list(admissions_qs.select_related(
         'application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'
@@ -4574,14 +4578,18 @@ def fee_refund_approval(request):
     if date_to:
         refund_qs = refund_qs.filter(requested_at__date__lte=date_to)
     if search_query:
-        refund_qs = refund_qs.filter(
+        search_filter = (
             Q(admission__registration_id__icontains=search_query) |
-            Q(admission__application__form_no__icontains=search_query) |
+            Q(admission__register_number__icontains=search_query) |
             Q(admission__application__student__first_name__icontains=search_query) |
             Q(admission__application__student__last_name__icontains=search_query) |
+            Q(admission__application__student__username__icontains=search_query) |
             Q(receipt_number__icontains=search_query) |
             Q(reason__icontains=search_query)
         )
+        if search_query.isdigit():
+            search_filter |= Q(admission__application__id=int(search_query)) | Q(admission__id=int(search_query))
+        refund_qs = refund_qs.filter(search_filter)
 
     all_refunds = FeeRefundRequest.objects.filter(institute=institute)
     total_count = all_refunds.count()
