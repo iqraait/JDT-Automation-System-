@@ -18,7 +18,8 @@ class Institute(models.Model):
 
     def __str__(self):
         return self.name
-
+    
+    
 
 class AcademicYear(models.Model):
     institute = models.ForeignKey(

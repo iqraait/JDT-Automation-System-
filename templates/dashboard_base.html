@@ -109,8 +109,17 @@
                 </button>
                 <div id="mod-fees" class="pl-4 space-y-1 hidden">
                     {% if user_privileges.perm_fee_reports %}
-                    <a href="{% url 'fee_reports' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'fee-reports' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
-                        <span>• Fee Reports & Dues</span>
+                    <a href="{% url 'daily_fee_collection' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'daily-fee-collection' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Daily Fee Collection</span>
+                    </a>
+                    <a href="{% url 'due_report' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'due-report' in request.path or 'fee-reports' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Due Report</span>
+                    </a>
+                    <a href="{% url 'fee_refund_request' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'fee-refund-request' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Refund Request</span>
+                    </a>
+                    <a href="{% url 'fee_refund_approval' %}" class="flex items-center gap-3 px-4 py-2 text-xs text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'fee-refund-approval' in request.path %}bg-white/20 font-bold text-white shadow-sm{% endif %}">
+                        <span>• Refund Approvals</span>
                     </a>
                     {% endif %}
                     {% if user_privileges.perm_fee_receipts %}

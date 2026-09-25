@@ -1,0 +1,435 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block header_title %}Fee Refund Approvals & Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TAB NAVIGATION BAR -->
+    {% include 'institute/fee_nav_tabs.html' %}
+
+    <!-- HEADER BANNER -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-100">Workflow Approval</span>
+                <span class="text-xs font-semibold text-slate-400">• Refund Verification</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Fee Refund Approvals</h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Review student refund requests, verify details in pop-ups, approve refunds, or reject with reason logging.</p>
+        </div>
+
+        <a href="{% url 'fee_refund_request' %}" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-amber-500/20 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <span>New Refund Request</span>
+        </a>
+    </div>
+
+    <!-- METRIC SUMMARY CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+                {{ total_count }}
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Requests</span>
+                <p class="text-xl font-black text-slate-900 font-mono">{{ total_count }} Entries</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-amber-200 bg-amber-50/20 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+                {{ pending_count }}
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-amber-700">Pending Approval</span>
+                <p class="text-xl font-black text-amber-700 font-mono">₹{{ pending_amount|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-emerald-200 bg-emerald-50/20 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+                {{ approved_count }}
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-700">Approved Refunds</span>
+                <p class="text-xl font-black text-emerald-600 font-mono">₹{{ approved_amount|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-rose-200 bg-rose-50/20 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-rose-100 text-rose-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+                {{ cancelled_count }}
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-rose-700">Cancelled / Rejected</span>
+                <p class="text-xl font-black text-rose-600 font-mono">{{ cancelled_count }} Requests</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER MATRIX -->
+    <div class="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80">
+        <form method="GET" action="{% url 'fee_refund_approval' %}" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Request Status</label>
+                    <select name="status" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Approval</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved Refunds</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled / Rejected</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Student Type (Category)</label>
+                    <select name="fee_category_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                        <option value="">All Student Types</option>
+                        {% for cat in fee_categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class / Batch</label>
+                    <select name="class_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                        <option value="">All Classes</option>
+                        {% for cl in classes %}
+                        <option value="{{ cl.id }}" {% if selected_class == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">From Date</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Search Query</label>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Name, Voucher #..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                </div>
+
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{% url 'fee_refund_approval' %}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-2xl transition">Reset Filters</a>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-indigo-500/20">Filter Requests</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- REFUND REQUESTS TABLE -->
+    <div class="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-indigo-600"></div>
+                <h3 class="font-bold text-slate-800 text-base">Refund Requests Register</h3>
+            </div>
+            <span class="text-xs font-bold text-slate-500">Filtered Total: {{ page_obj.paginator.count }} Requests</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                        <th class="py-4 px-6">Req ID & Date</th>
+                        <th class="py-4 px-6">Student Info</th>
+                        <th class="py-4 px-6">Class & Category</th>
+                        <th class="py-4 px-6 text-right">Refund Amount</th>
+                        <th class="py-4 px-6">Refund Reason</th>
+                        <th class="py-4 px-6 text-center">Status</th>
+                        <th class="py-4 px-6 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    {% for req in refund_requests %}
+                    <tr class="hover:bg-slate-50/60 transition duration-150">
+                        <td class="py-4 px-6">
+                            <span class="font-mono font-bold text-indigo-700 block">#{{ req.id }}</span>
+                            <span class="text-[11px] text-slate-400 font-semibold">{{ req.requested_at|date:"M d, Y H:i" }}</span>
+                            {% if req.receipt_number %}
+                            <span class="text-[10px] font-mono font-bold text-emerald-600 block mt-0.5">{{ req.receipt_number }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-slate-900 block">{{ req.admission.application.display_name }}</span>
+                            <span class="text-[11px] font-mono text-slate-500">Reg: {{ req.admission.registration_id|default:req.admission.application.form_no }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-semibold text-slate-800 block">{{ req.admission.assigned_class.name|default:"--" }}</span>
+                            <span class="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ req.admission.assigned_fee_category.name|default:"General" }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="font-mono font-black text-sm text-amber-700 block">₹{{ req.amount|floatformat:2 }}</span>
+                            {% for item in req.items.all %}
+                            <span class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold rounded inline-block mt-0.5">
+                                {{ item.fee_type.name }}: ₹{{ item.amount|floatformat:2 }}
+                            </span>
+                            {% endfor %}
+                        </td>
+                        <td class="py-4 px-6 max-w-xs">
+                            <p class="truncate text-slate-700 font-medium">{{ req.reason }}</p>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            {% if req.status == 'approved' %}
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-200">APPROVED</span>
+                            {% elif req.status == 'pending' %}
+                            <span class="px-3 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-full border border-amber-200 animate-pulse">PENDING</span>
+                            {% else %}
+                            <span class="px-3 py-1 bg-rose-100 text-rose-800 text-[11px] font-bold rounded-full border border-rose-200">CANCELLED</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <button type="button" 
+                                    data-id="{{ req.id }}"
+                                    data-student-name="{{ req.admission.application.display_name }}"
+                                    data-reg-id="{{ req.admission.registration_id|default:req.admission.application.form_no }}"
+                                    data-class-name="{{ req.admission.assigned_class.name|default:'--' }}"
+                                    data-category-name="{{ req.admission.assigned_fee_category.name|default:'General' }}"
+                                    data-amount="{{ req.amount|floatformat:2 }}"
+                                    data-reason="{{ req.reason }}"
+                                    data-requested-at="{{ req.requested_at|date:'M d, Y H:i' }}"
+                                    data-requested-by="{{ req.requested_by.get_full_name|default:req.requested_by.username }}"
+                                    data-status="{{ req.status }}"
+                                    data-receipt-number="{{ req.receipt_number|default:'' }}"
+                                    data-cancellation-reason="{{ req.cancellation_reason|default:'' }}"
+                                    data-items-json='[{% for item in req.items.all %}{"fee_type": "{{ item.fee_type.name|escapejs }}", "amount": "{{ item.amount|floatformat:2 }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                    data-approve-url="{% url 'fee_refund_approve' req.id %}"
+                                    data-cancel-url="{% url 'fee_refund_cancel' req.id %}"
+                                    onclick="openRefundModalFromButton(this)" 
+                                    class="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition">
+                                View Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <p class="font-bold">No refund requests found matching criteria.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION BAR -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} requests
+            </span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- INTERACTIVE REFUND DETAIL & APPROVAL POPUP MODAL -->
+<div id="refundModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full border border-slate-100 overflow-hidden transform transition-all">
+        
+        <!-- MODAL HEADER -->
+        <div class="p-6 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-lg">Refund Request #<span id="modal_req_id"></span></h3>
+                    <p class="text-xs text-slate-400">Student Course Refund Verification</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeRefundModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">✕</button>
+        </div>
+
+        <!-- MODAL BODY -->
+        <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl grid grid-cols-2 gap-3 text-xs">
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Student Name</span>
+                    <strong id="modal_student_name" class="text-slate-900 font-bold block text-sm"></strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Registration ID</span>
+                    <strong id="modal_reg_id" class="text-slate-800 font-mono block"></strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Class / Batch</span>
+                    <span id="modal_class_name" class="font-semibold text-slate-700"></span>
+                </div>
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Billing Category</span>
+                    <span id="modal_category_name" class="font-semibold text-slate-700"></span>
+                </div>
+            </div>
+
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-black uppercase text-amber-800 block">Refund Amount Requested</span>
+                    <span id="modal_amount" class="text-2xl font-black font-mono text-amber-700"></span>
+                </div>
+                <div id="modal_status_badge"></div>
+            </div>
+
+            <!-- ITEMIZED SPLITS CONTAINER IN MODAL -->
+            <div id="modal_items_container" class="space-y-1 hidden">
+                <label class="text-[11px] font-bold text-slate-500 uppercase block">Itemized Fee Type Splits</label>
+                <div id="modal_items_list" class="p-3 bg-amber-50/50 border border-amber-200/70 rounded-2xl space-y-1 text-xs"></div>
+            </div>
+
+            <div>
+                <label class="text-[11px] font-bold text-slate-500 uppercase block mb-1">Reason for Refund</label>
+                <div id="modal_reason" class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 font-medium whitespace-pre-wrap"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-[11px] text-slate-500">
+                <div>Requested Date: <strong id="modal_requested_at" class="text-slate-700"></strong></div>
+                <div>Submitted By: <strong id="modal_requested_by" class="text-slate-700"></strong></div>
+            </div>
+
+            <!-- CANCELLATION REASON FORM CONTAINER (HIDDEN UNTIL REJECT CLICKED) -->
+            <div id="cancellation_form_container" class="hidden p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
+                <form id="rejectForm" method="POST" action="">
+                    {% csrf_token %}
+                    <label class="block text-xs font-bold text-rose-800 mb-1">Cancellation / Rejection Reason <span class="text-rose-600">*</span></label>
+                    <textarea name="cancellation_reason" rows="3" required placeholder="Please enter reason for rejecting this refund request..." class="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+                    <div class="flex justify-end gap-2 mt-2">
+                        <button type="button" onclick="toggleCancelForm(false)" class="px-3 py-1.5 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl">Back</button>
+                        <button type="submit" class="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md">Confirm Cancellation</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="cancelled_reason_display" class="hidden p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs">
+                <strong class="block font-bold">Cancellation Reason:</strong>
+                <p id="cancellation_reason_text" class="mt-1"></p>
+            </div>
+
+        </div>
+
+        <!-- MODAL FOOTER ACTIONS -->
+        <div id="modal_footer_actions" class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeRefundModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-2xl transition">Close</button>
+            <button type="button" id="modal_reject_btn" onclick="toggleCancelForm(true)" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-rose-600/20">Reject / Cancel</button>
+            <form id="approveForm" method="POST" action="" class="inline-block">
+                {% csrf_token %}
+                <button type="submit" id="modal_approve_btn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-emerald-600/20">Approve Refund</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function openRefundModalFromButton(btn) {
+        const data = btn.dataset;
+        document.getElementById('modal_req_id').textContent = data.id;
+        document.getElementById('modal_student_name').textContent = data.studentName;
+        document.getElementById('modal_reg_id').textContent = data.regId;
+        document.getElementById('modal_class_name').textContent = data.className;
+        document.getElementById('modal_category_name').textContent = data.categoryName;
+        document.getElementById('modal_amount').textContent = '₹' + data.amount;
+        document.getElementById('modal_reason').textContent = data.reason;
+        document.getElementById('modal_requested_at').textContent = data.requestedAt;
+        document.getElementById('modal_requested_by').textContent = data.requestedBy;
+
+        // Render Itemized Fee Type Splits inside modal
+        let items = [];
+        try {
+            items = JSON.parse(data.itemsJson || '[]');
+        } catch (e) {
+            items = [];
+        }
+        const itemsContainer = document.getElementById('modal_items_container');
+        const itemsList = document.getElementById('modal_items_list');
+        itemsList.innerHTML = '';
+        if (items && items.length > 0) {
+            items.forEach(it => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between font-bold text-slate-800 py-1 border-b border-amber-200/50 last:border-0 text-xs';
+                div.innerHTML = `<span>${it.fee_type}</span><span class="font-mono text-amber-800">₹${it.amount}</span>`;
+                itemsList.appendChild(div);
+            });
+            itemsContainer.classList.remove('hidden');
+        } else {
+            itemsContainer.classList.add('hidden');
+        }
+
+        const badgeContainer = document.getElementById('modal_status_badge');
+        const footerActions = document.getElementById('modal_footer_actions');
+        const approveForm = document.getElementById('approveForm');
+        const rejectForm = document.getElementById('rejectForm');
+        const cancelledReasonDisplay = document.getElementById('cancelled_reason_display');
+        
+        toggleCancelForm(false);
+        approveForm.action = data.approveUrl;
+        rejectForm.action = data.cancelUrl;
+
+        if (data.status === 'pending') {
+            badgeContainer.innerHTML = '<span class="px-3 py-1 bg-amber-200 text-amber-900 text-xs font-bold rounded-full animate-pulse">PENDING APPROVAL</span>';
+            footerActions.classList.remove('hidden');
+            cancelledReasonDisplay.classList.add('hidden');
+        } else if (data.status === 'approved') {
+            badgeContainer.innerHTML = '<span class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">APPROVED (' + (data.receiptNumber || '') + ')</span>';
+            footerActions.classList.add('hidden');
+            cancelledReasonDisplay.classList.add('hidden');
+        } else {
+            badgeContainer.innerHTML = '<span class="px-3 py-1 bg-rose-200 text-rose-900 text-xs font-bold rounded-full">CANCELLED</span>';
+            footerActions.classList.add('hidden');
+            if (data.cancellationReason) {
+                document.getElementById('cancellation_reason_text').textContent = data.cancellationReason;
+                cancelledReasonDisplay.classList.remove('hidden');
+            } else {
+                cancelledReasonDisplay.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('refundModal').classList.remove('hidden');
+    }
+
+    function closeRefundModal() {
+        document.getElementById('refundModal').classList.add('hidden');
+    }
+
+    function toggleCancelForm(show) {
+        const container = document.getElementById('cancellation_form_container');
+        const approveBtn = document.getElementById('modal_approve_btn');
+        const rejectBtn = document.getElementById('modal_reject_btn');
+
+        if (show) {
+            container.classList.remove('hidden');
+            if (approveBtn) approveBtn.classList.add('hidden');
+            if (rejectBtn) rejectBtn.classList.add('hidden');
+        } else {
+            container.classList.add('hidden');
+            if (approveBtn) approveBtn.classList.remove('hidden');
+            if (rejectBtn) rejectBtn.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}

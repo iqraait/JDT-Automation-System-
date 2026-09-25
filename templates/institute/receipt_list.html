@@ -213,12 +213,22 @@
             </table>
         </div>
 
-        <!-- PAGINATION (20 Entries per page) -->
-        {% if page_obj.has_other_pages %}
-        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} receipts
-            </span>
+        <!-- PAGINATION & TOTALS SUMMARY BAR -->
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4 text-xs font-bold">
+                <span class="text-slate-500">
+                    Showing {{ page_obj.start_index|default:1 }} to {{ page_obj.end_index|default:receipts|length }} of {{ page_obj.paginator.count|default:receipts|length }} receipts
+                </span>
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-xl border border-blue-200 shadow-sm flex items-center gap-1.5">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-600">Selected List Total:</span>
+                    <strong class="font-mono text-sm">₹{{ total_page_amount|floatformat:2 }}</strong>
+                </span>
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-1.5">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">Overall Total:</span>
+                    <strong class="font-mono text-sm">₹{{ total_overall_amount|floatformat:2 }}</strong>
+                </span>
+            </div>
+            {% if page_obj.has_other_pages %}
             <div class="flex gap-2">
                 {% if page_obj.has_previous %}
                 <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Prev</a>
@@ -236,8 +246,8 @@
                 <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Next</a>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
 </div>

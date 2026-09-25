@@ -1,0 +1,225 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block header_title %}Daily Fee Collection Audit{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TAB NAVIGATION BAR -->
+    {% include 'institute/fee_nav_tabs.html' %}
+
+    <!-- HEADER & SUMMARY BANNER -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-lg border border-blue-100">Financial Ledger</span>
+                <span class="text-xs font-semibold text-slate-400">• Collection Audit</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Daily Fee Collection Register</h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Track fee collections, transaction audit logs, and receipt histories across classes.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'receipt_list' %}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition flex items-center gap-2 border border-slate-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Full Receipt Log</span>
+            </a>
+            <a href="{% url 'export_fee_reports_excel' %}?{% for k,v in request.GET.items %}{{ k }}={{ v }}&{% endfor %}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Export Excel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER MATRIX -->
+    <div class="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80">
+        <form method="GET" action="{% url 'daily_fee_collection' %}" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Academic Session</label>
+                    <select name="academic_year_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Academic Years</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}" {% if selected_year == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Course</label>
+                    <select name="course_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Courses</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class / Batch</label>
+                    <select name="class_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Classes</option>
+                        {% for cl in classes %}
+                        <option value="{{ cl.id }}" {% if selected_class == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fee Category</label>
+                    <select name="fee_category_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Billing Categories</option>
+                        {% for cat in fee_categories %}
+                        <option value="{{ cat.id }}" {% if selected_fee_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fee Head Type</label>
+                    <select name="fee_type_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Fee Heads</option>
+                        {% for ft in fee_types %}
+                        <option value="{{ ft.id }}" {% if selected_fee_type == ft.id|stringformat:"s" %}selected{% endif %}>{{ ft.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">From Date</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">To Date</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Search Student / Receipt</label>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Receipt #, Reg No, Name..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{% url 'daily_fee_collection' %}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-2xl transition">Reset Filters</a>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-blue-500/20">Apply Matrix</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- DAILY COLLECTION LOG TABLE -->
+    <div class="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                <h3 class="font-bold text-slate-800 text-base">Collection Audit Entries</h3>
+            </div>
+            <span class="text-xs font-bold text-slate-500">Filtered Count: {{ page_obj.paginator.count }} Receipts</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                        <th class="py-4 px-6">Receipt # & Date</th>
+                        <th class="py-4 px-6">Student Details</th>
+                        <th class="py-4 px-6">Class & Category</th>
+                        <th class="py-4 px-6">Particulars / Fee Type</th>
+                        <th class="py-4 px-6">Mode & Ref</th>
+                        <th class="py-4 px-6 text-right">Amount Paid</th>
+                        <th class="py-4 px-6 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    {% for r in receipts %}
+                    <tr class="hover:bg-slate-50/60 transition duration-150 {% if r.is_cancelled %}bg-red-50/40{% endif %}">
+                        <td class="py-4 px-6">
+                            <span class="font-mono font-bold text-blue-700 block">#{{ r.receipt_number }}</span>
+                            <span class="text-[11px] text-slate-400 font-semibold">{{ r.payment_date }}</span>
+                            {% if r.is_cancelled %}
+                            <span class="mt-1 px-2 py-0.5 bg-red-100 text-red-700 font-bold text-[10px] rounded-full inline-block">CANCELLED</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-slate-900 block">{{ r.admission.application.display_name }}</span>
+                            <span class="text-[11px] font-mono text-slate-500">ID: {{ r.admission.registration_id|default:r.admission.application.form_no }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-semibold text-slate-800 block">{{ r.admission.assigned_class.name|default:"--" }}</span>
+                            <span class="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ r.admission.assigned_fee_category.name|default:"General" }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-semibold text-slate-700 max-w-xs block truncate">{{ r.fee_types_str }}</span>
+                            {% if r.total_fine_paid > 0 %}
+                            <span class="text-[10px] text-amber-600 font-bold">(Includes Fine: ₹{{ r.total_fine_paid|floatformat:2 }})</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="capitalize font-bold text-slate-800 block">{{ r.payment_mode }}</span>
+                            <span class="text-[11px] font-mono text-slate-400">{{ r.reference_no|default:"--" }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="font-mono font-black text-sm text-emerald-600">₹{{ r.grand_total|floatformat:2 }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <a href="{% url 'print_fee_receipt' r.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition">
+                                Print
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <p class="font-bold">No collection records found for the selected criteria.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION & TOTALS SUMMARY BAR (Requirement 2) -->
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4 text-xs font-bold">
+                <span class="text-slate-500">
+                    Showing {{ page_obj.start_index|default:1 }} to {{ page_obj.end_index|default:receipts|length }} of {{ page_obj.paginator.count|default:receipts|length }} receipts
+                </span>
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-xl border border-blue-200 shadow-xs flex items-center gap-1.5">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-600">Selected List Total:</span>
+                    <strong class="font-mono text-sm">₹{{ total_page_amount|floatformat:2 }}</strong>
+                </span>
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 shadow-xs flex items-center gap-1.5">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">Overall Total:</span>
+                    <strong class="font-mono text-sm">₹{{ total_overall_amount|floatformat:2 }}</strong>
+                </span>
+            </div>
+
+            {% if page_obj.has_other_pages %}
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

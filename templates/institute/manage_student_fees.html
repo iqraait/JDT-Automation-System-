@@ -208,8 +208,11 @@
                                 <p class="font-black text-slate-700 text-sm font-mono">₹{{ item.discounted_amount|floatformat:2 }}</p>
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Paid</p>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Paid</p>
                                 <p class="font-black text-emerald-600 text-sm font-mono">₹{{ item.paid_fee|floatformat:2 }}</p>
+                                {% if item.refunded_fee > 0 %}
+                                <span class="text-[8px] font-bold text-amber-700 bg-amber-50 px-1 rounded block mt-0.5">(Refunded: ₹{{ item.refunded_fee|floatformat:2 }})</span>
+                                {% endif %}
                             </div>
                             <div>
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Dues</p>

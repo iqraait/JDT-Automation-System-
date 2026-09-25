@@ -1,0 +1,256 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block header_title %}Student Fee Dues & Outstanding Balances{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TAB NAVIGATION BAR -->
+    {% include 'institute/fee_nav_tabs.html' %}
+
+    <!-- HEADER BANNER -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-amber-50 text-amber-700 font-bold text-xs rounded-lg border border-amber-100">Fee Ledger</span>
+                <span class="text-xs font-semibold text-slate-400">• Outstanding Dues Roster</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Student Due Report</h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Comprehensive student fee balances, collected revenue, approved refunds, and outstanding dues.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'fee_refund_request' %}" class="px-4 py-2.5 bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs rounded-2xl transition hover:bg-amber-100 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
+                <span>Request Refund</span>
+            </a>
+            <a href="{% url 'export_fee_reports_excel' %}?{% for k,v in request.GET.items %}{{ k }}={{ v }}&{% endfor %}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Export Excel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- METRICS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Demand</span>
+                <p class="text-xl font-black text-slate-900 font-mono">₹{{ total_all_demand|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Net Collected</span>
+                <p class="text-xl font-black text-emerald-600 font-mono">₹{{ total_all_collected|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Approved Refunds</span>
+                <p class="text-xl font-black text-amber-600 font-mono">₹{{ total_all_refunded|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Outstanding Due</span>
+                <p class="text-xl font-black text-rose-600 font-mono">₹{{ total_all_pending|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER MATRIX -->
+    <div class="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80">
+        <form method="GET" action="{% url 'due_report' %}" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Academic Session</label>
+                    <select name="academic_year_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Academic Years</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}" {% if selected_year == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Course</label>
+                    <select name="course_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Courses</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class / Batch</label>
+                    <select name="class_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Classes</option>
+                        {% for cl in classes %}
+                        <option value="{{ cl.id }}" {% if selected_class == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fee Category (Student Type)</label>
+                    <select name="fee_category_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Student Types</option>
+                        {% for cat in fee_categories %}
+                        <option value="{{ cat.id }}" {% if selected_fee_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fee Head Type</label>
+                    <select name="fee_type_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Fee Heads</option>
+                        {% for ft in fee_types %}
+                        <option value="{{ ft.id }}" {% if selected_fee_type == ft.id|stringformat:"s" %}selected{% endif %}>{{ ft.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Search Student</label>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Form No, Name..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{% url 'due_report' %}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-2xl transition">Reset Filters</a>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-blue-500/20">Apply Matrix</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- OUTSTANDING BALANCES ROSTER TABLE -->
+    <div class="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-blue-600"></div>
+                <h3 class="font-bold text-slate-800 text-base">Student Fee Dues Roster</h3>
+            </div>
+            <span class="text-xs font-bold text-slate-500">Total Enrolled: {{ page_obj.paginator.count }} Students</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                        <th class="py-4 px-6">Student Info</th>
+                        <th class="py-4 px-6">Class & Category</th>
+                        <th class="py-4 px-6 text-right">Fee Demand</th>
+                        <th class="py-4 px-6 text-right">Gross Paid</th>
+                        <th class="py-4 px-6 text-right">Approved Refunds</th>
+                        <th class="py-4 px-6 text-right">Net Collected</th>
+                        <th class="py-4 px-6 text-right">Outstanding Due</th>
+                        <th class="py-4 px-6 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    {% for row in roster_data %}
+                    <tr class="hover:bg-slate-50/60 transition duration-150">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-slate-900 block">{{ row.admission.application.display_name }}</span>
+                            <span class="text-[11px] font-mono text-slate-500">Reg: {{ row.admission.registration_id|default:row.admission.application.form_no }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-semibold text-slate-800 block">{{ row.admission.assigned_class.name|default:"--" }}</span>
+                            <span class="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ row.fee_category.name|default:"General" }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono font-bold text-slate-800">
+                            ₹{{ row.demand|floatformat:2 }}
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono font-bold text-slate-700">
+                            ₹{{ row.collected|floatformat:2 }}
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono font-bold text-amber-600">
+                            {% if row.refunded > 0 %}
+                            - ₹{{ row.refunded|floatformat:2 }}
+                            {% else %}
+                            ₹0.00
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono font-bold text-emerald-600">
+                            ₹{{ row.net_collected|floatformat:2 }}
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono font-black text-sm text-rose-600">
+                            {% if row.pending > 0 %}
+                            ₹{{ row.pending|floatformat:2 }}
+                            {% else %}
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">PAID</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <a href="{% url 'manage_student_fees' row.admission.id %}" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition">
+                                    Ledger
+                                </a>
+                                <a href="{% url 'fee_refund_request' %}?admission_id={{ row.admission.id }}" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition" title="Request Refund">
+                                    Refund
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-400">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <p class="font-bold">No student fee records found matching criteria.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION BAR -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} students
+            </span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

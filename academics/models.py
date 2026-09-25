@@ -455,4 +455,53 @@ class StudentAttendance(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        return f"{self.admission.registration_id or self.admission.id} - {self.date} ({self.status})"
+        return f"{self.admission.registration_id or self.admission.id} - {self.date} ({self.status})"
+
+
+# ✅ NEW: FEE REFUND REQUEST MODEL
+class FeeRefundRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('cancelled', 'Cancelled'),
+    )
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='refund_requests')
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='refund_requests')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reason = models.TextField(help_text="Reason for refund request")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    
+    requested_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='requested_refunds')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    
+    approved_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_refunds')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    cancellation_reason = models.TextField(blank=True, null=True, help_text="Reason if the refund request is cancelled/rejected")
+    cancelled_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='cancelled_refunds')
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    receipt_number = models.CharField(max_length=50, blank=True, null=True, db_index=True, help_text="Reference/Refund Receipt Number")
+
+    class Meta:
+        verbose_name = "Fee Refund Request"
+        verbose_name_plural = "Fee Refund Requests"
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"Refund Request #{self.id} - {self.admission.registration_id or self.admission.id} - ₹{self.amount} ({self.status})"
+
+
+class FeeRefundRequestItem(models.Model):
+    refund_request = models.ForeignKey(FeeRefundRequest, on_delete=models.CASCADE, related_name='items')
+    fee_type = models.ForeignKey(FeeType, on_delete=models.CASCADE, related_name='refund_items')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        verbose_name = "Fee Refund Request Item"
+        verbose_name_plural = "Fee Refund Request Items"
+
+    def __str__(self):
+        return f"Refund #{self.refund_request.id} - {self.fee_type.name}: ₹{self.amount}"
+
+

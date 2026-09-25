@@ -21,7 +21,9 @@ from .models import (
     FeeType,
     FeeStructure,
     FeeHead,
-    StudentFeePayment
+    StudentFeePayment,
+    FeeRefundRequest,
+    FeeRefundRequestItem
 )
 
 
@@ -300,3 +302,16 @@ class StudentFeePaymentAdmin(admin.ModelAdmin):
     list_display = ['admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no']
     list_filter = ['payment_mode', 'payment_date']
     search_fields = ['admission__register_number', 'reference_no']
+
+
+class FeeRefundRequestItemInline(admin.TabularInline):
+    model = FeeRefundRequestItem
+    extra = 1
+
+@admin.register(FeeRefundRequest)
+class FeeRefundRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'admission', 'amount', 'status', 'requested_by', 'requested_at', 'approved_at']
+    list_filter = ['status', 'institute', 'requested_at']
+    search_fields = ['admission__register_number', 'admission__registration_id', 'reason', 'cancellation_reason']
+    inlines = [FeeRefundRequestItemInline]
+

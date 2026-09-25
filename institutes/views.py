@@ -13,7 +13,8 @@ from django.core.files.storage import FileSystemStorage
 from academics.models import (
     Course, FormField, FormSection, CourseCategory, CourseSubCategory, ApplicationFeeType,
     ExamSubject, Class, Subject, NoticeBoard, Timetable, AcademicResult, StudentDocument,
-    ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment, QualifyingExam
+    ClassYear, FeeCategoryMaster, FeeType, FeeStructure, FeeHead, StudentFeePayment, QualifyingExam,
+    FeeRefundRequest, FeeRefundRequestItem
 )
 from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission, TrashedStudent
 from .models import Institute, AcademicYear
@@ -3774,13 +3775,19 @@ def receipt_list(request):
         
     grouped = group_payments_by_receipt(payments)
     
+    total_overall_amount = sum(float(r['grand_total']) for r in grouped if not r.get('is_cancelled'))
+    
     paginator = Paginator(grouped, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
+    total_page_amount = sum(float(r['grand_total']) for r in page_obj.object_list if not r.get('is_cancelled'))
+    
     context = {
         'receipts': page_obj.object_list,
         'page_obj': page_obj,
+        'total_overall_amount': total_overall_amount,
+        'total_page_amount': total_page_amount,
         'academic_years': academic_years,
         'courses': courses,
         'categories': categories,
@@ -3902,11 +3909,19 @@ def manage_student_fees(request, admission_id):
                 paid_fee = sum(float(p.amount_paid) for p in payments)
                 paid_fine = sum(float(p.fine_paid) for p in payments)
                 
-                pending_fee = discounted_amount - paid_fee
+                # Approved refunds for this specific FeeType
+                approved_head_refunds = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                    refund_request__admission=admission,
+                    refund_request__status='approved',
+                    fee_type=head.fee_type
+                ))
+                
+                net_paid_fee = paid_fee - approved_head_refunds
+                pending_fee = discounted_amount - net_paid_fee
                 pending_fine = fine_amt - paid_fine if has_fine else 0.0
                 
                 total_for_head = discounted_amount + fine_amt
-                total_paid_for_head = paid_fee + paid_fine
+                total_paid_for_head = net_paid_fee + paid_fine
                 total_pending_for_head = pending_fee + pending_fine
                 
                 fee_heads_data.append({
@@ -3915,6 +3930,8 @@ def manage_student_fees(request, admission_id):
                     'discount_pct': discount_pct,
                     'fine_amount': fine_amt,
                     'paid_fee': paid_fee,
+                    'refunded_fee': approved_head_refunds,
+                    'net_paid_fee': net_paid_fee,
                     'paid_fine': paid_fine,
                     'pending_fee': max(0.0, pending_fee),
                     'pending_fine': max(0.0, pending_fine),
@@ -3924,7 +3941,7 @@ def manage_student_fees(request, admission_id):
                 })
                 
                 total_demand += discounted_amount
-                total_collected += paid_fee
+                total_collected += net_paid_fee
                 total_pending += max(0.0, pending_fee)
                 total_fine += paid_fine
                 
@@ -4067,6 +4084,11 @@ def clean_id_param(val):
 
 @login_required
 def fee_reports(request):
+    return due_report(request)
+
+
+@login_required
+def daily_fee_collection(request):
     institute = get_current_institute(request)
     
     academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
@@ -4077,6 +4099,96 @@ def fee_reports(request):
     fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+    search_query = request.GET.get('q', '').strip()
+    
+    payments_qs = StudentFeePayment.objects.filter(
+        admission__application__institute=institute
+    ).select_related(
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'admission__assigned_class_year',
+        'fee_head', 'fee_head__fee_type'
+    ).order_by('-created_at', '-id')
+    
+    if academic_year_id:
+        payments_qs = payments_qs.filter(admission__application__academic_year_id=academic_year_id)
+    if course_id:
+        payments_qs = payments_qs.filter(admission__selected_course_id=course_id)
+    if class_id:
+        payments_qs = payments_qs.filter(admission__assigned_class_id=class_id)
+    if class_year_id:
+        payments_qs = payments_qs.filter(admission__assigned_class_year_id=class_year_id)
+    if fee_category_id:
+        payments_qs = payments_qs.filter(admission__assigned_fee_category_id=fee_category_id)
+    if fee_type_id:
+        payments_qs = payments_qs.filter(fee_head__fee_type_id=fee_type_id)
+    if date_from:
+        payments_qs = payments_qs.filter(payment_date__gte=date_from)
+    if date_to:
+        payments_qs = payments_qs.filter(payment_date__lte=date_to)
+    if search_query:
+        payments_qs = payments_qs.filter(
+            Q(receipt_number__icontains=search_query) |
+            Q(admission__registration_id__icontains=search_query) |
+            Q(admission__application__form_no__icontains=search_query) |
+            Q(admission__application__student__first_name__icontains=search_query) |
+            Q(admission__application__student__last_name__icontains=search_query) |
+            Q(reference_no__icontains=search_query)
+        )
+        
+    grouped = group_payments_by_receipt(payments_qs)
+    
+    total_overall_amount = sum(float(r['grand_total']) for r in grouped if not r.get('is_cancelled'))
+    
+    paginator = Paginator(grouped, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    total_page_amount = sum(float(r['grand_total']) for r in page_obj.object_list if not r.get('is_cancelled'))
+    
+    batches = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
+    courses = Course.objects.filter(institute=institute).order_by('name')
+    classes = Class.objects.filter(institute=institute).order_by('name')
+    class_years = ClassYear.objects.filter(is_active=True)
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
+    fee_types = FeeType.objects.filter(is_active=True)
+    
+    return render(request, 'institute/daily_fee_collection.html', {
+        'page_obj': page_obj,
+        'receipts': page_obj.object_list,
+        'total_overall_amount': total_overall_amount,
+        'total_page_amount': total_page_amount,
+        'batches': batches,
+        'courses': courses,
+        'classes': classes,
+        'class_years': class_years,
+        'fee_categories': fee_categories,
+        'fee_types': fee_types,
+        'selected_year': academic_year_id,
+        'selected_course': course_id,
+        'selected_class': class_id,
+        'selected_class_year': class_year_id,
+        'selected_fee_category': fee_category_id,
+        'selected_fee_type': fee_type_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search_query': search_query,
+        'active_tab': 'daily_collection'
+    })
+
+
+@login_required
+def due_report(request):
+    institute = get_current_institute(request)
+    
+    academic_year_id = clean_id_param(request.GET.get('academic_year_id'))
+    course_id = clean_id_param(request.GET.get('course_id'))
+    class_id = clean_id_param(request.GET.get('class_id'))
+    class_year_id = clean_id_param(request.GET.get('class_year_id'))
+    fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
+    fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    search_query = request.GET.get('q', '').strip()
     
     admissions_qs = Admission.objects.filter(application__institute=institute)
     if academic_year_id:
@@ -4093,13 +4205,21 @@ def fee_reports(request):
         admissions_qs = admissions_qs.filter(date_of_join__gte=date_from)
     if date_to:
         admissions_qs = admissions_qs.filter(date_of_join__lte=date_to)
+    if search_query:
+        admissions_qs = admissions_qs.filter(
+            Q(registration_id__icontains=search_query) |
+            Q(application__form_no__icontains=search_query) |
+            Q(application__student__first_name__icontains=search_query) |
+            Q(application__student__last_name__icontains=search_query)
+        )
         
-    admissions = list(admissions_qs.select_related('application__student', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
+    admissions = list(admissions_qs.select_related('application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
     
     roster_data = []
     total_all_demand = 0.0
     total_all_collected = 0.0
     total_all_pending = 0.0
+    total_all_refunded = 0.0
     
     for adm in admissions:
         active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
@@ -4121,6 +4241,7 @@ def fee_reports(request):
                 std_demand = 0.0
                 std_collected = 0.0
                 std_fines = 0.0
+                discount_pct = 0
                 
                 for head in heads:
                     if head.fee_type.is_discountable:
@@ -4136,48 +4257,48 @@ def fee_reports(request):
                     std_collected += sum(float(p.amount_paid) for p in payments)
                     std_fines += sum(float(p.fine_paid) for p in payments)
                     
-                pending_fee = std_demand - std_collected
+                # Approved refunds for this student
+                approved_refunds = FeeRefundRequest.objects.filter(admission=adm, status='approved')
+                std_refunded = sum(float(r.amount) for r in approved_refunds)
+                
+                net_collected = (std_collected + std_fines) - std_refunded
+                pending_fee = max(0.0, std_demand - (std_collected - std_refunded))
                 
                 roster_data.append({
                     'admission': adm,
                     'fee_category': adm.assigned_fee_category,
                     'discount_pct': discount_pct,
                     'demand': std_demand,
-                    'collected': std_collected,
+                    'collected': std_collected + std_fines,
                     'fine_collected': std_fines,
-                    'pending': max(0.0, pending_fee),
+                    'refunded': std_refunded,
+                    'net_collected': net_collected,
+                    'pending': pending_fee,
                 })
                 
                 total_all_demand += std_demand
-                total_all_collected += std_collected + std_fines
-                total_all_pending += max(0.0, pending_fee)
-                
-    ledger_payments = StudentFeePayment.objects.filter(admission__application__institute=institute).select_related('admission__application__student', 'fee_head__fee_type').order_by('-created_at')
-    
-    if fee_type_id:
-        ledger_payments = ledger_payments.filter(fee_head__fee_type_id=fee_type_id)
-    if fee_category_id:
-        ledger_payments = ledger_payments.filter(admission__assigned_fee_category_id=fee_category_id)
-    if date_from:
-        ledger_payments = ledger_payments.filter(payment_date__gte=date_from)
-    if date_to:
-        ledger_payments = ledger_payments.filter(payment_date__lte=date_to)
-        
-    grouped_ledger = group_payments_by_receipt(ledger_payments)
+                total_all_collected += (std_collected + std_fines) - std_refunded
+                total_all_pending += pending_fee
+                total_all_refunded += std_refunded
 
-    batches = AcademicYear.objects.filter(institute=institute, is_active=True)
-    courses = Course.objects.filter(institute=institute)
-    classes = Class.objects.filter(institute=institute)
+    paginator = Paginator(roster_data, 25)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    batches = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
+    courses = Course.objects.filter(institute=institute).order_by('name')
+    classes = Class.objects.filter(institute=institute).order_by('name')
     class_years = ClassYear.objects.filter(is_active=True)
     fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     fee_types = FeeType.objects.filter(is_active=True)
     
-    return render(request, 'institute/fee_reports.html', {
-        'roster_data': roster_data,
+    return render(request, 'institute/due_report.html', {
+        'page_obj': page_obj,
+        'roster_data': page_obj.object_list,
         'total_all_demand': total_all_demand,
         'total_all_collected': total_all_collected,
         'total_all_pending': total_all_pending,
-        'ledger_payments': grouped_ledger[:100],
+        'total_all_refunded': total_all_refunded,
         'batches': batches,
         'courses': courses,
         'classes': classes,
@@ -4191,8 +4312,370 @@ def fee_reports(request):
         'selected_fee_category': fee_category_id,
         'selected_fee_type': fee_type_id,
         'date_from': date_from,
-        'date_to': date_to
+        'date_to': date_to,
+        'search_query': search_query,
+        'active_tab': 'due_report'
     })
+
+
+@login_required
+def fee_refund_request(request):
+    institute = get_current_institute(request)
+    
+    classes = Class.objects.filter(institute=institute).order_by('name')
+    courses = Course.objects.filter(institute=institute).order_by('name')
+    
+    selected_class_id = clean_id_param(request.GET.get('class_id'))
+    search_query = request.GET.get('q', '').strip()
+    selected_admission_id = clean_id_param(request.GET.get('admission_id'))
+    
+    # POST ACTION: Submit Refund Request with Itemized Fee Type Splits
+    if request.method == 'POST':
+        adm_id = request.POST.get('admission_id')
+        reason = request.POST.get('reason', '').strip()
+        
+        target_admission = get_object_or_404(Admission, id=adm_id, application__institute=institute)
+        active_payments = StudentFeePayment.objects.filter(admission=target_admission, is_cancelled=False)
+        
+        # Parse manual splits: fee_type_amount_<fee_type_id>
+        split_items = []
+        total_split_amount = 0.0
+        has_validation_error = False
+
+        for key, val in request.POST.items():
+            if key.startswith('fee_type_amount_'):
+                ft_id = key.replace('fee_type_amount_', '')
+                val_str = val.strip()
+                if val_str:
+                    try:
+                        amt = float(val_str)
+                    except ValueError:
+                        amt = 0.0
+                        
+                    if amt > 0:
+                        ft_obj = FeeType.objects.filter(id=ft_id).first()
+                        if ft_obj:
+                            # Validate against max_refundable for this specific fee_type
+                            ft_payments = active_payments.filter(fee_head__fee_type=ft_obj)
+                            ft_paid = sum(float(p.amount_paid) + float(p.fine_paid) for p in ft_payments)
+                            ft_refunded = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                                refund_request__admission=target_admission,
+                                refund_request__status='approved',
+                                fee_type=ft_obj
+                            ))
+                            ft_pending = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                                refund_request__admission=target_admission,
+                                refund_request__status='pending',
+                                fee_type=ft_obj
+                            ))
+                            ft_max = max(0.0, ft_paid - (ft_refunded + ft_pending))
+                            
+                            if amt > ft_max + 0.01:  # small floating point margin
+                                messages.error(request, f"Validation Failed: Refund amount ₹{amt:.2f} for {ft_obj.name} exceeds eligible paid balance of ₹{ft_max:.2f}.")
+                                has_validation_error = True
+                            else:
+                                split_items.append({'fee_type': ft_obj, 'amount': amt})
+                                total_split_amount += amt
+
+        # Fallback if submitted without fee_type_amount_ inputs
+        if not split_items and not has_validation_error:
+            amount_raw = request.POST.get('amount', '').strip()
+            try:
+                single_amt = float(amount_raw)
+            except ValueError:
+                single_amt = 0.0
+                
+            if single_amt > 0:
+                main_ft = FeeType.objects.filter(name__icontains='Tuition').first() or FeeType.objects.first()
+                if main_ft:
+                    split_items.append({'fee_type': main_ft, 'amount': single_amt})
+                    total_split_amount = single_amt
+
+        if not has_validation_error:
+            if total_split_amount <= 0:
+                messages.error(request, "Please enter a valid refund amount (greater than ₹0.00) for at least one fee type.")
+            elif not reason:
+                messages.error(request, "Please enter a valid reason for submitting this refund request.")
+            else:
+                refund_obj = FeeRefundRequest.objects.create(
+                    institute=institute,
+                    admission=target_admission,
+                    amount=total_split_amount,
+                    reason=reason,
+                    status='pending',
+                    requested_by=request.user
+                )
+                for item in split_items:
+                    FeeRefundRequestItem.objects.create(
+                        refund_request=refund_obj,
+                        fee_type=item['fee_type'],
+                        amount=item['amount']
+                    )
+                from .models import log_activity
+                log_activity(
+                    user=request.user,
+                    module="Fee Management",
+                    activity=f"Requested Fee Refund #{refund_obj.id} of ₹{total_split_amount:.2f} for student {target_admission.application.display_name} ({target_admission.registration_id or target_admission.id})",
+                    institute=institute
+                )
+                messages.success(request, f"Refund request of ₹{total_split_amount:.2f} for {target_admission.application.display_name} submitted successfully! Status set to Pending Approval.")
+                return redirect(f"{request.path}?admission_id={target_admission.id}")
+
+    # Search & Listing admissions
+    admissions_qs = Admission.objects.filter(application__institute=institute)
+    if selected_class_id:
+        admissions_qs = admissions_qs.filter(assigned_class_id=selected_class_id)
+    if search_query:
+        admissions_qs = admissions_qs.filter(
+            Q(registration_id__icontains=search_query) |
+            Q(application__form_no__icontains=search_query) |
+            Q(application__student__first_name__icontains=search_query) |
+            Q(application__student__last_name__icontains=search_query)
+        )
+        
+    students_list = list(admissions_qs.select_related(
+        'application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'
+    )[:50])
+    
+    selected_student_details = None
+    if selected_admission_id:
+        selected_admission = Admission.objects.filter(id=selected_admission_id, application__institute=institute).select_related(
+            'application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'
+        ).first()
+        
+        if selected_admission:
+            active_payments = StudentFeePayment.objects.filter(admission=selected_admission, is_cancelled=False).select_related('fee_head__fee_type')
+            total_paid = sum(float(p.amount_paid) for p in active_payments)
+            total_fines = sum(float(p.fine_paid) for p in active_payments)
+            
+            refunds_qs = FeeRefundRequest.objects.filter(admission=selected_admission).prefetch_related('items__fee_type')
+            approved_refunds = refunds_qs.filter(status='approved')
+            pending_refunds = refunds_qs.filter(status='pending')
+            
+            total_refunded = sum(float(r.amount) for r in approved_refunds)
+            total_pending = sum(float(r.amount) for r in pending_refunds)
+            
+            max_refundable = max(0.0, (total_paid + total_fines) - (total_refunded + total_pending))
+            
+            # Build Itemized Fee Type Breakdown for Student
+            fee_type_breakdown = []
+            tagged_fee_types = set()
+            
+            active_class = selected_admission.assigned_class or (selected_admission.assigned_class_year.class_obj if selected_admission.assigned_class_year else None)
+            structure = None
+            if active_class and selected_admission.assigned_class_year and selected_admission.assigned_fee_category:
+                structure = FeeStructure.objects.filter(
+                    academic_year=selected_admission.application.academic_year,
+                    institute=institute,
+                    course=selected_admission.selected_course,
+                    class_obj=active_class,
+                    class_year=selected_admission.assigned_class_year,
+                    fee_category=selected_admission.assigned_fee_category
+                ).first()
+                if structure:
+                    for h in structure.heads.filter(is_active=True):
+                        tagged_fee_types.add(h.fee_type)
+
+            for p in active_payments:
+                if p.fee_head and p.fee_head.fee_type:
+                    tagged_fee_types.add(p.fee_head.fee_type)
+                    
+            if not tagged_fee_types:
+                tagged_fee_types = set(FeeType.objects.filter(is_active=True))
+
+            std_demand = 0.0
+            if structure:
+                for head in structure.heads.filter(is_active=True):
+                    pct = selected_admission.custom_discount_percentage if selected_admission.custom_discount_percentage is not None else selected_admission.assigned_fee_category.discount_percentage
+                    pct = pct or 0 if head.fee_type.is_discountable else 0
+                    std_demand += float(head.amount) * (1 - float(pct) / 100)
+
+            for ft in sorted(tagged_fee_types, key=lambda x: x.name):
+                ft_payments = active_payments.filter(fee_head__fee_type=ft)
+                ft_paid = sum(float(p.amount_paid) + float(p.fine_paid) for p in ft_payments)
+                
+                ft_refunded = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                    refund_request__admission=selected_admission,
+                    refund_request__status='approved',
+                    fee_type=ft
+                ))
+                
+                ft_pending = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                    refund_request__admission=selected_admission,
+                    refund_request__status='pending',
+                    fee_type=ft
+                ))
+                
+                ft_max = max(0.0, ft_paid - (ft_refunded + ft_pending))
+                
+                fee_type_breakdown.append({
+                    'fee_type': ft,
+                    'paid_amount': ft_paid,
+                    'refunded_amount': ft_refunded,
+                    'pending_refund_amount': ft_pending,
+                    'max_refundable': ft_max
+                })
+
+            net_due = max(0.0, std_demand - ((total_paid + total_fines) - total_refunded))
+
+            selected_student_details = {
+                'admission': selected_admission,
+                'total_demand': std_demand,
+                'total_paid': total_paid,
+                'total_fines': total_fines,
+                'total_paid_gross': total_paid + total_fines,
+                'total_refunded': total_refunded,
+                'total_pending': total_pending,
+                'max_refundable': max_refundable,
+                'net_due': net_due,
+                'fee_type_breakdown': fee_type_breakdown,
+                'refund_history': refunds_qs.order_by('-requested_at')
+            }
+
+    return render(request, 'institute/fee_refund_request.html', {
+        'classes': classes,
+        'courses': courses,
+        'selected_class_id': selected_class_id,
+        'search_query': search_query,
+        'students_list': students_list,
+        'selected_student_details': selected_student_details,
+        'active_tab': 'refund_request'
+    })
+
+
+@login_required
+def fee_refund_approval(request):
+    institute = get_current_institute(request)
+    
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
+    classes = Class.objects.filter(institute=institute).order_by('name')
+    
+    status_filter = request.GET.get('status', 'all')
+    selected_category = clean_id_param(request.GET.get('fee_category_id'))
+    selected_class = clean_id_param(request.GET.get('class_id'))
+    search_query = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    refund_qs = FeeRefundRequest.objects.filter(institute=institute).select_related(
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'admission__assigned_fee_category',
+        'requested_by', 'approved_by', 'cancelled_by'
+    ).order_by('-requested_at')
+    
+    if status_filter in ['pending', 'approved', 'cancelled']:
+        refund_qs = refund_qs.filter(status=status_filter)
+    if selected_category:
+        refund_qs = refund_qs.filter(admission__assigned_fee_category_id=selected_category)
+    if selected_class:
+        refund_qs = refund_qs.filter(admission__assigned_class_id=selected_class)
+    if date_from:
+        refund_qs = refund_qs.filter(requested_at__date__gte=date_from)
+    if date_to:
+        refund_qs = refund_qs.filter(requested_at__date__lte=date_to)
+    if search_query:
+        refund_qs = refund_qs.filter(
+            Q(admission__registration_id__icontains=search_query) |
+            Q(admission__application__form_no__icontains=search_query) |
+            Q(admission__application__student__first_name__icontains=search_query) |
+            Q(admission__application__student__last_name__icontains=search_query) |
+            Q(receipt_number__icontains=search_query) |
+            Q(reason__icontains=search_query)
+        )
+
+    all_refunds = FeeRefundRequest.objects.filter(institute=institute)
+    total_count = all_refunds.count()
+    pending_qs = all_refunds.filter(status='pending')
+    pending_count = pending_qs.count()
+    pending_amount = sum(float(r.amount) for r in pending_qs)
+    
+    approved_qs = all_refunds.filter(status='approved')
+    approved_count = approved_qs.count()
+    approved_amount = sum(float(r.amount) for r in approved_qs)
+    
+    cancelled_count = all_refunds.filter(status='cancelled').count()
+
+    paginator = Paginator(refund_qs, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'institute/fee_refund_approval.html', {
+        'page_obj': page_obj,
+        'refund_requests': page_obj.object_list,
+        'total_count': total_count,
+        'pending_count': pending_count,
+        'pending_amount': pending_amount,
+        'approved_count': approved_count,
+        'approved_amount': approved_amount,
+        'cancelled_count': cancelled_count,
+        'fee_categories': fee_categories,
+        'classes': classes,
+        'status_filter': status_filter,
+        'selected_category': selected_category,
+        'selected_class': selected_class,
+        'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'active_tab': 'refund_approval'
+    })
+
+
+@login_required
+def fee_refund_approve(request, refund_id):
+    institute = get_current_institute(request)
+    from django.utils import timezone
+    from .models import log_activity
+    
+    refund_req = get_object_or_404(FeeRefundRequest, id=refund_id, institute=institute)
+    if refund_req.status != 'pending':
+        messages.warning(request, f"Refund Request #{refund_req.id} is already processed as '{refund_req.get_status_display()}'.")
+        return redirect('fee_refund_approval')
+        
+    receipt_no = f"RFND-{refund_req.id:05d}"
+    refund_req.status = 'approved'
+    refund_req.approved_by = request.user
+    refund_req.approved_at = timezone.now()
+    refund_req.receipt_number = receipt_no
+    refund_req.save()
+    
+    log_activity(
+        user=request.user,
+        module="Fee Management",
+        activity=f"Approved Fee Refund Request #{refund_req.id} (Ref: {receipt_no}) of ₹{refund_req.amount:.2f} for student {refund_req.admission.application.display_name}",
+        institute=institute
+    )
+    
+    messages.success(request, f"Fee Refund Request #{refund_req.id} for ₹{refund_req.amount:.2f} APPROVED successfully (Refund Voucher #{receipt_no}).")
+    return redirect('fee_refund_approval')
+
+
+@login_required
+def fee_refund_cancel(request, refund_id):
+    institute = get_current_institute(request)
+    from django.utils import timezone
+    from .models import log_activity
+    
+    refund_req = get_object_or_404(FeeRefundRequest, id=refund_id, institute=institute)
+    if refund_req.status != 'pending':
+        messages.warning(request, f"Refund Request #{refund_req.id} is already processed as '{refund_req.get_status_display()}'.")
+        return redirect('fee_refund_approval')
+        
+    reason = request.POST.get('cancellation_reason', 'Cancelled by administrator').strip()
+    refund_req.status = 'cancelled'
+    refund_req.cancellation_reason = reason
+    refund_req.cancelled_by = request.user
+    refund_req.cancelled_at = timezone.now()
+    refund_req.save()
+    
+    log_activity(
+        user=request.user,
+        module="Fee Management",
+        activity=f"Cancelled/Rejected Fee Refund Request #{refund_req.id} for student {refund_req.admission.application.display_name}. Reason: {reason}",
+        institute=institute
+    )
+    
+    messages.info(request, f"Fee Refund Request #{refund_req.id} for ₹{refund_req.amount:.2f} has been CANCELLED/REJECTED.")
+    return redirect('fee_refund_approval')
 
 
 @login_required
