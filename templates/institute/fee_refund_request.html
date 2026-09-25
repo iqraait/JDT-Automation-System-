@@ -71,7 +71,7 @@
                     <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-lg group-hover:bg-amber-600 group-hover:text-white transition">Select</span>
                 </div>
                 <div class="mt-2 text-xs space-y-1 text-slate-500">
-                    <p><strong class="text-slate-700">Reg / ID:</strong> {{ std.registration_id|default:std.application.form_no }}</p>
+                    <p><strong class="text-slate-700">Reg / ID:</strong> {{ std.registration_id|default:std.application.id }}</p>
                     <p><strong class="text-slate-700">Class:</strong> {{ std.assigned_class.name|default:"Not Assigned" }}</p>
                     <p><strong class="text-slate-700">Course:</strong> {{ std.selected_course.name|default:"--" }}</p>
                 </div>

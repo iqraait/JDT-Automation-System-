@@ -173,7 +173,7 @@
                     <tr class="hover:bg-slate-50/60 transition duration-150">
                         <td class="py-4 px-6">
                             <span class="font-bold text-slate-900 block">{{ row.admission.application.display_name }}</span>
-                            <span class="text-[11px] font-mono text-slate-500">Reg: {{ row.admission.registration_id|default:row.admission.application.form_no }}</span>
+                            <span class="text-[11px] font-mono text-slate-500">Reg: {{ row.admission.registration_id|default:row.admission.application.id }}</span>
                         </td>
                         <td class="py-4 px-6">
                             <span class="font-semibold text-slate-800 block">{{ row.admission.assigned_class.name|default:"--" }}</span>

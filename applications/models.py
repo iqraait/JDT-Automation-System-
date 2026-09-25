@@ -95,6 +95,13 @@ class Application(models.Model):
                     return fv.value
         return ""
 
+    @property
+    def form_no(self):
+        """
+        Returns application reference number fallback.
+        """
+        return f"APP-{self.id}"
+
     def __str__(self):
         return f"{self.display_name} - Application #{self.id}"
 
