@@ -277,6 +277,7 @@
                                            data-fee-name="{{ item.fee_type.name }}"
                                            data-max="{{ item.max_refundable }}"
                                            placeholder="0.00" 
+                                           value="{% if item.max_refundable > 0 %}{{ item.max_refundable|floatformat:2 }}{% endif %}"
                                            oninput="recalculateSplitRefundTotals()"
                                            {% if item.max_refundable <= 0 %}disabled{% endif %}
                                            class="split-refund-input w-full pl-7 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none transition disabled:bg-slate-100 disabled:cursor-not-allowed">
@@ -364,5 +365,7 @@
             btn.classList.remove('opacity-50');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', recalculateSplitRefundTotals);
 </script>
 {% endblock %}

@@ -4126,14 +4126,18 @@ def daily_fee_collection(request):
     if date_to:
         payments_qs = payments_qs.filter(payment_date__lte=date_to)
     if search_query:
-        payments_qs = payments_qs.filter(
+        search_filter = (
             Q(receipt_number__icontains=search_query) |
             Q(admission__registration_id__icontains=search_query) |
-            Q(admission__application__form_no__icontains=search_query) |
+            Q(admission__register_number__icontains=search_query) |
             Q(admission__application__student__first_name__icontains=search_query) |
             Q(admission__application__student__last_name__icontains=search_query) |
             Q(reference_no__icontains=search_query)
         )
+        clean_q = search_query.upper().replace('APP-', '').strip()
+        if clean_q.isdigit():
+            search_filter |= Q(admission__application__id=int(clean_q)) | Q(admission__id=int(clean_q))
+        payments_qs = payments_qs.filter(search_filter)
         
     grouped = group_payments_by_receipt(payments_qs)
     
@@ -4186,8 +4190,10 @@ def due_report(request):
     class_year_id = clean_id_param(request.GET.get('class_year_id'))
     fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
     fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    
+    # Support both date_from/date_to and due_date_from/due_date_to
+    due_date_from = request.GET.get('due_date_from', '').strip() or request.GET.get('date_from', '').strip()
+    due_date_to = request.GET.get('due_date_to', '').strip() or request.GET.get('date_to', '').strip()
     search_query = request.GET.get('q', '').strip()
     
     admissions_qs = Admission.objects.filter(application__institute=institute)
@@ -4201,17 +4207,17 @@ def due_report(request):
         admissions_qs = admissions_qs.filter(assigned_class_year_id=class_year_id)
     if fee_category_id:
         admissions_qs = admissions_qs.filter(assigned_fee_category_id=fee_category_id)
-    if date_from:
-        admissions_qs = admissions_qs.filter(date_of_join__gte=date_from)
-    if date_to:
-        admissions_qs = admissions_qs.filter(date_of_join__lte=date_to)
     if search_query:
-        admissions_qs = admissions_qs.filter(
+        search_filter = (
             Q(registration_id__icontains=search_query) |
-            Q(application__form_no__icontains=search_query) |
+            Q(register_number__icontains=search_query) |
             Q(application__student__first_name__icontains=search_query) |
             Q(application__student__last_name__icontains=search_query)
         )
+        clean_q = search_query.upper().replace('APP-', '').strip()
+        if clean_q.isdigit():
+            search_filter |= Q(application__id=int(clean_q)) | Q(id=int(clean_q))
+        admissions_qs = admissions_qs.filter(search_filter)
         
     admissions = list(admissions_qs.select_related('application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
     
@@ -4237,11 +4243,19 @@ def due_report(request):
                 heads = structure.heads.filter(is_active=True)
                 if fee_type_id:
                     heads = heads.filter(fee_type_id=fee_type_id)
+                if due_date_from:
+                    heads = heads.filter(due_date__gte=due_date_from)
+                if due_date_to:
+                    heads = heads.filter(due_date__lte=due_date_to)
                     
                 std_demand = 0.0
                 std_collected = 0.0
                 std_fines = 0.0
                 discount_pct = 0
+                
+                has_matching_heads = heads.exists()
+                if not has_matching_heads and (due_date_from or due_date_to or fee_type_id):
+                    continue
                 
                 for head in heads:
                     if head.fee_type.is_discountable:
@@ -4261,14 +4275,16 @@ def due_report(request):
                 approved_refunds = FeeRefundRequest.objects.filter(admission=adm, status='approved')
                 std_refunded = sum(float(r.amount) for r in approved_refunds)
                 
+                # Refund reduces effective demand so remaining refund amount is NOT considered due
+                effective_demand = max(0.0, std_demand - std_refunded)
                 net_collected = (std_collected + std_fines) - std_refunded
-                pending_fee = max(0.0, std_demand - (std_collected - std_refunded))
+                pending_fee = max(0.0, effective_demand - (std_collected - std_refunded))
                 
                 roster_data.append({
                     'admission': adm,
                     'fee_category': adm.assigned_fee_category,
                     'discount_pct': discount_pct,
-                    'demand': std_demand,
+                    'demand': effective_demand,
                     'collected': std_collected + std_fines,
                     'fine_collected': std_fines,
                     'refunded': std_refunded,
@@ -4276,8 +4292,8 @@ def due_report(request):
                     'pending': pending_fee,
                 })
                 
-                total_all_demand += std_demand
-                total_all_collected += (std_collected + std_fines) - std_refunded
+                total_all_demand += effective_demand
+                total_all_collected += net_collected
                 total_all_pending += pending_fee
                 total_all_refunded += std_refunded
 
@@ -4310,9 +4326,10 @@ def due_report(request):
         'selected_class': class_id,
         'selected_class_year': class_year_id,
         'selected_fee_category': fee_category_id,
-        'selected_fee_type': fee_type_id,
-        'date_from': date_from,
-        'date_to': date_to,
+        'due_date_from': due_date_from,
+        'due_date_to': due_date_to,
+        'date_from': due_date_from,
+        'date_to': due_date_to,
         'search_query': search_query,
         'active_tab': 'due_report'
     })

@@ -9,9 +9,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts: Roboto & Montserrat -->
+    <!-- Google Fonts: Inter, Roboto, Montserrat & JetBrains Mono for crisp number readability -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&family=Montserrat:wght@700;800;900&family=Roboto:wght@400;500;700;900&display=swap"
         rel="stylesheet">
 
     <style>
@@ -20,9 +20,17 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
         }
 
         /* Modern Scrollbar */

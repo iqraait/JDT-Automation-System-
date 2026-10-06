@@ -111,6 +111,16 @@
                 </div>
 
                 <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class Year / Sem</label>
+                    <select name="class_year_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Class Years / Semesters</option>
+                        {% for cy in class_years %}
+                        <option value="{{ cy.id }}" {% if selected_class_year == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy.class_obj.name }} - {{ cy.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fee Category (Student Type)</label>
                     <select name="fee_category_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         <option value="">All Student Types</option>
@@ -131,6 +141,16 @@
                 </div>
 
                 <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Due Date From</label>
+                    <input type="date" name="due_date_from" value="{{ due_date_from }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Due Date To</label>
+                    <input type="date" name="due_date_to" value="{{ due_date_to }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-4">
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Search Student</label>
                     <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Form No, Name..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 </div>
