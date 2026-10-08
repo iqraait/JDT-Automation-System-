@@ -26,7 +26,7 @@
     </div>
 
     <!-- SUMMARY METRICS -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 {% if total_refunded > 0 %}md:grid-cols-4{% endif %} gap-4">
         <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm text-center">
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Tagged Fee</span>
             <p class="text-xl font-black text-slate-800">₹ {{ total_fee_tagged|floatformat:0 }}</p>
@@ -35,6 +35,12 @@
             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-1">Total Amount Paid</span>
             <p class="text-xl font-black text-emerald-700">₹ {{ total_paid|floatformat:0 }}</p>
         </div>
+        {% if total_refunded > 0 %}
+        <div class="bg-amber-50 border border-amber-100 p-5 rounded-3xl text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 block mb-1">Total Refunded</span>
+            <p class="text-xl font-black text-amber-700">₹ {{ total_refunded|floatformat:0 }}</p>
+        </div>
+        {% endif %}
         <div class="bg-blue-50 border border-blue-100 p-5 rounded-3xl text-center relative overflow-hidden">
             <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 block mb-1">Balance Due</span>
             <p class="text-xl font-black text-blue-700">₹ {{ balance_due|floatformat:0 }}</p>
@@ -102,28 +108,40 @@
     </div>
     {% endif %}
 
-    <!-- FEE PAYMENT RECEIPTS LOG -->
+    <!-- FEE PAYMENT RECEIPTS LOG & REFUND ENTRIES -->
     <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Payment Transaction Receipts</h3>
-        {% if payments %}
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Payment & Refund Transaction Receipts</h3>
+        {% if ledger_entries %}
         <div class="space-y-3">
-            {% for payment in payments %}
-            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
+            {% for item in ledger_entries %}
+            <div class="p-4 rounded-2xl border flex items-center justify-between text-xs {% if item.is_refund %}bg-amber-50/50 border-amber-100{% else %}bg-slate-50 border-slate-100{% endif %}">
                 <div class="space-y-1">
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-slate-800">
-                            {% if payment.fee_head %}{{ payment.fee_head.name }}{% else %}General Fee{% endif %}
+                            {{ item.title }}
                         </span>
-                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-md uppercase">{{ payment.payment_mode }}</span>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {% if item.is_refund %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ item.payment_mode }}
+                        </span>
                     </div>
-                    <p class="text-slate-400 text-[11px]">Receipt #: <span class="font-bold text-slate-600">{{ payment.receipt_number|default:payment.reference_no }}</span> | Date: {{ payment.payment_date|date:"d M Y" }}</p>
+                    <p class="text-slate-400 text-[11px]">Voucher / Receipt #: <span class="font-bold text-slate-600">{{ item.receipt_number }}</span> | Date: {{ item.date|date:"d M Y" }}</p>
+                    {% if item.remarks %}
+                    <p class="text-[10px] text-slate-500 italic">Remarks: {{ item.remarks }}</p>
+                    {% endif %}
                 </div>
                 <div class="flex items-center gap-4">
-                    <span class="text-base font-black text-emerald-600">₹ {{ payment.amount_paid|floatformat:0 }}</span>
-                    {% if payment.receipt_number %}
-                    <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm text-[11px]">
+                    {% if item.is_refund %}
+                    <span class="text-base font-black text-amber-700">-₹ {{ item.amount|floatformat:0 }}</span>
+                    <span class="px-3 py-1.5 bg-amber-100 text-amber-800 font-bold rounded-xl text-[11px]">
+                        Approved Refund
+                    </span>
+                    {% else %}
+                    <span class="text-base font-black text-emerald-600">₹ {{ item.amount|floatformat:0 }}</span>
+                    {% if item.receipt_number %}
+                    <a href="{% url 'print_fee_receipt' item.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm text-[11px]">
                         🧾 Receipt PDF
                     </a>
+                    {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -131,7 +149,7 @@
         </div>
         {% else %}
         <div class="p-8 text-center text-slate-400 text-xs font-medium">
-            No fee payment receipts recorded yet.
+            No fee payment receipts or refund entries recorded yet.
         </div>
         {% endif %}
     </div>

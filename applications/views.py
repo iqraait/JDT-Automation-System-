@@ -188,10 +188,14 @@ def student_timetable(request):
 def student_fees(request):
     admission = Admission.objects.filter(application__student=request.user).select_related('assigned_class', 'application__course').first()
     
-    from academics.models import StudentFeePayment, FeeHead
+    from academics.models import StudentFeePayment, FeeHead, FeeRefundRequest
     payments = list(StudentFeePayment.objects.filter(admission=admission, is_cancelled=False).select_related('fee_head__fee_type').order_by('-payment_date')) if admission else []
+    approved_refunds = list(FeeRefundRequest.objects.filter(admission=admission, status='approved').prefetch_related('items__fee_type').order_by('-approved_at')) if admission else []
     
-    total_paid = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    total_paid_gross = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    total_refunded = float(sum(r.amount for r in approved_refunds)) if approved_refunds else 0.0
+    total_paid_net = max(0.0, total_paid_gross - total_refunded)
+    
     fee_heads_raw = list(FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).select_related('fee_type')) if (admission and admission.application and admission.application.course) else []
     
     today = datetime.date.today()
@@ -201,7 +205,16 @@ def student_fees(request):
 
     for fh in fee_heads_raw:
         paid_for_head = float(sum(p.amount_paid for p in payments if p.fee_head_id == fh.id)) if payments else 0.0
-        due_for_head = max(0.0, float(fh.amount) - paid_for_head)
+        
+        refund_for_head = 0.0
+        for r in approved_refunds:
+            for item in r.items.all():
+                if item.fee_type_id == fh.fee_type_id:
+                    refund_for_head += float(item.amount)
+                    
+        effective_head_amount = max(0.0, float(fh.amount) - refund_for_head)
+        net_paid_for_head = max(0.0, paid_for_head - refund_for_head)
+        due_for_head = max(0.0, effective_head_amount - net_paid_for_head)
         total_fee_tagged += float(fh.amount)
         
         is_overdue = False
@@ -215,19 +228,51 @@ def student_fees(request):
         fee_heads_detail.append({
             'head': fh,
             'amount': float(fh.amount),
+            'effective_amount': effective_head_amount,
             'paid_amount': paid_for_head,
+            'net_paid_amount': net_paid_for_head,
+            'refunded_amount': refund_for_head,
             'due_amount': due_for_head,
             'due_date': fh.due_date,
             'is_overdue': is_overdue,
             'is_fully_paid': due_for_head <= 0
         })
 
-    balance_due = max(0.0, total_fee_tagged - total_paid)
+    balance_due = max(0.0, sum(item['due_amount'] for item in fee_heads_detail))
+
+    # Combine payments and refunds into transactions ledger history list
+    ledger_entries = []
+    for p in payments:
+        ledger_entries.append({
+            'is_refund': False,
+            'title': p.fee_head.name if p.fee_head else 'General Fee',
+            'payment_mode': p.payment_mode,
+            'receipt_number': p.receipt_number or p.reference_no,
+            'date': p.payment_date,
+            'amount': float(p.amount_paid),
+            'remarks': p.remarks,
+        })
+    for r in approved_refunds:
+        ft_names = ", ".join(item.fee_type.name for item in r.items.all()) or "Fee Refund"
+        ledger_entries.append({
+            'is_refund': True,
+            'title': f"Refund: {ft_names}",
+            'payment_mode': 'Approved Refund',
+            'receipt_number': r.receipt_number or f"RFND-{r.id:05d}",
+            'date': r.approved_at.date() if r.approved_at else r.requested_at.date(),
+            'amount': float(r.amount),
+            'remarks': r.reason,
+        })
+    ledger_entries.sort(key=lambda x: x['date'], reverse=True)
 
     return render(request, 'student/fees.html', {
         'admission': admission,
         'payments': payments,
-        'total_paid': total_paid,
+        'ledger_entries': ledger_entries,
+        'approved_refunds': approved_refunds,
+        'total_paid': total_paid_gross,
+        'total_paid_net': total_paid_net,
+        'total_refunded': total_refunded,
         'total_fee_tagged': total_fee_tagged,
         'balance_due': balance_due,
         'fee_heads': fee_heads_raw,
@@ -300,8 +345,14 @@ def student_profile(request):
     attendance_pct = round(((present_count + 0.5 * half_day_count) / total_days * 100), 1) if total_days > 0 else 0
 
     # Fee metrics with itemized dues and due dates
+    from academics.models import FeeRefundRequest
     payments = list(StudentFeePayment.objects.filter(admission=admission, is_cancelled=False).select_related('fee_head__fee_type').order_by('-payment_date')) if admission else []
-    total_paid = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    approved_refunds = list(FeeRefundRequest.objects.filter(admission=admission, status='approved').prefetch_related('items__fee_type').order_by('-approved_at')) if admission else []
+    
+    total_paid_gross = float(sum(p.amount_paid for p in payments)) if payments else 0.0
+    total_refunded = float(sum(r.amount for r in approved_refunds)) if approved_refunds else 0.0
+    total_paid = max(0.0, total_paid_gross - total_refunded)
+    
     fee_heads_raw = list(FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).select_related('fee_type')) if (admission and admission.application and admission.application.course) else []
     
     today = datetime.date.today()
@@ -311,7 +362,15 @@ def student_profile(request):
 
     for fh in fee_heads_raw:
         paid_for_head = float(sum(p.amount_paid for p in payments if p.fee_head_id == fh.id)) if payments else 0.0
-        due_for_head = max(0.0, float(fh.amount) - paid_for_head)
+        refund_for_head = 0.0
+        for r in approved_refunds:
+            for item in r.items.all():
+                if item.fee_type_id == fh.fee_type_id:
+                    refund_for_head += float(item.amount)
+                    
+        effective_head_amount = max(0.0, float(fh.amount) - refund_for_head)
+        net_paid_for_head = max(0.0, paid_for_head - refund_for_head)
+        due_for_head = max(0.0, effective_head_amount - net_paid_for_head)
         total_fee_tagged += float(fh.amount)
         
         is_overdue = False
@@ -326,13 +385,14 @@ def student_profile(request):
             'head': fh,
             'amount': float(fh.amount),
             'paid_amount': paid_for_head,
+            'refunded_amount': refund_for_head,
             'due_amount': due_for_head,
             'due_date': fh.due_date,
             'is_overdue': is_overdue,
             'is_fully_paid': due_for_head <= 0
         })
 
-    balance_due = max(0.0, total_fee_tagged - total_paid)
+    balance_due = max(0.0, sum(item['due_amount'] for item in fee_heads_detail))
 
     # Notices
     notices = list(NoticeBoard.objects.filter(is_active=True).order_by('-created_at')[:10])

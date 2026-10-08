@@ -3916,17 +3916,20 @@ def manage_student_fees(request, admission_id):
                     fee_type=head.fee_type
                 ))
                 
-                net_paid_fee = paid_fee - approved_head_refunds
-                pending_fee = discounted_amount - net_paid_fee
+                # Effective demand is reduced by approved refunds so refund does NOT increase due amount
+                effective_demand = max(0.0, discounted_amount - approved_head_refunds)
+                net_paid_fee = max(0.0, paid_fee - approved_head_refunds)
+                pending_fee = max(0.0, effective_demand - net_paid_fee)
                 pending_fine = fine_amt - paid_fine if has_fine else 0.0
                 
-                total_for_head = discounted_amount + fine_amt
+                total_for_head = effective_demand + fine_amt
                 total_paid_for_head = net_paid_fee + paid_fine
                 total_pending_for_head = pending_fee + pending_fine
                 
                 fee_heads_data.append({
                     'head': head,
                     'discounted_amount': discounted_amount,
+                    'effective_demand': effective_demand,
                     'discount_pct': discount_pct,
                     'fine_amount': fine_amt,
                     'paid_fee': paid_fee,
@@ -3940,13 +3943,47 @@ def manage_student_fees(request, admission_id):
                     'total_pending': max(0.0, total_pending_for_head)
                 })
                 
-                total_demand += discounted_amount
+                total_demand += effective_demand
                 total_collected += net_paid_fee
                 total_pending += max(0.0, pending_fee)
                 total_fine += paid_fine
+
+    # Fetch total approved refunds for overall summary metrics
+    approved_refund_reqs = FeeRefundRequest.objects.filter(
+        admission=admission,
+        status='approved'
+    ).prefetch_related('items__fee_type').order_by('-approved_at', '-requested_at')
+    
+    total_refunded = sum(float(r.amount) for r in approved_refund_reqs)
                 
     raw_history = StudentFeePayment.objects.filter(admission=admission).select_related('fee_head__fee_type').order_by('-created_at')
     payments_history = group_payments_by_receipt(raw_history)
+
+    # Append approved refund transactions into the Student Fee Ledger history
+    for ref in approved_refund_reqs:
+        fee_types_str = ", ".join(item.fee_type.name for item in ref.items.all()) or "Fee Refund"
+        rcpt_no = ref.receipt_number or f"RFND-{ref.id:05d}"
+        payments_history.append({
+            'receipt_number': rcpt_no,
+            'admission': admission,
+            'payment_date': ref.approved_at.date() if ref.approved_at else ref.requested_at.date(),
+            'payment_mode': 'REFUND',
+            'payment_mode_display': 'Approved Refund',
+            'reference_no': f"RFND-REQ-#{ref.id}",
+            'remarks': ref.reason,
+            'is_cancelled': False,
+            'is_refund': True,
+            'refund_obj': ref,
+            'payments': [],
+            'fee_items': [],
+            'fee_types_str': fee_types_str,
+            'total_amount_paid': float(ref.amount),
+            'total_fine_paid': 0.0,
+            'grand_total': float(ref.amount),
+            'created_at': ref.approved_at or ref.requested_at
+        })
+    
+    payments_history.sort(key=lambda x: x.get('created_at') or x.get('payment_date'), reverse=True)
     
     return render(request, 'institute/manage_student_fees.html', {
         'admission': admission,
@@ -3956,6 +3993,7 @@ def manage_student_fees(request, admission_id):
         'total_demand': total_demand,
         'total_collected': total_collected,
         'total_pending': total_pending,
+        'total_refunded': total_refunded,
         'total_fine_collected': total_fine,
         'payments_history': payments_history
     })
