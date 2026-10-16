@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }
+        .container { max-width: 620px; margin: 0 auto; background: #ffffff; padding: 36px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        .header h2 { color: #0f172a; margin: 0 0 6px 0; font-size: 20px; font-weight: 800; }
+        .header p { color: #64748b; font-size: 13px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge { display: inline-block; padding: 6px 16px; border-radius: 100px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; margin-bottom: 16px; }
+        .doc-alert { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 20px; margin: 20px 0; }
+        .doc-alert h4 { margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 700; }
+        .doc-alert p { margin: 0; font-size: 13px; color: #1e3a8a; }
+        .attachment-card { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px 18px; margin: 20px 0; display: flex; align-items: center; justify-content: space-between; }
+        .attachment-name { font-weight: 700; font-size: 13px; color: #0f172a; }
+        .instructions { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 16px 20px; margin: 20px 0; font-size: 13px; color: #92400e; }
+        .instructions ul { margin: 6px 0 0 0; padding-left: 20px; }
+        .instructions li { margin-bottom: 4px; }
+        .footer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>{{ institute_name }}</h2>
+            <p>Official Admission & Allotment Notification</p>
+        </div>
+        
+        <div style="text-align: center;">
+            <span class="badge">✓ Admission Allotment Confirmed</span>
+        </div>
+
+        <p>Dear <strong>{{ student_name }}</strong>,</p>
+        <p>Congratulations! We are pleased to notify you that your provisional allotment for <strong>{{ course_name }}</strong> has been officially confirmed.</p>
+
+        <!-- ATTACHMENT HIGHLIGHT -->
+        <div class="doc-alert">
+            <h4>📄 Official Allotment Memo Attached</h4>
+            <p>Your official, printable Allotment Memo has been generated and attached to this email as a PDF document (<strong>{{ pdf_filename }}</strong>). Please download and print 2 copies for physical submission during reporting.</p>
+        </div>
+
+        <!-- REPORTING SCHEDULE -->
+        <div class="instructions">
+            <strong>Important Reporting Instructions:</strong>
+            <ul>
+                {% if report_from and report_to %}
+                <li><strong>Reporting Period:</strong> {{ report_from }} to {{ report_to }}</li>
+                {% endif %}
+                <li><strong>Reporting Time:</strong> {{ reporting_time|default:"10:00 AM" }}</li>
+                <li><strong>Venue:</strong> Office of Admissions, {{ institute_name }}</li>
+                <li><strong>Required:</strong> Please bring the printed Allotment Memo (2 copies) and all original certificates listed in the memo document.</li>
+            </ul>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b; margin-top: 20px;">
+            For any queries regarding document scrutiny or payment settlement, please contact the admissions helpline or visit the institution admissions desk.
+        </p>
+
+        <div class="footer">
+            <p><strong>{{ institute_name }}</strong></p>
+            <p>This is an official system notification. The attached PDF contains the authorized allotment memo.</p>
+        </div>
+    </div>
+</body>
+</html>

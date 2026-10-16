@@ -7,21 +7,21 @@
 {% block header_title %}Student Fee Ledger{% endblock %}
 
 {% block content %}
-<div class="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
+<div class="max-w-7xl mx-auto space-y-6">
     
     <!-- HEADER AND BACK ACTION -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div class="flex items-center gap-4">
-            <a href="{% url 'student_list' %}" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl transition-all shadow-sm">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <a href="{% url 'student_list' %}" class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all shadow-xs">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </a>
             <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Fee Ledger: <span class="text-blue-600">{{ admission.application.display_name }}</span></h1>
-                <p class="text-slate-500 mt-1 font-medium">Configure fee category structures, active periods, and record collections.</p>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Fee Ledger: <span class="text-blue-600">{{ admission.application.display_name }}</span></h1>
+                <p class="text-slate-500 text-xs md:text-sm mt-0.5 font-medium">Configure fee category structures, active periods, and record collections.</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <span class="text-xs font-black text-slate-400 uppercase tracking-widest px-3 py-1.5 bg-slate-100 rounded-lg font-mono">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wider px-3 py-1.5 bg-slate-100 rounded-xl font-mono border border-slate-200">
                 Reg No: {{ admission.registration_id|default:"Not Active" }}
             </span>
         </div>
@@ -31,82 +31,82 @@
     {% if messages %}
     <div class="space-y-4">
         {% for message in messages %}
-        <div class="p-4 rounded-2xl {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-700{% else %}bg-red-50 border border-red-200 text-red-700{% endif %} flex items-center gap-3 animate-fade-in shadow-sm">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="font-bold">{{ message }}</span>
+        <div class="p-4 rounded-xl {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-700{% else %}bg-red-50 border border-red-200 text-red-700{% endif %} flex items-center gap-3 animate-fade-in shadow-xs text-xs font-bold">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>{{ message }}</span>
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
     <!-- OVERALL METRIC CARDS -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <!-- Demand -->
-        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2rem] p-6 shadow-xl shadow-blue-100 space-y-3 relative overflow-hidden group">
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-4 md:p-5 shadow-md shadow-blue-500/10 space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-200">Total Fee Demand</p>
-            <h3 class="text-3xl font-black font-mono">₹{{ total_demand|floatformat:2 }}</h3>
-            <p class="text-[9px] text-blue-100 font-bold bg-white/10 px-2.5 py-1 rounded-lg inline-block">Effective Net Rate</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-blue-200">Total Fee Demand</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono">₹{{ total_demand|floatformat:2 }}</h3>
+            <p class="text-xs text-blue-100 font-semibold bg-white/10 px-2 py-0.5 rounded-md inline-block">Effective Net Rate</p>
         </div>
 
         <!-- Collected -->
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm space-y-3 relative overflow-hidden group">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 text-emerald-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
-                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Total Collected</p>
-            <h3 class="text-3xl font-black font-mono text-slate-800">₹{{ total_collected|floatformat:2 }}</h3>
-            <p class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg inline-block">Net Collections</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Collected</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono text-slate-800">₹{{ total_collected|floatformat:2 }}</h3>
+            <p class="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md inline-block">Net Collections</p>
         </div>
 
         <!-- Pending -->
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm space-y-3 relative overflow-hidden group">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 text-rose-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
-                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pending Dues</p>
-            <h3 class="text-3xl font-black font-mono text-rose-600">₹{{ total_pending|floatformat:2 }}</h3>
-            <p class="text-[9px] text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-lg inline-block">Outstanding Balance</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Dues</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono text-rose-600">₹{{ total_pending|floatformat:2 }}</h3>
+            <p class="text-xs text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-md inline-block">Outstanding Balance</p>
         </div>
 
         <!-- Refunded -->
-        <div class="bg-white border border-amber-100 rounded-[2rem] p-6 shadow-sm space-y-3 relative overflow-hidden group">
+        <div class="bg-white border border-amber-200 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 text-amber-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
-                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Total Refunded</p>
-            <h3 class="text-3xl font-black font-mono text-amber-600">₹{{ total_refunded|default:0|floatformat:2 }}</h3>
-            <p class="text-[9px] text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-lg inline-block">Approved Refunds</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Total Refunded</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono text-amber-600">₹{{ total_refunded|default:0|floatformat:2 }}</h3>
+            <p class="text-xs text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-md inline-block">Approved Refunds</p>
         </div>
 
         <!-- Fines -->
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm space-y-3 relative overflow-hidden group">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 text-amber-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
-                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Total Fines Paid</p>
-            <h3 class="text-3xl font-black font-mono text-slate-800">₹{{ total_fine_collected|floatformat:2 }}</h3>
-            <p class="text-[9px] text-slate-600 font-bold bg-slate-50 px-2.5 py-1 rounded-lg inline-block">Overdue Penalties</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Fines Paid</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono text-slate-800">₹{{ total_fine_collected|floatformat:2 }}</h3>
+            <p class="text-xs text-slate-700 font-semibold bg-slate-50 px-2 py-0.5 rounded-md inline-block">Overdue Penalties</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         <!-- FEE STRUCTURE ASSIGNMENT CONTROLLER (Left Column) -->
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden h-fit">
-            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <h3 class="text-xl font-bold text-slate-800">Assign Fee Structure</h3>
-                <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Controls</span>
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden h-fit">
+            <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-800">Assign Fee Structure</h3>
+                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider">Controls</span>
             </div>
-            <form method="POST" class="p-8 space-y-6">
+            <form method="POST" class="p-5 md:p-6 space-y-4">
                 {% csrf_token %}
                 
                 <!-- Class Year Selection -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 pl-1">Assign Class Year / Semester</label>
-                    <select name="class_year_id" class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Assign Class Year / Semester</label>
+                    <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
                         <option value="">-- Choose Active Term --</option>
                         {% for cy in class_years %}
                         <option value="{{ cy.id }}" {% if admission.assigned_class_year.id == cy.id %}selected{% endif %}>{{ cy.name }} ({{ cy.class_obj.name }})</option>
@@ -115,9 +115,9 @@
                 </div>
 
                 <!-- Fee Category Master -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 pl-1">Fee Category Structure</label>
-                    <select name="fee_category_id" class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Fee Category Structure</label>
+                    <select name="fee_category_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
                         <option value="">-- Choose Billing Category --</option>
                         {% for fcm in fee_categories %}
                         <option value="{{ fcm.id }}" {% if admission.assigned_fee_category.id == fcm.id %}selected{% endif %}>{{ fcm.name }} ({{ fcm.discount_percentage }}% discount)</option>
@@ -126,115 +126,115 @@
                 </div>
 
                 <!-- Custom Override Discount -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 pl-1">Override Discount Percentage (Optional)</label>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Override Discount Percentage (Optional)</label>
                     <div class="relative">
                         <input type="number" step="0.01" name="custom_discount" value="{{ admission.custom_discount_percentage|default_if_none:'' }}" placeholder="e.g. 15.00"
-                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
-                        <span class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none font-bold text-xs">
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider pl-1 mt-1">If set, overrides the category-wide discount percentage.</p>
+                    <p class="text-[11px] text-slate-500 font-medium pl-1">If set, overrides the category-wide discount percentage.</p>
                 </div>
 
-                <button type="submit" class="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <button type="submit" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-black text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     Apply Structure Changes
                 </button>
             </form>
         </div>
 
         <!-- FEE DEMANDS & HEADS MATRIX (Right Column - Spans 2 cols) -->
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden lg:col-span-2">
-            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden lg:col-span-2">
+            <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <h3 class="text-xl font-bold text-slate-800">Fee Demands & Heads</h3>
-                    <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">Active Matrix</span>
+                    <h3 class="text-base font-bold text-slate-800">Fee Demands & Heads</h3>
+                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">Active Matrix</span>
                 </div>
                 <!-- Select All Control -->
                 {% if fee_heads_data %}
-                <div class="flex items-center gap-2.5 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/50">
-                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="w-4.5 h-4.5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all">
-                    <label for="selectAllCheckbox" class="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">Select All Dues</label>
+                <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
+                    <label for="selectAllCheckbox" class="text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer select-none">Select All Dues</label>
                 </div>
                 {% endif %}
             </div>
             
-            <div class="p-8">
+            <div class="p-5 md:p-6">
                 {% if not admission.assigned_class_year or not admission.assigned_fee_category %}
-                <div class="text-center py-16 space-y-4">
-                    <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-[2rem] flex items-center justify-center mx-auto shadow-sm">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="text-center py-12 space-y-3">
+                    <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                    <p class="text-slate-700 font-black text-lg">No active Fee Structure mapped</p>
-                    <p class="text-slate-400 font-medium max-w-sm mx-auto">Please assign an active Class Term and Billing Category from the controller panel to calculate dues.</p>
+                    <p class="text-slate-800 font-bold text-base">No active Fee Structure mapped</p>
+                    <p class="text-slate-500 text-xs font-medium max-w-sm mx-auto">Please assign an active Class Term and Billing Category from the controller panel to calculate dues.</p>
                 </div>
                 {% elif not fee_heads_data %}
-                <div class="text-center py-16 space-y-4">
-                    <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-[2rem] flex items-center justify-center mx-auto shadow-sm">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div class="text-center py-12 space-y-3">
+                    <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
-                    <p class="text-slate-700 font-black text-lg">Fee Structure empty</p>
-                    <p class="text-slate-400 font-medium max-w-sm mx-auto">We found a structure assigned, but it has no active fee heads or demanded items. Set these up in Django Admin first.</p>
+                    <p class="text-slate-800 font-bold text-base">Fee Structure empty</p>
+                    <p class="text-slate-500 text-xs font-medium max-w-sm mx-auto">We found a structure assigned, but it has no active fee heads or demanded items. Set these up in Django Admin first.</p>
                 </div>
                 {% else %}
-                <div class="space-y-6">
+                <div class="space-y-4">
                     {% for item in fee_heads_data %}
-                    <div class="border border-slate-100 rounded-3xl p-6 hover:shadow-lg hover:shadow-slate-100/50 transition-all space-y-4">
+                    <div class="border border-slate-200/80 rounded-2xl p-4 md:p-5 hover:shadow-md transition-all space-y-3">
                         <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-start gap-4">
+                            <div class="flex items-start gap-3">
                                 {% if item.total_pending > 0 %}
                                 <div class="pt-0.5">
-                                    <input type="checkbox" name="selected_heads" value="{{ item.head.id }}" data-name="{{ item.head.fee_type.name }}" data-pending-fee="{{ item.pending_fee }}" data-pending-fine="{{ item.pending_fine }}" onchange="onHeadCheckboxChange()" class="head-checkbox w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
+                                    <input type="checkbox" name="selected_heads" value="{{ item.head.id }}" data-name="{{ item.head.fee_type.name }}" data-pending-fee="{{ item.pending_fee }}" data-pending-fine="{{ item.pending_fine }}" onchange="onHeadCheckboxChange()" class="head-checkbox w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
                                 </div>
                                 {% endif %}
                                 <div>
-                                    <span class="text-xs font-black text-blue-600 uppercase tracking-wider block mb-1">
+                                    <span class="text-xs font-bold text-blue-700 uppercase tracking-wider block mb-0.5">
                                         {{ item.head.fee_type.name }}
                                     </span>
-                                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider font-mono">Due Date: {{ item.head.due_date|date:"d M, Y" }}</p>
+                                    <p class="text-xs text-slate-500 font-semibold font-mono">Due Date: {{ item.head.due_date|date:"d M, Y" }}</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider
-                                    {% if item.total_pending == 0 %}bg-emerald-50 text-emerald-600
-                                    {% elif item.paid_fee > 0 %}bg-amber-50 text-amber-600
-                                    {% else %}bg-rose-50 text-rose-600{% endif %}">
+                                <span class="text-xs font-bold uppercase px-2.5 py-1 rounded-lg tracking-wider
+                                    {% if item.total_pending == 0 %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                    {% elif item.paid_fee > 0 %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
                                     {% if item.total_pending == 0 %}Fully Paid{% elif item.paid_fee > 0 %}Partially Paid{% else %}Unpaid{% endif %}
                                 </span>
                             </div>
                         </div>
 
                         <!-- Cash Matrix Breakdown -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-2xl text-xs font-medium text-slate-500">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-xl text-xs font-medium text-slate-600">
                             <div>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Base Demand</p>
-                                <p class="font-black text-slate-700 text-sm font-mono">₹{{ item.head.amount|floatformat:2 }}</p>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Base Demand</p>
+                                <p class="font-bold text-slate-800 text-xs md:text-sm font-mono">₹{{ item.head.amount|floatformat:2 }}</p>
                                 {% if item.discount_pct > 0 %}
-                                <span class="text-[8px] font-black text-emerald-600 bg-emerald-50 px-1 rounded">(-{{ item.discount_pct|floatformat:0 }}%)</span>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded inline-block mt-0.5">(-{{ item.discount_pct|floatformat:0 }}%)</span>
                                 {% endif %}
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Demand</p>
-                                <p class="font-black text-slate-700 text-sm font-mono">₹{{ item.effective_demand|floatformat:2 }}</p>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Net Demand</p>
+                                <p class="font-bold text-slate-800 text-xs md:text-sm font-mono">₹{{ item.effective_demand|floatformat:2 }}</p>
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Paid</p>
-                                <p class="font-black text-emerald-600 text-sm font-mono">₹{{ item.net_paid_fee|floatformat:2 }}</p>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Net Paid</p>
+                                <p class="font-bold text-emerald-600 text-xs md:text-sm font-mono">₹{{ item.net_paid_fee|floatformat:2 }}</p>
                                 {% if item.refunded_fee > 0 %}
-                                <span class="text-[8px] font-bold text-amber-700 bg-amber-50 px-1 rounded block mt-0.5">(Refunded: ₹{{ item.refunded_fee|floatformat:2 }})</span>
+                                <span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-1 rounded block mt-0.5">(Refunded: ₹{{ item.refunded_fee|floatformat:2 }})</span>
                                 {% endif %}
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Dues</p>
-                                <p class="font-black text-rose-600 text-sm font-mono">₹{{ item.pending_fee|floatformat:2 }}</p>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Dues</p>
+                                <p class="font-black text-rose-600 text-xs md:text-sm font-mono">₹{{ item.pending_fee|floatformat:2 }}</p>
                             </div>
                         </div>
 
                         {% if item.pending_fine > 0 or item.paid_fine > 0 %}
                         <!-- Overdue Fine Metrics -->
-                        <div class="p-4 bg-amber-50/50 border border-amber-100 text-amber-800 rounded-2xl text-xs flex items-center justify-between">
-                            <span class="font-bold uppercase tracking-wider text-[9px] text-amber-600">Overdue Fine penalty:</span>
-                            <div class="flex items-center gap-6 font-mono font-bold">
+                        <div class="p-3 bg-amber-50/60 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center justify-between">
+                            <span class="font-bold uppercase tracking-wider text-xs text-amber-700">Overdue Fine penalty:</span>
+                            <div class="flex items-center gap-4 font-mono font-bold text-xs">
                                 <span>Demanded: ₹{{ item.fine_amount|floatformat:2 }}</span>
                                 <span class="text-emerald-700">Paid: ₹{{ item.paid_fine|floatformat:2 }}</span>
                                 <span class="text-rose-700">Dues: ₹{{ item.pending_fine|floatformat:2 }}</span>
@@ -247,7 +247,7 @@
                         <div class="flex items-center justify-end">
                             <button type="button" 
                                 onclick="openPaymentModal({{ item.head.id }}, '{{ item.head.fee_type.name }}', {{ item.pending_fee }}, {{ item.pending_fine }})" 
-                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-100 flex items-center gap-2 transition-all">
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                 Record Collection
                             </button>
@@ -262,68 +262,68 @@
     </div>
 
     <!-- TRANSACTIONS HISTORY (Renders full receipts log & approved refunds) -->
-    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-slate-800">Receipt / Transaction History</h3>
-            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">Audit Trails</span>
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-800">Receipt / Transaction History</h3>
+            <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider">Audit Trails</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs font-medium text-slate-500">
+            <table class="w-full text-left text-xs font-medium text-slate-700 border-collapse">
                 <thead>
-                    <tr class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        <th class="px-8 py-5">Receipt / Voucher ID</th>
-                        <th class="px-8 py-5">Date</th>
-                        <th class="px-8 py-5">Fee Particulars</th>
-                        <th class="px-8 py-5 font-mono">Amount</th>
-                        <th class="px-8 py-5 font-mono">Fines Collected</th>
-                        <th class="px-8 py-5">Mode</th>
-                        <th class="px-8 py-5">Reference No</th>
-                        <th class="px-8 py-5">Remarks</th>
-                        <th class="px-8 py-5 text-center">Action</th>
+                    <tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-700">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Receipt / Voucher ID</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Date</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Fee Particulars</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Amount</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Fines Collected</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Mode</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Reference No</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Remarks</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-50 font-medium">
+                <tbody class="divide-y divide-slate-100 font-medium">
                     {% for payment in payments_history %}
-                    <tr class="hover:bg-slate-50/30 transition-colors {% if payment.is_refund %}bg-amber-50/20{% endif %}">
-                        <td class="px-8 py-5 font-black text-slate-700">
+                    <tr class="hover:bg-slate-50/60 transition-colors {% if payment.is_refund %}bg-amber-50/20{% endif %}">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-blue-700 font-mono text-xs md:text-sm">
                             #{{ payment.receipt_number }}
                             {% if payment.is_refund %}
-                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-black rounded-md ml-1.5 uppercase">Refund</span>
+                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-md ml-1 uppercase">Refund</span>
                             {% endif %}
                         </td>
-                        <td class="px-8 py-5">{{ payment.payment_date|date:"d M, Y" }}</td>
-                        <td class="px-8 py-5 font-bold text-slate-600">{{ payment.fee_types_str }}</td>
-                        <td class="px-8 py-5 font-black font-mono text-sm {% if payment.is_refund %}text-amber-700{% else %}text-slate-800{% endif %}">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-slate-600">{{ payment.payment_date|date:"d M, Y" }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-semibold text-slate-700">{{ payment.fee_types_str }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-black font-mono text-xs md:text-sm {% if payment.is_refund %}text-amber-700{% else %}text-slate-800{% endif %}">
                             {% if payment.is_refund %}-₹{{ payment.total_amount_paid|floatformat:2 }}{% else %}₹{{ payment.total_amount_paid|floatformat:2 }}{% endif %}
                         </td>
-                        <td class="px-8 py-5 font-black text-amber-600 font-mono">₹{{ payment.total_fine_paid|floatformat:2 }}</td>
-                        <td class="px-8 py-5">
-                            <span class="px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-amber-600 font-mono">₹{{ payment.total_fine_paid|floatformat:2 }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider
                                 {% if payment.is_refund %}bg-amber-100 text-amber-800
-                                {% elif payment.payment_mode == 'cash' %}bg-amber-50 text-amber-600
-                                {% elif payment.payment_mode == 'online' %}bg-blue-50 text-blue-600
-                                {% else %}bg-purple-50 text-purple-600{% endif %}">
+                                {% elif payment.payment_mode == 'cash' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% elif payment.payment_mode == 'online' %}bg-blue-50 text-blue-700 border border-blue-200
+                                {% else %}bg-purple-50 text-purple-700 border border-purple-200{% endif %}">
                                 {{ payment.payment_mode_display }}
                             </span>
                         </td>
-                        <td class="px-8 py-5 font-mono">{{ payment.reference_no|default:"-" }}</td>
-                        <td class="px-8 py-5 italic text-slate-400 max-w-xs truncate">{{ payment.remarks|default:"-" }}</td>
-                        <td class="px-8 py-5 text-center">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono text-slate-600">{{ payment.reference_no|default:"-" }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-slate-500 max-w-xs truncate">{{ payment.remarks|default:"-" }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
                             {% if payment.is_refund %}
-                            <span class="px-3.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 font-bold rounded-xl text-[10px] uppercase tracking-wider inline-flex items-center gap-1 shadow-xs">
+                            <span class="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 font-bold rounded-xl text-xs uppercase tracking-wider inline-flex items-center gap-1 shadow-xs">
                                 Approved Refund
                             </span>
                             {% else %}
-                            <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all inline-flex items-center gap-1.5 shadow-sm">
+                            <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 font-bold rounded-xl text-xs transition-all inline-flex items-center gap-1 shadow-xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                Print Receipt
+                                Print
                             </a>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="px-8 py-12 text-center text-slate-400 italic">No receipts or refunds recorded yet for this student.</td>
+                        <td colspan="9" class="py-12 text-center text-slate-400 italic">No receipts or refunds recorded yet for this student.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

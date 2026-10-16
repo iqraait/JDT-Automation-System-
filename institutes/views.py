@@ -451,10 +451,13 @@ def generate_allotment_memo(request, app_id):
 
 @login_required
 def send_allotment_memo_email(request, app_id):
+    import io
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
+    from core.utils import generate_allotment_memo_pdf
 
-    app = get_object_or_404(Application, id=app_id, institute=get_current_institute(request))
+    institute = get_current_institute(request)
+    app = get_object_or_404(Application, id=app_id, institute=institute)
     student_email = app.student.email if app.student else None
     
     if not student_email:
@@ -483,28 +486,106 @@ def send_allotment_memo_email(request, app_id):
         'ifsc_code': request.GET.get('ifsc_code', 'PUNB0788500'),
         'branch_name': request.GET.get('branch_name', 'Vellimadukunnu'),
         'app': app,
-        'institute': request.user.institute,
+        'institute': institute or request.user.institute,
         'is_email': True,
     }
 
-    html_content = render_to_string('institute/allotment_memo.html', context)
     student_display_name = context['student_name'] or app.display_name
-    subject = f"Allotment Memo - {student_display_name} ({app.course.name if app.course else ''})"
-    
+    inst_name = (institute.name if institute else (request.user.institute.name if hasattr(request.user, 'institute') else "Institution"))
+    subject = f"Official Allotment Memo - {student_display_name} ({app.course.name if app.course else ''})"
+    safe_name = "".join(c for c in student_display_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    pdf_filename = f"Allotment_Memo_{app.id}_{safe_name}.pdf"
+
+    # Generate printable PDF allotment memo
+    pdf_buffer = io.BytesIO()
+    generate_allotment_memo_pdf(context, pdf_buffer)
+    pdf_data = pdf_buffer.getvalue()
+    pdf_buffer.close()
+
+    email_body = (
+        f"Dear {student_display_name},\n\n"
+        f"Congratulations! Please find attached your official Allotment Memo (PDF) for admission to "
+        f"{app.course.name if app.course else 'the selected course'} at {inst_name}.\n\n"
+        f"Instructions:\n"
+        f"1. Please download and print the attached PDF document ({pdf_filename}) - 2 copies required.\n"
+        f"2. Bring the printed Allotment Memo and all required original certificates when reporting.\n"
+        f"3. Reporting Time: {context.get('reporting_time', '10:00 AM')}\n\n"
+        f"Regards,\n"
+        f"{inst_name}"
+    )
+
     try:
         msg = EmailMultiAlternatives(
             subject=subject,
-            body=f"Dear {student_display_name},\n\nPlease find your Allotment Memo details for {app.course.name if app.course else ''}.\n\nRegards,\n{request.user.institute.name}",
-            from_email=None,
+            body=email_body,
+            from_email=settings.DEFAULT_FROM_EMAIL or None,
             to=[student_email]
         )
-        msg.attach_alternative(html_content, "text/html")
+        html_email = render_to_string('emails/allotment_memo_email.html', {
+            'student_name': student_display_name,
+            'course_name': app.course.name if app.course else '',
+            'institute_name': inst_name,
+            'report_from': context.get('report_from'),
+            'report_to': context.get('report_to'),
+            'reporting_time': context.get('reporting_time'),
+            'pdf_filename': pdf_filename,
+        })
+        msg.attach_alternative(html_email, "text/html")
+        msg.attach(pdf_filename, pdf_data, "application/pdf")
         msg.send()
-        messages.success(request, f"Allotment Memo successfully emailed to {student_email}")
+        messages.success(request, f"Allotment Memo PDF successfully emailed to {student_email}")
     except Exception as e:
         messages.error(request, f"Failed to send email: {str(e)}")
 
     return redirect(request.META.get('HTTP_REFERER', '/institute/admission/'))
+
+
+@login_required
+def download_allotment_memo_pdf(request, app_id):
+    """Generates and serves the Allotment Memo PDF for direct download."""
+    import io
+    from django.http import HttpResponse
+    from core.utils import generate_allotment_memo_pdf
+
+    institute = get_current_institute(request)
+    app = get_object_or_404(Application, id=app_id, institute=institute)
+    include_bank = request.GET.get('include_bank_details') in ['on', 'true', '1']
+    memo_def = get_allotment_memo_defaults(app)
+
+    context = {
+        'phase_no': request.GET.get('phase_no', '1st Allotment'),
+        'allotment_date': request.GET.get('allotment_date'),
+        'app_no': request.GET.get('app_no') or memo_def['app_no'],
+        'student_name': request.GET.get('student_name') or memo_def['student_name'],
+        'dob': request.GET.get('dob') or memo_def['dob'],
+        'quota': request.GET.get('quota') or memo_def['quota'],
+        'place': request.GET.get('place') or memo_def['place'],
+        'rank': request.GET.get('rank', ''),
+        'reporting_time': format_time_am_pm(request.GET.get('reporting_time', '10:00 AM')),
+        'report_from': request.GET.get('report_from'),
+        'report_to': request.GET.get('report_to'),
+        'fee_details': request.GET.get('fee_details', ''),
+        'include_bank_details': include_bank,
+        'bank_name': request.GET.get('bank_name', 'Punjab National Bank'),
+        'account_no': request.GET.get('account_no', '4909001300014441'),
+        'ifsc_code': request.GET.get('ifsc_code', 'PUNB0788500'),
+        'branch_name': request.GET.get('branch_name', 'Vellimadukunnu'),
+        'app': app,
+        'institute': institute or request.user.institute,
+    }
+
+    pdf_buffer = io.BytesIO()
+    generate_allotment_memo_pdf(context, pdf_buffer)
+    pdf_content = pdf_buffer.getvalue()
+    pdf_buffer.close()
+
+    student_display_name = context['student_name'] or app.display_name
+    safe_name = "".join(c for c in student_display_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    filename = f"Allotment_Memo_{app.id}_{safe_name}.pdf"
+
+    response = HttpResponse(pdf_content, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
 
 
 # =========================
@@ -547,9 +628,15 @@ def register_student(request, app_id):
         relationship = request.POST.get('relationship', '') or ''
         guardian_address = request.POST.get('guardian_address', '') or ''
         
-        if Admission.objects.filter(registration_id=registration_id).exclude(application=app).exists():
-            messages.error(request, "Registration ID already exists.")
-            return redirect(request.path)
+        inst = app.institute or get_current_institute(request)
+        if registration_id:
+            reg_id = str(registration_id).strip()
+            if Admission.objects.filter(
+                Q(application__institute=inst) | Q(selected_course__institute=inst),
+                registration_id__iexact=reg_id
+            ).exclude(application=app).exists():
+                messages.error(request, f"Admission number '{reg_id}' already exists in this institute.")
+                return redirect(request.path)
 
         # Fix: Convert date string to date object
         doj_obj = datetime.datetime.strptime(date_of_join, '%Y-%m-%d').date() if date_of_join else datetime.date.today()
@@ -951,10 +1038,16 @@ def register_manual(request):
             user.set_password('jdt123') # Default password
             user.save()
 
+        institute = get_current_institute(request)
         registration_id = request.POST.get('registration_id')
-        if Admission.objects.filter(registration_id=registration_id).exists():
-            messages.error(request, f"Registration ID {registration_id} is already in use. Please use a unique ID.")
-            return redirect('register_manual')
+        if registration_id:
+            reg_id = str(registration_id).strip()
+            if Admission.objects.filter(
+                Q(application__institute=institute) | Q(selected_course__institute=institute),
+                registration_id__iexact=reg_id
+            ).exists():
+                messages.error(request, f"Admission number '{reg_id}' already exists in this institute. Please use a unique ID.")
+                return redirect('register_manual')
 
         gender = request.POST.get('gender', '').strip()
         date_of_birth = request.POST.get('date_of_birth', '').strip()
@@ -962,7 +1055,6 @@ def register_manual(request):
         aadhaar_no = request.POST.get('aadhaar_no', '').strip()
 
         # 2. Create Application
-        institute = get_current_institute(request)
         course_id = request.POST.get('course_id')
         academic_year_id = request.POST.get('academic_year_id')
         
@@ -2805,9 +2897,12 @@ def excel_import_students(request):
                     if not reg_id:
                         reg_id = f"REG_{mobile}"
 
-                    # Strict Registration ID duplicate validation
-                    if Admission.objects.filter(registration_id=reg_id).exists() or reg_id in seen_reg_ids_in_batch:
-                        report['errors'].append(f"Row {row_idx}: Duplicate Registration ID '{reg_id}'. This Registration ID already exists in the system or is duplicated in the file.")
+                    # Strict Admission Number / Registration ID duplicate validation within this institute
+                    if Admission.objects.filter(
+                        Q(application__institute=institute) | Q(selected_course__institute=institute),
+                        registration_id__iexact=reg_id
+                    ).exists() or reg_id in seen_reg_ids_in_batch:
+                        report['errors'].append(f"Row {row_idx}: Duplicate Admission number '{reg_id}'. This Admission number already exists in this institute or is duplicated in the file.")
                         continue
 
                     seen_reg_ids_in_batch.add(reg_id)
@@ -3628,26 +3723,41 @@ def num_to_words(n):
     return res
 
 
-def generate_receipt_number():
+def generate_receipt_number(institute=None):
+    """
+    Generates receipt numbers in the format INSTITUTE_CODE/1,
+    incrementing sequentially for each institute independently.
+    """
     import re
-    payments_with_rcpt = StudentFeePayment.objects.filter(receipt_number__isnull=False).exclude(receipt_number='')
-    max_num = 32210
-    for p in payments_with_rcpt:
-        nums = re.findall(r'\d+', p.receipt_number or '')
-        if nums:
-            val = int(nums[-1])
-            if val >= max_num:
-                max_num = val + 1
-    if max_num == 32210:
-        count = StudentFeePayment.objects.count()
-        max_num = 32210 + count
-    return str(max_num)
+    if not institute:
+        from .models import Institute
+        institute = Institute.objects.first()
+
+    raw_code = (institute.code if institute and institute.code else "REC").strip()
+    prefix = f"{raw_code}/"
+
+    # Query all fee payment receipts for this institute starting with prefix
+    existing_rcpts = StudentFeePayment.objects.filter(
+        Q(admission__application__institute=institute) | Q(admission__selected_course__institute=institute),
+        receipt_number__startswith=prefix
+    ).values_list('receipt_number', flat=True).distinct()
+
+    max_num = 0
+    for r in existing_rcpts:
+        if r and r.startswith(prefix):
+            suffix = r[len(prefix):].strip()
+            nums = re.findall(r'^\d+', suffix)
+            if nums:
+                val = int(nums[0])
+                if val > max_num:
+                    max_num = val
+
+    return f"{raw_code}/{max_num + 1}"
 
 
 def ensure_receipt_numbers():
     unassigned = StudentFeePayment.objects.filter(Q(receipt_number__isnull=True) | Q(receipt_number=''))
     if unassigned.exists():
-        start_no = 32200
         for p in unassigned:
             if not p.receipt_number:
                 same_batch = StudentFeePayment.objects.filter(
@@ -3660,7 +3770,12 @@ def ensure_receipt_numbers():
                 if same_batch and same_batch.receipt_number:
                     p.receipt_number = same_batch.receipt_number
                 else:
-                    p.receipt_number = str(start_no + p.id)
+                    inst = None
+                    if p.admission and p.admission.application:
+                        inst = p.admission.application.institute
+                    elif p.admission and p.admission.selected_course:
+                        inst = p.admission.selected_course.institute
+                    p.receipt_number = generate_receipt_number(inst)
                 p.save()
 
 
@@ -4014,7 +4129,8 @@ def collect_student_fee(request, admission_id, head_id):
         try:
             amt_val = float(amount_paid) if amount_paid else 0.0
             fine_val = float(fine_paid) if fine_paid else 0.0
-            rcpt_no = generate_receipt_number()
+            inst = admission.application.institute if admission.application else admission.selected_course.institute
+            rcpt_no = generate_receipt_number(inst)
             
             StudentFeePayment.objects.create(
                 admission=admission,
@@ -4050,9 +4166,15 @@ def print_fee_receipt(request, receipt_number):
         institute = Institute.objects.first()
 
     payments = StudentFeePayment.objects.filter(
-        receipt_number=receipt_number,
-        admission__application__institute=institute
+        receipt_number=receipt_number
     ).select_related('admission__application__student', 'admission__selected_course', 'admission__assigned_class', 'admission__assigned_class_year', 'fee_head__fee_type')
+
+    if institute:
+        payments = payments.filter(
+            Q(admission__application__institute=institute) | Q(admission__selected_course__institute=institute)
+        )
+    elif getattr(request.user, 'role', '') == 'student':
+        payments = payments.filter(admission__application__student=request.user)
 
     if not payments.exists():
         messages.error(request, f"Receipt #{receipt_number} not found.")
@@ -4061,6 +4183,8 @@ def print_fee_receipt(request, receipt_number):
     first_payment = payments.first()
     admission = first_payment.admission
     app = admission.application
+    if not institute:
+        institute = app.institute if app else admission.selected_course.institute
 
     fee_items = []
     grand_total = 0.0
@@ -4772,8 +4896,8 @@ def collect_multiple_fees(request, admission_id):
                 ).first()
                 
                 if structure:
-                    heads = structure.heads.filter(id__in=head_ids, is_active=True)
-                    rcpt_no = generate_receipt_number() # Single receipt ID for all items collected together!
+                    inst = admission.application.institute if admission.application else (admission.selected_course.institute if admission.selected_course else request.user.institute)
+                    rcpt_no = generate_receipt_number(inst) # Single receipt ID for all items collected together!
                     
                     for head in heads:
                         if head.fee_type.is_discountable:

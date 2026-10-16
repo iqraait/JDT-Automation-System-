@@ -19,11 +19,12 @@ urlpatterns = [
     path('admission/register/<int:app_id>/', register_student, name='register_student'),
     path('admission/allotment-memo/<int:app_id>/', generate_allotment_memo, name='generate_allotment_memo'),
     path('admission/allotment-memo/<int:app_id>/send-email/', send_allotment_memo_email, name='send_allotment_memo_email'),
+    path('admission/allotment-memo/<int:app_id>/pdf/', download_allotment_memo_pdf, name='download_allotment_memo_pdf'),
     path('admission/register-manual/', register_manual, name='register_manual'),
 
     # ✅ RECEIPT MANAGEMENT
     path('receipts/', receipt_list, name='receipt_list'),
-    path('fee-receipt/<str:receipt_number>/cancel/', cancel_fee_receipt, name='cancel_fee_receipt'),
+    path('fee-receipt/<path:receipt_number>/cancel/', cancel_fee_receipt, name='cancel_fee_receipt'),
     path('admission/load-subcategories/', load_subcategories, name='load_subcategories'),
     path('admission/load-classes/', load_classes, name='load_classes'),
     path('admission/load-class-years/', load_class_years, name='load_class_years'),
@@ -65,7 +66,7 @@ urlpatterns = [
     path('student/<int:admission_id>/fees/', manage_student_fees, name='manage_student_fees'),
     path('student/<int:admission_id>/fees/collect/<int:head_id>/', collect_student_fee, name='collect_student_fee'),
     path('student/<int:admission_id>/fees/collect-multiple/', collect_multiple_fees, name='collect_multiple_fees'),
-    path('fee-receipt/<str:receipt_number>/', print_fee_receipt, name='print_fee_receipt'),
+    path('fee-receipt/<path:receipt_number>/', print_fee_receipt, name='print_fee_receipt'),
     path('fee-reports/', fee_reports, name='fee_reports'),
     path('daily-fee-collection/', daily_fee_collection, name='daily_fee_collection'),
     path('due-report/', due_report, name='due_report'),

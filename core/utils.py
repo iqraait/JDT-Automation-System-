@@ -259,3 +259,336 @@ def generate_application_pdf(application, buffer):
     elements.append(office_table)
 
     doc.build(elements)
+
+
+def generate_allotment_memo_pdf(context, buffer):
+    """
+    Generates a professionally formatted, printable single-page PDF allotment memo.
+    """
+    import datetime
+    from reportlab.lib.colors import HexColor
+
+    app = context.get('app')
+    institute = context.get('institute') or (app.course.institute if app and app.course else None)
+    styles = getSampleStyleSheet()
+
+    # A4: 595.27 x 841.89 points. With 30pt margins, usable width = 535.27 pt
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=30,
+        rightMargin=30,
+        topMargin=22,
+        bottomMargin=22
+    )
+    elements = []
+
+    # Typography styles
+    inst_name_style = ParagraphStyle(
+        'InstNameStyle',
+        parent=styles['Normal'],
+        fontSize=13.5,
+        leading=16,
+        alignment=1,
+        fontName='Roboto-Bold',
+        textColor=HexColor('#001F3F')
+    )
+    inst_addr_style = ParagraphStyle(
+        'InstAddrStyle',
+        parent=styles['Normal'],
+        fontSize=7.5,
+        leading=9.5,
+        alignment=1,
+        fontName='Roboto',
+        textColor=HexColor('#334155')
+    )
+    inst_course_style = ParagraphStyle(
+        'InstCourseStyle',
+        parent=styles['Normal'],
+        fontSize=9.5,
+        leading=12,
+        alignment=1,
+        fontName='Roboto-Bold',
+        textColor=HexColor('#0F172A')
+    )
+    memo_title_style = ParagraphStyle(
+        'MemoTitleStyle',
+        parent=styles['Normal'],
+        fontSize=12,
+        leading=14,
+        alignment=1,
+        fontName='Roboto-Bold',
+        textColor=HexColor('#000000')
+    )
+    th_style = ParagraphStyle(
+        'AllotTh',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10,
+        fontName='Roboto-Bold',
+        textColor=HexColor('#0F172A')
+    )
+    td_style = ParagraphStyle(
+        'AllotTd',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10,
+        fontName='Roboto',
+        textColor=HexColor('#1E293B')
+    )
+    sec_title_style = ParagraphStyle(
+        'SecTitle',
+        parent=styles['Normal'],
+        fontSize=8.5,
+        leading=11,
+        fontName='Roboto-Bold',
+        textColor=HexColor('#0F172A')
+    )
+    bullet_style = ParagraphStyle(
+        'DocBullet',
+        parent=styles['Normal'],
+        fontSize=7.5,
+        leading=9.5,
+        fontName='Roboto',
+        textColor=HexColor('#334155')
+    )
+    note_style = ParagraphStyle(
+        'MemoNote',
+        parent=styles['Normal'],
+        fontSize=7.5,
+        leading=10,
+        fontName='Roboto',
+        textColor=HexColor('#1E293B')
+    )
+    reporting_style = ParagraphStyle(
+        'ReportingNote',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=11,
+        fontName='Roboto',
+        textColor=HexColor('#0F172A')
+    )
+
+    # 1. HEADER (Logo + Institute Details)
+    logo_path = os.path.join(settings.MEDIA_ROOT, str(institute.logo)) if (institute and institute.logo) else None
+    logo_img = None
+    if logo_path and os.path.exists(logo_path):
+        try:
+            logo_img = Image(logo_path, 0.85 * inch, 0.85 * inch)
+        except Exception:
+            logo_img = None
+
+    inst_name = (institute.name.upper() if institute and institute.name else "JDT GROUP OF INSTITUTIONS")
+    if institute and institute.address:
+        inst_addr = institute.address.strip().replace('\n', ', ')
+    else:
+        inst_addr = "CALICUT 673012, Phone: 0495 2730366, 2730398 | Email: nursingadmission22@gmail.com"
+
+    course_name_str = app.course.name if (app and app.course) else "Admission"
+    acad_year_str = app.academic_year.name if (app and app.academic_year) else ""
+    course_line = f"{course_name_str} Admission {acad_year_str}".strip()
+
+    header_text_flowables = [
+        Paragraph(inst_name, inst_name_style),
+        Spacer(1, 2),
+        Paragraph(inst_addr, inst_addr_style),
+        Spacer(1, 2),
+        Paragraph(course_line, inst_course_style),
+        Spacer(1, 4),
+        Paragraph("<b><u>ALLOTMENT MEMO</u></b>", memo_title_style),
+    ]
+
+    if logo_img:
+        hdr_table = Table([[logo_img, header_text_flowables]], colWidths=[1.0 * inch, 6.43 * inch])
+        hdr_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('PADDING', (0, 0), (-1, -1), 0),
+        ]))
+        elements.append(hdr_table)
+    else:
+        elements.extend(header_text_flowables)
+
+    elements.append(Spacer(1, 6))
+
+    # 2. CANDIDATE & ALLOTMENT DETAILS TABLE
+    allot_date_raw = context.get('allotment_date')
+    if hasattr(allot_date_raw, 'strftime'):
+        allot_date_str = allot_date_raw.strftime('%d/%m/%Y')
+    else:
+        allot_date_str = str(allot_date_raw or datetime.date.today().strftime('%d/%m/%Y'))
+
+    app_no = str(context.get('app_no') or (app.form_no if app else ''))
+    student_name = str(context.get('student_name') or (app.display_name if app else ''))
+    dob_str = str(context.get('dob') or 'N/A')
+    quota_str = str(context.get('quota') or 'Merit')
+    place_str = str(context.get('place') or 'N/A')
+    rank_str = str(context.get('rank') or 'N/A')
+    phase_str = str(context.get('phase_no') or '1st Allotment')
+
+    table_data = [
+        [Paragraph("Phase No", th_style), Paragraph(phase_str, td_style)],
+        [Paragraph("Allotment Date", th_style), Paragraph(allot_date_str, td_style)],
+        [Paragraph("Application No", th_style), Paragraph(app_no, td_style)],
+        [Paragraph("Name", th_style), Paragraph(f"<b>{student_name}</b>", td_style)],
+        [Paragraph("Date of Birth", th_style), Paragraph(dob_str, td_style)],
+        [Paragraph("Quota", th_style), Paragraph(quota_str, td_style)],
+        [Paragraph("Place", th_style), Paragraph(place_str, td_style)],
+        [Paragraph("Rank", th_style), Paragraph(rank_str, td_style)],
+    ]
+
+    details_table = Table(table_data, colWidths=[1.8 * inch, 5.63 * inch])
+    details_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.75, HexColor('#334155')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, HexColor('#94A3B8')),
+        ('BACKGROUND', (0, 0), (0, -1), HexColor('#F8FAFC')),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(details_table)
+    elements.append(Spacer(1, 6))
+
+    # 3. ORIGINAL DOCUMENTS LIST
+    elements.append(Paragraph("<b>Original documents to be produced at the time of joining:</b>", sec_title_style))
+    elements.append(Spacer(1, 2))
+
+    doc_bullets = [
+        "• Allotment Memo (2 copies)",
+        "• Application form (2 copies)",
+        "• SSLC, PLUS TWO / Qualifying Pass Certificate & Mark List (2 copies)",
+        "• TC & Conduct Certificate from institution last attended (Original & 2 copies)",
+        "• 2 passport size colour photographs with white background and one stamp size photo",
+        "• Eligibility certificate and migration certificate (if applicable) (2 copies)",
+        "• Copy of Aadhaar card (1 copy)",
+    ]
+    # Two column layout for documents to save vertical space
+    mid = 4
+    col1 = [Paragraph(d, bullet_style) for d in doc_bullets[:mid]]
+    col2 = [Paragraph(d, bullet_style) for d in doc_bullets[mid:]]
+    docs_table = Table([[col1, col2]], colWidths=[3.7 * inch, 3.73 * inch])
+    docs_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+    ]))
+    elements.append(docs_table)
+    elements.append(Spacer(1, 6))
+
+    # 4. FEE PAYMENT INSTRUCTION & FEE DETAILS
+    elements.append(Paragraph("<b>Kindly pay the fee by Online payment / Bank Transfer:</b>", sec_title_style))
+    elements.append(Spacer(1, 2))
+    elements.append(Paragraph(
+        "After scrutiny of the original documents, provisional admission will be granted if found eligible. "
+        "You have to remit the full fee for the first year as prescribed by the Admission Supervisory Committee.",
+        note_style
+    ))
+
+    fee_details_str = str(context.get('fee_details') or '').strip()
+    if fee_details_str:
+        elements.append(Spacer(1, 3))
+        fee_box = Table([[Paragraph(f"<b>Fee Particulars:</b><br/>{fee_details_str.replace(chr(10), '<br/>')}", note_style)]], colWidths=[7.43 * inch])
+        fee_box.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#CBD5E1')),
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#F8FAFC')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(fee_box)
+
+    # 5. BANK DETAILS (Optional)
+    if context.get('include_bank_details'):
+        elements.append(Spacer(1, 4))
+        bank_data = [
+            [
+                Paragraph(f"<b>Beneficiary:</b> {inst_name}", note_style),
+                Paragraph(f"<b>Bank:</b> {context.get('bank_name', 'Punjab National Bank')}", note_style),
+            ],
+            [
+                Paragraph(f"<b>Account No:</b> {context.get('account_no', '4909001300014441')}", note_style),
+                Paragraph(f"<b>IFSC:</b> {context.get('ifsc_code', 'PUNB0788500')} | <b>Branch:</b> {context.get('branch_name', 'Vellimadukunnu')}", note_style),
+            ]
+        ]
+        bank_table = Table(bank_data, colWidths=[3.7 * inch, 3.73 * inch])
+        bank_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#CBD5E1')),
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#F1F5F9')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(bank_table)
+
+    elements.append(Spacer(1, 6))
+
+    # 6. REPORTING INSTRUCTIONS
+    rep_from = str(context.get('report_from') or '')
+    rep_to = str(context.get('report_to') or '')
+    rep_time = str(context.get('reporting_time') or '10:00 AM')
+
+    reporting_text = (
+        f"Candidates must report to <b>{inst_name}</b>"
+        + (f" from <b>{rep_from}</b>" if rep_from else "")
+        + (f" to <b>{rep_to}</b>" if rep_to else "")
+        + f" with all original documents <b>at {rep_time}</b>.<br/>"
+        "<font color='#B91C1C'><b>Note: If you fail to report on time, the provisional admission allotment will be cancelled.</b></font>"
+    )
+    reporting_box = Table([[Paragraph(reporting_text, reporting_style)]], colWidths=[7.43 * inch])
+    reporting_box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.75, HexColor('#CBD5E1')),
+        ('BACKGROUND', (0, 0), (-1, -1), HexColor('#FFFBEB')),
+        ('PADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(reporting_box)
+    elements.append(Spacer(1, 10))
+
+    # 7. SEAL & SIGNATURE
+    seal_flowable = None
+    if institute and institute.seal_image:
+        try:
+            seal_file = os.path.join(settings.MEDIA_ROOT, str(institute.seal_image))
+            if os.path.exists(seal_file):
+                seal_flowable = Image(seal_file, 1.0 * inch, 1.0 * inch)
+        except Exception:
+            seal_flowable = None
+
+    if not seal_flowable:
+        seal_table = Table([[Paragraph("<font size='7' color='#64748B'>OFFICIAL<br/>SEAL</font>", ParagraphStyle('SealPh', alignment=1))]], colWidths=[1.0 * inch], rowHeights=[1.0 * inch])
+        seal_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 1, HexColor('#94A3B8')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        seal_flowable = seal_table
+
+    sig_flowable = None
+    if institute and institute.signature_image:
+        try:
+            sig_file = os.path.join(settings.MEDIA_ROOT, str(institute.signature_image))
+            if os.path.exists(sig_file):
+                sig_flowable = Image(sig_file, 1.3 * inch, 0.5 * inch)
+        except Exception:
+            sig_flowable = None
+
+    sig_content = []
+    if sig_flowable:
+        sig_content.append(sig_flowable)
+    else:
+        sig_content.append(Spacer(1, 0.4 * inch))
+    sig_content.append(Paragraph("<b>Principal / Authorized Signatory</b><br/><font size='7' color='#64748B'>" + inst_name + "</font>", ParagraphStyle('SigLbl', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)))
+
+    auth_table = Table([[seal_flowable, sig_content]], colWidths=[3.7 * inch, 3.73 * inch])
+    auth_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(auth_table)
+    elements.append(Spacer(1, 8))
+
+    # 8. FOOTER
+    printed_str = datetime.datetime.now().strftime('%d/%m/%Y %I:%M %p')
+    elements.append(Paragraph(f"<font size='7' color='#94A3B8'>Official Allotment Document • Issued on {printed_str} • Verified & Generated via JDT Automation Node</font>", ParagraphStyle('Foot', alignment=1)))
+
+    doc.build(elements)
+

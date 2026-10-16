@@ -48,9 +48,12 @@
     {% if not is_email %}
     <div class="no-print">
         <button onclick="window.print()" class="btn-action">🖨️ Print Allotment Memo</button>
+        <a href="{% url 'download_allotment_memo_pdf' app.id %}?phase_no={{ phase_no }}&allotment_date={{ allotment_date }}&rank={{ rank }}&reporting_time={{ reporting_time }}&report_from={{ report_from }}&report_to={{ report_to }}&fee_details={{ fee_details|urlencode }}&include_bank_details={% if include_bank_details %}on{% endif %}&bank_name={{ bank_name }}&account_no={{ account_no }}&ifsc_code={{ ifsc_code }}&branch_name={{ branch_name }}&app_no={{ app_no|urlencode }}&student_name={{ student_name|urlencode }}&dob={{ dob|urlencode }}&quota={{ quota|urlencode }}&place={{ place|urlencode }}" class="btn-action" style="background:#4338ca;">
+            📄 Download PDF Memo
+        </a>
         {% if app.student.email %}
         <a href="{% url 'send_allotment_memo_email' app.id %}?phase_no={{ phase_no }}&allotment_date={{ allotment_date }}&rank={{ rank }}&reporting_time={{ reporting_time }}&report_from={{ report_from }}&report_to={{ report_to }}&fee_details={{ fee_details|urlencode }}&include_bank_details={% if include_bank_details %}on{% endif %}&bank_name={{ bank_name }}&account_no={{ account_no }}&ifsc_code={{ ifsc_code }}&branch_name={{ branch_name }}&app_no={{ app_no|urlencode }}&student_name={{ student_name|urlencode }}&dob={{ dob|urlencode }}&quota={{ quota|urlencode }}&place={{ place|urlencode }}" class="btn-action btn-email">
-            ✉️ Send Mail to Student ({{ app.student.email }})
+            ✉️ Email PDF to Student ({{ app.student.email }})
         </a>
         {% else %}
         <span class="btn-action" style="background:#94a3b8; cursor:not-allowed;" title="Student email not registered">✉️ Mail Disabled (No Email)</span>

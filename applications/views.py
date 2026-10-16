@@ -475,7 +475,8 @@ def settle_student_fee(request):
             if not fee_head:
                 fee_head = FeeHead.objects.filter(fee_structure__course=admission.application.course, is_active=True).first()
                 
-            rcpt_no = generate_receipt_number()
+            inst = admission.application.institute if admission.application else admission.selected_course.institute
+            rcpt_no = generate_receipt_number(inst)
             StudentFeePayment.objects.create(
                 admission=admission,
                 fee_head=fee_head,

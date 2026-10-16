@@ -7,46 +7,46 @@
 {% block header_title %}Student Admission / Registration{% endblock %}
 
 {% block content %}
-<div class="space-y-8 animate-fade-in">
+<div class="max-w-7xl mx-auto space-y-6 animate-fade-in">
     
     <!-- HEADER WITH ACTIONS -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div class="flex items-center gap-5">
-            <div class="w-16 h-16 bg-slate-900 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-slate-200 border-4 border-white">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+    <div class="bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shadow-slate-200 flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             </div>
             <div>
-                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Admission Control</h2>
-                <div class="flex items-center gap-2 mt-1">
-                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded text-[10px] font-black uppercase tracking-widest">Active Intake</span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                    <p class="text-sm text-slate-500 font-medium">Verify and register selected merit candidates</p>
+                <h2 class="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Admission Control</h2>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wider">Active Intake</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <p class="text-xs text-slate-500 font-medium">Verify and register selected merit candidates</p>
                 </div>
             </div>
         </div>
 
-        <a href="/institute/admission/register-manual/" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-blue-100 flex items-center gap-3">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+        <a href="/institute/admission/register-manual/" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-2 self-start md:self-auto">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
             Manual Enrollment
         </a>
     </div>
 
-    <!-- FILTER SECTION (Modern Matrix Style) -->
-    <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-10">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Identifier</label>
-                <input type="text" name="form_id" value="{{ selected_form_id|default:'' }}" placeholder="Form ID (e.g. 1024)" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold placeholder:text-slate-300">
+    <!-- FILTER SECTION -->
+    <div class="bg-white rounded-2xl md:rounded-3xl shadow-xs border border-slate-200/80 p-4 md:p-5">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 md:gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Identifier</label>
+                <input type="text" name="form_id" value="{{ selected_form_id|default:'' }}" placeholder="Form ID (e.g. 1024)" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all text-xs font-medium placeholder:text-slate-400">
             </div>
 
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Candidate Name</label>
-                <input type="text" name="name" value="{{ selected_name|default:'' }}" placeholder="Search name..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-bold placeholder:text-slate-300">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Candidate Name</label>
+                <input type="text" name="name" value="{{ selected_name|default:'' }}" placeholder="Search name..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all text-xs font-medium placeholder:text-slate-400">
             </div>
 
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Batch Year</label>
-                <select name="year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Batch Year</label>
+                <select name="year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all cursor-pointer text-xs font-medium">
                     <option value="">All Academic Years</option>
                     {% for y in years %}
                     <option value="{{ y.id }}" {% if selected_year == y.id|stringformat:"s" %}selected{% endif %}>{{ y.name }}</option>
@@ -54,9 +54,9 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Course</label>
-                <select name="course_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Course</label>
+                <select name="course_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all cursor-pointer text-xs font-medium">
                     <option value="">All Courses</option>
                     {% for c in courses %}
                     <option value="{{ c.id }}" {% if selected_course_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
@@ -64,97 +64,97 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Status</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all cursor-pointer text-xs font-medium">
                     <option value="">All Statuses</option>
                     <option value="enrolled" {% if selected_status == 'enrolled' %}selected{% endif %}>Enrolled</option>
                     <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
                 </select>
             </div>
 
-            <div class="lg:col-span-5 flex justify-between items-center pt-4">
+            <div class="sm:col-span-2 lg:col-span-5 flex justify-between items-center pt-2">
                  <div>
                     {% if selected_form_id or selected_name or selected_year or selected_course_id or selected_status %}
-                        <a href="/institute/admission/" class="text-xs font-black text-red-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-6 h-6 bg-red-50 rounded-lg flex items-center justify-center">×</span>
-                            Clear Constraints
+                        <a href="/institute/admission/" class="text-xs font-bold text-rose-600 hover:text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-5 h-5 bg-rose-50 rounded-lg flex items-center justify-center font-bold">×</span>
+                            Clear Filters
                         </a>
                     {% endif %}
                  </div>
-                <button type="submit" class="px-12 py-4 bg-slate-900 hover:bg-black text-white font-black rounded-2xl transition-all shadow-xl shadow-slate-200 flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     Fetch Records
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- ADMISSION TABLE (Modern Card Layout) -->
-    <div class="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+    <!-- ADMISSION TABLE -->
+    <div class="bg-white rounded-2xl md:rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
         
-        <div class="px-10 py-8 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-            <h3 class="text-xl font-black text-slate-800">Enrollment Matrix</h3>
-            <span class="px-5 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100">{{ applications|length }} Candidates Listed</span>
+        <div class="px-4 py-3.5 md:px-6 md:py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-sm md:text-base font-bold text-slate-800">Enrollment Matrix</h3>
+            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">{{ applications|length }} Candidates Listed</span>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-xs">
                 <thead>
-                    <tr class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-widest font-black">
-                        <th class="px-10 py-6 text-center">Reference</th>
-                        <th class="px-10 py-6 text-left">Applicant Profile</th>
-                        <th class="px-10 py-6 text-left">Academic Stream</th>
-                        <th class="px-10 py-6 text-center">Batch</th>
-                        <th class="px-10 py-6 text-center">Status</th>
-                        <th class="px-10 py-6 text-right">Actions</th>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-slate-700 uppercase text-xs tracking-wider font-bold">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Reference</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-left">Applicant Profile</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-left">Academic Stream</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Batch</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Status</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-100 font-medium">
                     {% for app in applications %}
-                    <tr class="group hover:bg-slate-50/50 transition-colors">
-                        <td class="px-10 py-8 text-center">
-                            <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg font-mono text-[11px] font-bold">#{{ app.form_no }}</span>
+                    <tr class="group hover:bg-slate-50/60 transition-colors">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-mono text-xs font-bold">#{{ app.form_no }}</span>
                         </td>
-                        <td class="px-10 py-8">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <div class="flex flex-col">
-                                <span class="text-slate-800 font-black text-lg group-hover:text-blue-600 transition-colors">{{ app.student_first_name }}</span>
-                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Verified Merit Match</span>
+                                <span class="text-slate-900 font-bold text-xs md:text-sm group-hover:text-blue-600 transition-colors">{{ app.student_first_name }}</span>
+                                <span class="text-xs text-slate-400 font-medium mt-0.5">Verified Merit Match</span>
                             </div>
                         </td>
-                        <td class="px-10 py-8">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                              <div class="flex flex-col">
-                                <span class="text-slate-700 font-bold text-sm">{{ app.course.name }}</span>
-                                <span class="text-[10px] text-slate-400 font-bold uppercase">{{ app.category }}</span>
+                                <span class="text-slate-800 font-semibold text-xs">{{ app.course.name }}</span>
+                                <span class="text-xs text-slate-400 uppercase font-medium">{{ app.category }}</span>
                              </div>
                         </td>
-                        <td class="px-10 py-8 text-center">
-                            <span class="text-slate-500 font-black text-xs">{{ app.academic_year.name }}</span>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
+                            <span class="text-slate-600 font-semibold text-xs">{{ app.academic_year.name }}</span>
                         </td>
-                        <td class="px-10 py-8">
-                            <div class="flex flex-col items-center gap-1.5">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <div class="flex flex-col items-center gap-1">
                                 {% if app.is_registered %}
-                                    <span class="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
+                                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wider border border-emerald-200 flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         ENROLLED
                                     </span>
                                 {% else %}
-                                    <span class="px-4 py-1.5 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-100 flex items-center gap-2">
+                                    <span class="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wider border border-amber-200 flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                         PENDING
                                     </span>
                                 {% endif %}
                             </div>
                         </td>
-                        <td class="px-10 py-8 text-right">
-                            <div class="flex items-center justify-end gap-3">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
                                 {% if app.is_registered %}
-                                    <button class="px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed">
-                                        Registration Complete
+                                    <button class="px-3 py-1.5 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold uppercase tracking-wider cursor-not-allowed">
+                                        Enrolled
                                     </button>
                                 {% else %}
-                                    <a href="/institute/admission/register/{{ app.form_no }}/" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-100 inline-block">
-                                        Register Student
+                                    <a href="/institute/admission/register/{{ app.form_no }}/" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 inline-block">
+                                        Register
                                     </a>
                                 {% endif %}
                                 <button onclick="openMemoModal(this)"
@@ -165,7 +165,7 @@
                                         data-quota="{{ app.quota|default:'' }}"
                                         data-place="{{ app.place|default:'' }}"
                                         data-rank="{{ app.rank|default:'' }}"
-                                        class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 inline-block">
+                                        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 inline-block">
                                     Allotment Memo
                                 </button>
                             </div>
@@ -173,14 +173,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-10 py-32 text-center">
-                            <div class="flex flex-col items-center gap-5">
-                                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
-                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354l1.1 1.1a1 1 0 001.414 0l1.1-1.1m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47m14.24 0l-.47.47a1 1 0 01-1.414 0l-.47-.47m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47"></path></svg>
+                        <td colspan="6" class="py-12 text-center text-slate-400">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354l1.1 1.1a1 1 0 001.414 0l1.1-1.1m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47m14.24 0l-.47.47a1 1 0 01-1.414 0l-.47-.47m-4.72 4.756l-.47.47a1 1 0 01-1.414 0l-.47-.47"></path></svg>
                                 </div>
-                                <div class="space-y-1">
-                                    <h4 class="text-slate-800 font-black text-xl">No Applications Found</h4>
-                                    <p class="text-slate-400 font-medium text-sm">No students in 'Selected' status meta-match your search criteria.</p>
+                                <div class="space-y-0.5">
+                                    <h4 class="text-slate-800 font-bold text-sm">No Applications Found</h4>
+                                    <p class="text-slate-500 text-xs">No students in 'Selected' status match your search criteria.</p>
                                 </div>
                             </div>
                         </td>
@@ -191,25 +191,25 @@
         </div>
         <!-- PAGINATION -->
         {% if page_obj.has_other_pages %}
-        <div class="px-10 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-            <span class="text-sm font-bold text-slate-500">
+        <div class="px-4 py-3.5 md:px-6 md:py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">
                 Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
             </span>
             <div class="flex gap-2">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-100 transition-colors">Prev</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Prev</a>
                 {% endif %}
                 
                 {% for num in page_obj.paginator.page_range %}
                     {% if page_obj.number == num %}
-                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-md">{{ num }}</span>
+                    <span class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-100 transition-colors">{{ num }}</a>
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">{{ num }}</a>
                     {% endif %}
                 {% endfor %}
                 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-100 transition-colors">Next</a>
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">Next</a>
                 {% endif %}
             </div>
         </div>

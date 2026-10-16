@@ -10,73 +10,73 @@
     {% include 'institute/fee_nav_tabs.html' %}
 
     <!-- HEADER BANNER -->
-    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-100">Workflow Approval</span>
+                <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-100">Workflow Approval</span>
                 <span class="text-xs font-semibold text-slate-400">• Refund Verification</span>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Fee Refund Approvals</h1>
+            <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight mt-1">Fee Refund Approvals</h1>
             <p class="text-slate-500 text-xs md:text-sm mt-1">Review student refund requests, verify details in pop-ups, approve refunds, or reject with reason logging.</p>
         </div>
 
-        <a href="{% url 'fee_refund_request' %}" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-amber-500/20 flex items-center gap-2">
+        <a href="{% url 'fee_refund_request' %}" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-amber-500/20 flex items-center gap-2 self-start md:self-auto">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
             <span>New Refund Request</span>
         </a>
     </div>
 
     <!-- METRIC SUMMARY CARDS -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
-            <div class="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-4">
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm">
                 {{ total_count }}
             </div>
             <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Requests</span>
-                <p class="text-xl font-black text-slate-900 font-mono">{{ total_count }} Entries</p>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Requests</span>
+                <p class="text-lg md:text-xl font-black text-slate-900 font-mono">{{ total_count }} Entries</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-3xl p-5 border border-amber-200 bg-amber-50/20 shadow-xs flex items-center gap-4">
-            <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-amber-200 bg-amber-50/20 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm">
                 {{ pending_count }}
             </div>
             <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-amber-700">Pending Approval</span>
-                <p class="text-xl font-black text-amber-700 font-mono">₹{{ pending_amount|floatformat:2 }}</p>
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Pending Approval</span>
+                <p class="text-lg md:text-xl font-black text-amber-700 font-mono">₹{{ pending_amount|floatformat:2 }}</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-3xl p-5 border border-emerald-200 bg-emerald-50/20 shadow-xs flex items-center gap-4">
-            <div class="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-emerald-200 bg-emerald-50/20 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm">
                 {{ approved_count }}
             </div>
             <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-700">Approved Refunds</span>
-                <p class="text-xl font-black text-emerald-600 font-mono">₹{{ approved_amount|floatformat:2 }}</p>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Approved Refunds</span>
+                <p class="text-lg md:text-xl font-black text-emerald-600 font-mono">₹{{ approved_amount|floatformat:2 }}</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-3xl p-5 border border-rose-200 bg-rose-50/20 shadow-xs flex items-center gap-4">
-            <div class="w-12 h-12 bg-rose-100 text-rose-800 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold">
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-rose-200 bg-rose-50/20 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 bg-rose-100 text-rose-800 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm">
                 {{ cancelled_count }}
             </div>
             <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-rose-700">Cancelled / Rejected</span>
-                <p class="text-xl font-black text-rose-600 font-mono">{{ cancelled_count }} Requests</p>
+                <span class="text-xs font-bold uppercase tracking-wider text-rose-700">Cancelled / Rejected</span>
+                <p class="text-lg md:text-xl font-black text-rose-600 font-mono">{{ cancelled_count }} Requests</p>
             </div>
         </div>
     </div>
 
     <!-- FILTER MATRIX -->
-    <div class="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80">
+    <div class="bg-white rounded-2xl md:rounded-3xl p-4 md:p-5 shadow-xs border border-slate-200/80">
         <form method="GET" action="{% url 'fee_refund_approval' %}" class="space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 md:gap-4">
                 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Request Status</label>
-                    <select name="status" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Request Status</label>
+                    <select name="status" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                         <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
                         <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Approval</option>
                         <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved Refunds</option>
@@ -85,8 +85,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Student Type (Category)</label>
-                    <select name="fee_category_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Student Type</label>
+                    <select name="fee_category_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                         <option value="">All Student Types</option>
                         {% for cat in fee_categories %}
                         <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
@@ -95,8 +95,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class / Batch</label>
-                    <select name="class_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Class / Batch</label>
+                    <select name="class_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                         <option value="">All Classes</option>
                         {% for cl in classes %}
                         <option value="{{ cl.id }}" {% if selected_class == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
@@ -105,30 +105,30 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">From Date</label>
-                    <input type="date" name="date_from" value="{{ date_from }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">From Date</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Search Query</label>
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Name, Voucher #..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Search Query</label>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Name, Voucher #..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                 </div>
 
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <a href="{% url 'fee_refund_approval' %}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-2xl transition">Reset Filters</a>
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-2xl transition shadow-md shadow-indigo-500/20">Filter Requests</button>
+            <div class="flex items-center justify-end gap-3 pt-1">
+                <a href="{% url 'fee_refund_approval' %}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition">Reset Filters</a>
+                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-indigo-500/20">Filter Requests</button>
             </div>
         </form>
     </div>
 
     <!-- REFUND REQUESTS TABLE -->
-    <div class="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-3 h-3 rounded-full bg-indigo-600"></div>
-                <h3 class="font-bold text-slate-800 text-base">Refund Requests Register</h3>
+    <div class="bg-white rounded-2xl md:rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-indigo-600"></div>
+                <h3 class="font-bold text-slate-800 text-sm md:text-base">Refund Requests Register</h3>
             </div>
             <span class="text-xs font-bold text-slate-500">Filtered Total: {{ page_obj.paginator.count }} Requests</span>
         </div>
@@ -136,55 +136,55 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] uppercase tracking-wider font-bold text-slate-500">
-                        <th class="py-4 px-6">Req ID & Date</th>
-                        <th class="py-4 px-6">Student Info</th>
-                        <th class="py-4 px-6">Class & Category</th>
-                        <th class="py-4 px-6 text-right">Refund Amount</th>
-                        <th class="py-4 px-6">Refund Reason</th>
-                        <th class="py-4 px-6 text-center">Status</th>
-                        <th class="py-4 px-6 text-center">Actions</th>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-xs uppercase tracking-wider font-bold text-slate-700">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Req ID & Date</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Student Info</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Class & Category</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Refund Amount</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Refund Reason</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Status</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                     {% for req in refund_requests %}
                     <tr class="hover:bg-slate-50/60 transition duration-150">
-                        <td class="py-4 px-6">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <span class="font-mono font-bold text-indigo-700 block">#{{ req.id }}</span>
-                            <span class="text-[11px] text-slate-400 font-semibold">{{ req.requested_at|date:"M d, Y H:i" }}</span>
+                            <span class="text-xs text-slate-500 font-medium">{{ req.requested_at|date:"M d, Y H:i" }}</span>
                             {% if req.receipt_number %}
-                            <span class="text-[10px] font-mono font-bold text-emerald-600 block mt-0.5">{{ req.receipt_number }}</span>
+                            <span class="text-xs font-mono font-bold text-emerald-600 block mt-0.5">{{ req.receipt_number }}</span>
                             {% endif %}
                         </td>
-                        <td class="py-4 px-6">
-                            <span class="font-bold text-slate-900 block">{{ req.admission.application.display_name }}</span>
-                            <span class="text-[11px] font-mono text-slate-500">Reg: {{ req.admission.registration_id|default:req.admission.application.form_no }}</span>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="font-bold text-slate-900 block text-xs md:text-sm">{{ req.admission.application.display_name }}</span>
+                            <span class="text-xs font-mono text-slate-500">Reg: {{ req.admission.registration_id|default:req.admission.application.form_no }}</span>
                         </td>
-                        <td class="py-4 px-6">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <span class="font-semibold text-slate-800 block">{{ req.admission.assigned_class.name|default:"--" }}</span>
-                            <span class="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ req.admission.assigned_fee_category.name|default:"General" }}</span>
+                            <span class="text-xs uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5 border border-indigo-100">{{ req.admission.assigned_fee_category.name|default:"General" }}</span>
                         </td>
-                        <td class="py-4 px-6 text-right">
-                            <span class="font-mono font-black text-sm text-amber-700 block">₹{{ req.amount|floatformat:2 }}</span>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">
+                            <span class="font-mono font-black text-xs md:text-sm text-amber-700 block">₹{{ req.amount|floatformat:2 }}</span>
                             {% for item in req.items.all %}
-                            <span class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold rounded inline-block mt-0.5">
+                            <span class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold rounded inline-block mt-0.5">
                                 {{ item.fee_type.name }}: ₹{{ item.amount|floatformat:2 }}
                             </span>
                             {% endfor %}
                         </td>
-                        <td class="py-4 px-6 max-w-xs">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 max-w-xs">
                             <p class="truncate text-slate-700 font-medium">{{ req.reason }}</p>
                         </td>
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
                             {% if req.status == 'approved' %}
-                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-200">APPROVED</span>
+                            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200">APPROVED</span>
                             {% elif req.status == 'pending' %}
-                            <span class="px-3 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-full border border-amber-200 animate-pulse">PENDING</span>
+                            <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-200 animate-pulse">PENDING</span>
                             {% else %}
-                            <span class="px-3 py-1 bg-rose-100 text-rose-800 text-[11px] font-bold rounded-full border border-rose-200">CANCELLED</span>
+                            <span class="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-bold rounded-full border border-rose-200">CANCELLED</span>
                             {% endif %}
                         </td>
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
                             <button type="button" 
                                     data-id="{{ req.id }}"
                                     data-student-name="{{ req.admission.application.display_name }}"
@@ -202,7 +202,7 @@
                                     data-approve-url="{% url 'fee_refund_approve' req.id %}"
                                     data-cancel-url="{% url 'fee_refund_cancel' req.id %}"
                                     onclick="openRefundModalFromButton(this)" 
-                                    class="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition">
+                                    class="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition">
                                 View Details
                             </button>
                         </td>
@@ -221,25 +221,25 @@
 
         <!-- PAGINATION BAR -->
         {% if page_obj.has_other_pages %}
-        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <div class="px-4 py-3.5 md:px-6 md:py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
             <span class="text-xs font-bold text-slate-500">
                 Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} requests
             </span>
             <div class="flex gap-2">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
                 {% endif %}
                 
                 {% for num in page_obj.paginator.page_range %}
                     {% if page_obj.number == num %}
-                    <span class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
+                    <span class="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md">{{ num }}</span>
                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">{{ num }}</a>
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">{{ num }}</a>
                     {% endif %}
                 {% endfor %}
                 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
                 {% endif %}
             </div>
         </div>

@@ -327,7 +327,7 @@ class Admission(models.Model):
     )
     
     # Registration Info
-    registration_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    registration_id = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     register_number = models.CharField(max_length=100, unique=True, null=True, blank=True, db_index=True)
     annual_serial = models.IntegerField(default=1)
 
@@ -401,6 +401,25 @@ class Admission(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    def clean(self):
+        super().clean()
+        if self.registration_id:
+            reg_id = str(self.registration_id).strip()
+            inst = None
+            if self.application and self.application.institute_id:
+                inst = self.application.institute
+            elif self.selected_course and self.selected_course.institute_id:
+                inst = self.selected_course.institute
+            if inst:
+                from django.db.models import Q
+                dup = Admission.objects.filter(
+                    Q(application__institute=inst) | Q(selected_course__institute=inst),
+                    registration_id__iexact=reg_id
+                ).exclude(pk=self.pk).exists()
+                if dup:
+                    from django.core.exceptions import ValidationError
+                    raise ValidationError({'registration_id': f"Admission number '{reg_id}' already exists in this institute."})
 
     def save(self, *args, **kwargs):
         # Robust safety: Ensure date_of_join is a date object
