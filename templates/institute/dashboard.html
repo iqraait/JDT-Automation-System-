@@ -7,64 +7,56 @@
 {% block header_title %}Admissions Overview{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
+<div class="space-y-4 md:space-y-4">
 
-    <!-- DASHBOARD HEADER ACTIONS -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Institute Dashboard</h2>
-            <p class="text-slate-500 font-medium">Manage and monitor institute-wide student registrations</p>
-        </div>
-    </div>
-
-    <!-- ⚡ QUICK ACTIONS (NEW) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <button onclick="toggleNoticeModal()" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-100 transition-all group relative text-left">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all relative">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+    <!-- ⚡ QUICK ACTIONS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <button onclick="toggleNoticeModal()" class="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200/80 hover:border-blue-600 hover:shadow-md hover:shadow-blue-50 transition-all group relative text-left shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all relative flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                     {% if notices %}
-                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
                     {% endif %}
                 </div>
                 <div>
-                    <h4 class="font-black text-slate-800 uppercase tracking-tight">Notice Board</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">View Announcements</p>
+                    <h4 class="font-extrabold text-slate-800 text-xs md:text-sm uppercase tracking-tight">Notice Board</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">View Announcements</p>
                 </div>
             </div>
         </button>
 
-        <a href="{% url 'rank_list' %}" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-emerald-600 hover:shadow-xl hover:shadow-emerald-100 transition-all group">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <a href="{% url 'rank_list' %}" class="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200/80 hover:border-emerald-600 hover:shadow-md hover:shadow-emerald-50 transition-all group shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 </div>
                 <div>
-                    <h4 class="font-black text-slate-800 uppercase tracking-tight">Rank List</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Academic Merit Data</p>
+                    <h4 class="font-extrabold text-slate-800 text-xs md:text-sm uppercase tracking-tight">Rank List</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Academic Merit Data</p>
                 </div>
             </div>
         </a>
 
-        <a href="{% url 'admission_list' %}" class="bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-amber-600 hover:shadow-xl hover:shadow-amber-100 transition-all group">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+        <a href="{% url 'admission_list' %}" class="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200/80 hover:border-amber-600 hover:shadow-md hover:shadow-amber-50 transition-all group shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                 </div>
                 <div>
-                    <h4 class="font-black text-slate-800 uppercase tracking-tight">Manual Add</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Register New Student</p>
+                    <h4 class="font-extrabold text-slate-800 text-xs md:text-sm uppercase tracking-tight">Manual Add</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Register New Student</p>
                 </div>
             </div>
         </a>
     </div>
 
     <!-- FILTER SECTION -->
-    <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Course Filter</label>
-                <select name="course" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-3.5 md:p-4">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Course Filter</label>
+                <select name="course" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                     <option value="">All Courses</option>
                     {% for c in courses %}
                     <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
@@ -72,9 +64,9 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Academic Year</label>
-                <select name="year" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Academic Year</label>
+                <select name="year" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                     <option value="">All Years</option>
                     {% for y in years %}
                     <option value="{{ y.id }}" {% if selected_year == y.id|stringformat:"s" %}selected{% endif %}>{{ y.name }}</option>
@@ -82,9 +74,9 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Student Status</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Student Status</label>
+                <select name="status" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                     <option value="">All Statuses</option>
                     <option value="submitted" {% if selected_status == 'submitted' %}selected{% endif %}>processing</option>
                     <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Under Audit</option>
@@ -94,14 +86,14 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Date From</label>
-                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Fee Category</label>
-                <select name="fee_category" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Fee Category</label>
+                <select name="fee_category" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                     <option value="">All Categories</option>
                     {% for cat in fee_categories %}
                     <option value="{{ cat }}" {% if selected_fee_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -109,9 +101,9 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Quota</label>
-                <select name="quota" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Quota</label>
+                <select name="quota" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer">
                     <option value="">All Quotas</option>
                     {% for q in quotas %}
                     <option value="{{ q }}" {% if selected_quota == q %}selected{% endif %}>{{ q }}</option>
@@ -119,19 +111,19 @@
                 </select>
             </div>
 
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Date To</label>
-                <input type="date" name="date_to" value="{{ date_to }}" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-0.5">Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="w-full bg-slate-50/70 border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none">
             </div>
 
-            <div class="flex items-end gap-3">
-                <button class="flex-1 px-8 py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+            <div class="flex items-end gap-2">
+                <button class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-xs md:text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     Apply
                 </button>
                 {% if selected_year or selected_course or selected_status or selected_fee_category or selected_quota or query or date_from or date_to %}
-                <a href="/institute/dashboard/" class="p-3.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl transition-all" title="Clear Filters">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <a href="/institute/dashboard/" class="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl transition-all flex items-center justify-center" title="Clear Filters">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </a>
                 {% endif %}
             </div>
@@ -139,54 +131,54 @@
     </div>
 
     <!-- MAIN TABLE SECTION -->
-    <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
         
-        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-slate-800">Student Register</h3>
+        <div class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-base md:text-lg font-bold text-slate-800">Student Register</h3>
             <div class="flex items-center gap-2">
-                <span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider">
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider">
                     {{ page_obj.paginator.count }} TOTAL STUDENTS
                 </span>
             </div>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-xs md:text-sm">
                 <thead>
-                    <tr class="bg-slate-50/80 text-slate-400 uppercase text-[11px] tracking-widest font-black border-b border-slate-100">
-                        <th class="px-8 py-6 text-left">#</th>
-                        <th class="px-8 py-6 text-left">Applicant Name</th>
-                        <th class="px-8 py-6 text-left">Contact</th>
-                        <th class="px-8 py-6 text-center">Fee Category & Quota</th>
-                        <th class="px-8 py-6 text-center">Gender</th>
-                        <th class="px-8 py-6 text-center">Status</th>
-                        <th class="px-8 py-6 text-center">Remarks</th>
-                        <th class="px-8 py-6 text-right">Actions</th>
+                    <tr class="bg-slate-50/80 text-slate-500 uppercase text-[11px] tracking-wider font-extrabold border-b border-slate-200">
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-left">#</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-left">Applicant Name</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-left">Contact</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">Fee Category & Quota</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">Gender</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">Status</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">Remarks</th>
+                        <th class="py-2.5 px-3 md:py-3 md:px-3.5 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% if admissions %}
                         {% for student in admissions %}
                         <tr class="hover:bg-slate-50/80 transition-colors group">
-                            <td class="px-8 py-7 text-xs font-bold text-slate-400">
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-xs font-bold text-slate-400">
                                 {{ forloop.counter }}
                             </td>
-                            <td class="px-8 py-7">
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-black text-slate-800 leading-tight">{{ student.student_name }}</span>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">FORM #{{ student.form_id }}</span>
+                                    <span class="text-xs md:text-sm font-extrabold text-slate-800 leading-tight">{{ student.student_name }}</span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">FORM #{{ student.form_id }}</span>
                                 </div>
                             </td>
-                            <td class="px-8 py-7">
-                                <span class="text-sm font-bold text-slate-600">{{ student.contact|default:"-" }}</span>
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5">
+                                <span class="text-xs md:text-sm font-bold text-slate-700">{{ student.contact|default:"-" }}</span>
                             </td>
-                            <td class="px-8 py-7 text-center">
-                                <div class="flex flex-col items-center gap-1.5 justify-center">
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">
+                                <div class="flex flex-col items-center gap-1 justify-center">
                                     {% if student.fee_category and student.fee_category != "-" %}
-                                    <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg border border-blue-100 uppercase tracking-widest">{{ student.fee_category }}</span>
+                                    <span class="px-2.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-extrabold rounded-md border border-blue-100 uppercase tracking-wide">{{ student.fee_category }}</span>
                                     {% endif %}
                                     {% if student.quota and student.quota != "-" %}
-                                    <span class="px-3 py-1 bg-purple-50 text-purple-600 text-[10px] font-black rounded-lg border border-purple-100 uppercase tracking-widest">{{ student.quota }}</span>
+                                    <span class="px-2.5 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-extrabold rounded-md border border-purple-100 uppercase tracking-wide">{{ student.quota }}</span>
                                     {% endif %}
                                     {% if not student.fee_category or student.fee_category == "-" %}
                                         {% if not student.quota or student.quota == "-" %}
@@ -195,54 +187,54 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td class="px-8 py-7 text-center">
-                                <span class="text-xs font-black text-slate-500 uppercase tracking-widest">{{ student.gender|default:"-" }}</span>
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">
+                                <span class="text-xs font-bold text-slate-600 uppercase">{{ student.gender|default:"-" }}</span>
                             </td>
-                            <td class="px-8 py-7 text-center">
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">
                                 {% if student.status == 'submitted' %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-100 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] font-extrabold rounded-full border border-blue-100 uppercase tracking-wide">
                                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                         processing
                                     </span>
                                 {% elif student.status == 'pending' %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full border border-amber-100 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-600 text-[10px] font-extrabold rounded-full border border-amber-100 uppercase tracking-wide">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                         Under Audit
                                     </span>
                                 {% elif student.status == 'selected' %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-extrabold rounded-full border border-emerald-100 uppercase tracking-wide">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         verified
                                     </span>
                                 {% elif student.status == 'rejected' %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-rose-50 text-rose-600 text-[10px] font-black rounded-full border border-rose-100 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-600 text-[10px] font-extrabold rounded-full border border-rose-100 uppercase tracking-wide">
                                         <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                         eligiblty denied
                                     </span>
                                 {% elif student.status == 'hold' %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full border border-slate-200 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-full border border-slate-200 uppercase tracking-wide">
                                         <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                         review hold
                                     </span>
                                 {% else %}
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full border border-slate-200 uppercase tracking-widest">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-full border border-slate-200 uppercase tracking-wide">
                                         {{ student.status_display }}
                                     </span>
                                 {% endif %}
                             </td>
-                            <td class="px-8 py-7 text-center">
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-center">
                                 {% if student.remarks %}
-                                    <button onclick="openRemarksModal('{{ student.name|escapejs }}', '{{ student.remarks|escapejs }}')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-xl hover:bg-slate-50 transition-all shadow-sm uppercase tracking-widest">View</button>
+                                    <button onclick="openRemarksModal('{{ student.name|escapejs }}', '{{ student.remarks|escapejs }}')" class="px-3 py-1 bg-white border border-slate-200 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-xs uppercase tracking-wide">View</button>
                                 {% else %}
                                     <span class="text-slate-300">-</span>
                                 {% endif %}
                             </td>
-                            <td class="px-8 py-7 text-right">
-                                <div class="flex items-center justify-end gap-3">
-                                    <a href="/institute/application/{{ student.form_id }}/view/" class="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <td class="py-2.5 px-3 md:py-3 md:px-3.5 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="/institute/application/{{ student.form_id }}/view/" class="w-8 h-8 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all shadow-xs" title="View Details">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     </a>
-                                    <a href="/institute/application/{{ student.form_id }}/edit/" class="px-5 py-2.5 bg-slate-800 text-white text-[11px] font-black rounded-2xl hover:bg-slate-900 transition-all shadow-lg flex items-center gap-2 uppercase tracking-widest">
+                                    <a href="/institute/application/{{ student.form_id }}/edit/" class="px-3.5 py-1.5 bg-slate-800 text-white text-[11px] font-bold rounded-xl hover:bg-slate-900 transition-all shadow-sm flex items-center gap-1.5 uppercase tracking-wide">
                                         Review & Action
                                     </a>
                                 </div>
@@ -251,13 +243,13 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="px-8 py-20 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
-                                    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                                        <svg class="h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-2 2m-12-2l2 2"></path></svg>
+                                    <div class="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                        <svg class="h-8 w-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-2 2m-12-2l2 2"></path></svg>
                                     </div>
-                                    <h4 class="text-lg font-bold text-slate-800 mb-1">No Applicants Found</h4>
-                                    <p class="text-slate-500 text-sm">Try adjusting your filters or search query.</p>
+                                    <h4 class="text-base font-bold text-slate-800 mb-1">No Applicants Found</h4>
+                                    <p class="text-slate-500 text-xs">Try adjusting your filters or search query.</p>
                                 </div>
                             </td>
                         </tr>
@@ -268,39 +260,39 @@
 
         <!-- PAGINATION -->
         {% if page_obj %}
-        <div class="px-8 py-6 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
-            <p class="text-sm text-slate-500 font-medium">
-                Showing <span class="text-slate-800">{{ page_obj.start_index|default:"0" }}</span> to <span class="text-slate-800">{{ page_obj.end_index|default:"0" }}</span> of <span class="text-slate-800">{{ page_obj.paginator.count }}</span> results
+        <div class="px-4 py-3 md:px-5 md:py-3 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs">
+            <p class="text-xs text-slate-500 font-medium">
+                Showing <span class="text-slate-800 font-bold">{{ page_obj.start_index|default:"0" }}</span> to <span class="text-slate-800 font-bold">{{ page_obj.end_index|default:"0" }}</span> of <span class="text-slate-800 font-bold">{{ page_obj.paginator.count }}</span> results
             </p>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
                 {% if page_obj.has_previous %}
                     <a href="?page={{ page_obj.previous_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
-                       class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                       class="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </a>
                 {% else %}
-                    <span class="p-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-300 transition-all opacity-50 cursor-not-allowed">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="p-1.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-300 transition-all opacity-50 cursor-not-allowed">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </span>
                 {% endif %}
                 
                 {% for i in page_obj.paginator.page_range %}
                     {% if page_obj.number == i %}
-                        <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-100">{{ i }}</span>
+                        <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold shadow-sm text-xs">{{ i }}</span>
                     {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
                         <a href="?page={{ i }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
-                           class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-600 font-semibold">{{ i }}</a>
+                           class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-600 font-semibold text-xs">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
                     <a href="?page={{ page_obj.next_page_number }}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_fee_category %}&fee_category={{ selected_fee_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
-                       class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                       class="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </a>
                 {% else %}
-                    <span class="p-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-300 transition-all opacity-50 cursor-not-allowed">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="p-1.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-300 transition-all opacity-50 cursor-not-allowed">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </span>
                 {% endif %}
             </div>

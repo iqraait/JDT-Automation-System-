@@ -9,40 +9,57 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts: Inter, Roboto, Montserrat & JetBrains Mono for crisp number readability -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&family=Montserrat:wght@700;800;900&family=Roboto:wght@400;500;700;900&display=swap"
-        rel="stylesheet">
+    <!-- Google Fonts: Nunito Sans for all text & numbers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..900;1,6..12,300..900&display=swap" rel="stylesheet">
 
     <style>
         * {
             font-style: normal !important;
+            font-family: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
 
-        /* Responsive Display Scaling for 100% browser zoom */
+        /* Compact Responsive Display Scaling for clean 100% browser zoom */
+        html {
+            font-size: 13.5px;
+            font-family: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
         @media screen and (min-width: 1024px) {
             html {
-                font-size: 14.5px;
+                font-size: 13.5px;
             }
         }
-        @media screen and (min-width: 1536px) {
+        @media screen and (min-width: 1440px) {
             html {
-                font-size: 15.25px;
+                font-size: 13.75px;
+            }
+        }
+        @media screen and (min-width: 1680px) {
+            html {
+                font-size: 14px;
             }
         }
 
         body {
-            font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+            font-family: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             background-color: #f8fafc;
             color: #1e293b;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.01em;
         }
 
-        .font-mono {
-            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        input, select, textarea, button, table, td, th {
+            font-family: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+
+        /* Format numbers crisply with Nunito Sans tabular numerals */
+        .font-mono, .font-numbers, [data-numbers], code, pre {
+            font-family: 'Nunito Sans', system-ui, -apple-system, sans-serif !important;
             font-variant-numeric: tabular-nums;
-            letter-spacing: -0.02em;
+            font-feature-settings: "tnum";
+            letter-spacing: -0.01em;
         }
 
         /* Modern Scrollbar */
