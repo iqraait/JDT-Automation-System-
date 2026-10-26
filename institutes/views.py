@@ -3154,7 +3154,15 @@ def user_logout(request):
 @login_required
 def student_list_view(request):
     institute = get_current_institute(request)
-    admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course').prefetch_related('uploaded_documents__uploaded_by')
+    admissions = Admission.objects.filter(
+        application__institute=institute
+    ).select_related(
+        'application__student', 'application__academic_year', 'application__course',
+        'assigned_class', 'assigned_class_year', 'assigned_fee_category', 'fee_category'
+    ).prefetch_related(
+        'application__field_values__field',
+        'uploaded_documents__uploaded_by'
+    )
 
     # Filters
     form_id = request.GET.get('form_id') # Search by Admission No / Register Number
@@ -3164,15 +3172,19 @@ def student_list_view(request):
     status_filter = request.GET.get('status')
     class_id = request.GET.get('class_id')
     class_year_id = request.GET.get('class_year_id')
+    fee_category_id = request.GET.get('fee_category_id')
 
     if form_id:
         admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
     
     if name:
+        name_clean = name.strip()
         admissions = admissions.filter(
-            Q(application__student__first_name__icontains=name) | 
-            Q(application__student__username__icontains=name)
-        )
+            Q(application__student__first_name__icontains=name_clean) | 
+            Q(application__student__username__icontains=name_clean) |
+            Q(application__field_values__field__is_name_field=True, application__field_values__value__icontains=name_clean) |
+            Q(application__field_values__field__label__icontains='name', application__field_values__value__icontains=name_clean)
+        ).distinct()
 
     if batch_id:
         admissions = admissions.filter(application__academic_year_id=batch_id)
@@ -3192,6 +3204,17 @@ def student_list_view(request):
     if class_year_id:
         admissions = admissions.filter(assigned_class_year_id=class_year_id)
 
+    if fee_category_id:
+        fee_cat_master = FeeCategoryMaster.objects.filter(id=fee_category_id).first()
+        if fee_cat_master:
+            admissions = admissions.filter(
+                Q(assigned_fee_category_id=fee_category_id) |
+                Q(fee_category__name__iexact=fee_cat_master.name) |
+                Q(application__selected_fee_type__name__iexact=fee_cat_master.name)
+            )
+
+    admissions = admissions.distinct()
+
     # Context data for filters
     batches = AcademicYear.objects.filter(institute=institute, is_active=True)
     courses = Course.objects.filter(institute=institute)
@@ -3202,6 +3225,10 @@ def student_list_view(request):
         classes = classes.filter(academic_year_id=batch_id)
         
     class_years = ClassYear.objects.filter(class_obj__in=classes, is_active=True)
+    if class_id:
+        class_years = class_years.filter(class_obj_id=class_id)
+
+    fee_categories = FeeCategoryMaster.objects.filter(is_active=True).order_by('name')
 
     from django.core.paginator import Paginator
     paginator = Paginator(admissions, 50)
@@ -3215,6 +3242,7 @@ def student_list_view(request):
         'courses': courses,
         'classes': classes,
         'class_years': class_years,
+        'fee_categories': fee_categories,
         'admission_statuses': Admission.ADMISSION_STATUS
     })
 @login_required
@@ -3293,15 +3321,19 @@ def export_students_excel(request):
     course_id = request.GET.get('course_id')
     class_id = request.GET.get('class_id')
     class_year_id = request.GET.get('class_year_id')
+    fee_category_id = request.GET.get('fee_category_id')
 
     if form_id:
         admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
     
     if name:
+        name_clean = name.strip()
         admissions = admissions.filter(
-            Q(application__student__first_name__icontains=name) | 
-            Q(application__student__username__icontains=name)
-        )
+            Q(application__student__first_name__icontains=name_clean) | 
+            Q(application__student__username__icontains=name_clean) |
+            Q(application__field_values__field__is_name_field=True, application__field_values__value__icontains=name_clean) |
+            Q(application__field_values__field__label__icontains='name', application__field_values__value__icontains=name_clean)
+        ).distinct()
         
     if batch_id:
         admissions = admissions.filter(application__academic_year_id=batch_id)
@@ -3314,6 +3346,17 @@ def export_students_excel(request):
 
     if class_year_id:
         admissions = admissions.filter(assigned_class_year_id=class_year_id)
+
+    if fee_category_id:
+        fee_cat_master = FeeCategoryMaster.objects.filter(id=fee_category_id).first()
+        if fee_cat_master:
+            admissions = admissions.filter(
+                Q(assigned_fee_category_id=fee_category_id) |
+                Q(fee_category__name__iexact=fee_cat_master.name) |
+                Q(application__selected_fee_type__name__iexact=fee_cat_master.name)
+            )
+
+    admissions = admissions.distinct()
     wb = Workbook()
     ws = wb.active
     ws.title = "Student Registry"
@@ -4314,7 +4357,9 @@ def daily_fee_collection(request):
     batches = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
     courses = Course.objects.filter(institute=institute).order_by('name')
     classes = Class.objects.filter(institute=institute).order_by('name')
-    class_years = ClassYear.objects.filter(is_active=True)
+    class_years = ClassYear.objects.filter(class_obj__institute=institute, is_active=True).order_by('name')
+    if class_id:
+        class_years = class_years.filter(class_obj_id=class_id)
     fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     fee_types = FeeType.objects.filter(is_active=True)
     
@@ -4466,7 +4511,9 @@ def due_report(request):
     batches = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name')
     courses = Course.objects.filter(institute=institute).order_by('name')
     classes = Class.objects.filter(institute=institute).order_by('name')
-    class_years = ClassYear.objects.filter(is_active=True)
+    class_years = ClassYear.objects.filter(class_obj__institute=institute, is_active=True).order_by('name')
+    if class_id:
+        class_years = class_years.filter(class_obj_id=class_id)
     fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     fee_types = FeeType.objects.filter(is_active=True)
     

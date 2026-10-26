@@ -72,7 +72,7 @@
                 <!-- Row 1: Class -->
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Class</label>
-                    <select name="class_id" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
+                    <select name="class_id" id="filterClass" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
                         <option value="">All Classes</option>
                         {% for c in classes %}
                             <option value="{{ c.id }}" {% if request.GET.class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
@@ -81,14 +81,25 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <!-- Row 2: Class Year -->
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Class Year</label>
-                    <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
+                    <select name="class_year_id" id="filterClassYear" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
                         <option value="">All Class Years</option>
                         {% for cy in class_years %}
-                            <option value="{{ cy.id }}" {% if request.GET.class_year_id == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy }}</option>
+                            <option value="{{ cy.id }}" data-class-id="{{ cy.class_obj_id }}" {% if request.GET.class_year_id == cy.id|stringformat:"s" %}selected{% endif %}>{{ cy }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Row 2: Fee Category (Orphan, General, etc.) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Fee Category</label>
+                    <select name="fee_category_id" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
+                        <option value="">All Categories</option>
+                        {% for cat in fee_categories %}
+                            <option value="{{ cat.id }}" {% if request.GET.fee_category_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -148,7 +159,7 @@
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <div>
                                 <p class="font-bold text-slate-900 leading-tight text-xs md:text-sm">{{ adm.application.display_name }}</p>
-                                <p class="text-slate-400 text-xs mt-0.5">{{ adm.application.student.email|default:adm.application.student.username }}</p>
+                                <p class="text-slate-400 text-xs mt-0.5">{{ adm.application.student_email|default:adm.application.student.email|default:adm.application.student.username }}</p>
                             </div>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
@@ -370,6 +381,40 @@
 </div>
 
 <script>
+// Dynamic Class -> Class Year filtering in Student List
+document.addEventListener('DOMContentLoaded', function() {
+    const classSelect = document.getElementById('filterClass');
+    const classYearSelect = document.getElementById('filterClassYear');
+    if (!classSelect || !classYearSelect) return;
+
+    // Cache original class year options
+    const allOptions = Array.from(classYearSelect.options);
+
+    function updateClassYears() {
+        const selectedClassId = classSelect.value;
+        const currentSelectedYear = classYearSelect.value;
+
+        classYearSelect.innerHTML = '';
+        allOptions.forEach(opt => {
+            if (!opt.value) {
+                classYearSelect.appendChild(opt.cloneNode(true));
+            } else if (!selectedClassId || opt.dataset.classId === selectedClassId) {
+                classYearSelect.appendChild(opt.cloneNode(true));
+            }
+        });
+
+        const stillExists = Array.from(classYearSelect.options).some(o => o.value === currentSelectedYear);
+        if (stillExists) {
+            classYearSelect.value = currentSelectedYear;
+        } else {
+            classYearSelect.value = '';
+        }
+    }
+
+    classSelect.addEventListener('change', updateClassYears);
+    updateClassYears();
+});
+
 function openStudentDocsModal(admId) {
     const dataDiv = document.getElementById('docs-data-' + admId);
     if (!dataDiv) return;

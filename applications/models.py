@@ -53,29 +53,56 @@ class Application(models.Model):
     def display_name(self):
         """
         Robustly returns student name:
-        1. User first_name
-        2. Form field marked as is_name_field
-        3. Form field containing 'name'
-        4. Username fallback
+        1. Form field marked as is_name_field
+        2. Form field specifically for applicant/student/candidate/full name
+        3. Form field containing 'name' (excluding father/mother/guardian/school/board)
+        4. User first_name fallback
+        5. Username fallback
         """
-        if self.student.first_name:
-            return self.student.first_name
-
-        # Avoid redundant DB hits if field_values is pre-fetched
+        # 1. Primary: Field explicitly marked as name field
         for fv in self.field_values.all():
-            if fv.field and getattr(fv.field, 'is_name_field', False):
-                return fv.value
-            
-        # secondary check for common labels if no flag is set
-        for fv in self.field_values.all():
-            field_label = fv.field.label if fv.field else fv.field_label
-            if field_label:
-                label = field_label.lower()
-                if "name" in label and ":" not in str(fv.value):
-                    return fv.value
+            if fv.field and getattr(fv.field, 'is_name_field', False) and fv.value and str(fv.value).strip():
+                return str(fv.value).strip()
 
-        return self.student.username
-        
+        # 2. Preferred candidate name labels
+        preferred_labels = ['full name', 'applicant name', 'candidate name', 'student name', 'name of applicant', 'name of candidate']
+        for fv in self.field_values.all():
+            field_label = (fv.field.label if fv.field else fv.field_label) or ''
+            fl_clean = field_label.lower().strip()
+            if any(pref in fl_clean for pref in preferred_labels) and fv.value and ":" not in str(fv.value) and str(fv.value).strip():
+                return str(fv.value).strip()
+
+        # 3. Secondary check for generic 'name' label (excluding guardian/father/mother/board)
+        excluded_words = ['father', 'mother', 'guardian', 'board', 'school', 'institution', 'college', 'place']
+        for fv in self.field_values.all():
+            field_label = (fv.field.label if fv.field else fv.field_label) or ''
+            fl_clean = field_label.lower().strip()
+            if "name" in fl_clean and not any(ex in fl_clean for ex in excluded_words):
+                if fv.value and ":" not in str(fv.value) and str(fv.value).strip():
+                    return str(fv.value).strip()
+
+        # 4. Fallback to User first_name if present
+        if self.student and self.student.first_name and self.student.first_name.strip():
+            return self.student.first_name.strip()
+
+        # 5. Fallback to username
+        return self.student.username if self.student else ""
+
+    @property
+    def student_email(self):
+        """
+        Returns student's email:
+        1. Dynamic field value containing email
+        2. User email fallback (if not @jdt.local placeholder)
+        """
+        for fv in self.field_values.all():
+            field_label = (fv.field.label if fv.field else fv.field_label) or ''
+            if 'email' in field_label.lower() and fv.value and '@' in str(fv.value):
+                return str(fv.value).strip()
+
+        if self.student and self.student.email and not self.student.email.endswith('@jdt.local'):
+            return self.student.email
+        return ""
 
     @property
     def student_mobile(self):
@@ -84,7 +111,7 @@ class Application(models.Model):
         1. User mobile_number
         2. Dynamic field value containing phone/mobile/contact
         """
-        if self.student.mobile_number:
+        if self.student and self.student.mobile_number:
             return self.student.mobile_number
         
         for fv in self.field_values.all():
