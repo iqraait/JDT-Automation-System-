@@ -108,7 +108,7 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
                     <select name="status" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-medium text-slate-700">
-                        <option value="active" {% if request.GET.status == 'active' or request.GET.status == None %}selected{% endif %}>Active Student</option>
+                        <option value="active" {% if request.GET.status == 'active' or not request.GET.status %}selected{% endif %}>Active Student</option>
                         <option value="all" {% if request.GET.status == 'all' %}selected{% endif %}>All</option>
                         <option value="warned" {% if request.GET.status == 'warned' %}selected{% endif %}>Warned</option>
                         <option value="suspended" {% if request.GET.status == 'suspended' %}selected{% endif %}>Suspended</option>
@@ -135,12 +135,21 @@
         </form>
     </div>
 
+    <!-- COUNT BADGE (MARKED AREA) -->
+    <div class="flex items-center justify-between px-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50/90 border border-blue-200/80 rounded-xl text-xs font-bold text-blue-900 shadow-xs">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span>Total Students: <span class="text-blue-700 font-black text-sm">{{ page_obj.paginator.count|default:admissions|length }}</span></span>
+        </div>
+    </div>
+
     <!-- DATA TABLE -->
     <div class="bg-white rounded-2xl md:rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-700">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center w-12">#</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Admission Info</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Student Name</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Course & Batch</th>
@@ -152,8 +161,11 @@
                 <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                     {% for adm in admissions %}
                     <tr class="hover:bg-slate-50/60 transition duration-150 group overflow-visible">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center font-bold text-slate-400">
+                            {% if page_obj %}{{ forloop.counter0|add:page_obj.start_index }}{% else %}{{ forloop.counter }}{% endif %}
+                        </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
-                            <span class="font-bold font-mono text-indigo-700">{{ adm.registration_id }}</span>
+                            <span class="font-bold font-mono text-indigo-700">{{ adm.register_number|default:adm.registration_id }}</span>
                             <p class="text-xs text-slate-400 font-medium mt-0.5">Joined: {{ adm.date_of_join|date:"d M, Y" }}</p>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
@@ -170,8 +182,12 @@
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             {% if adm.assigned_class %}
-                                <p class="font-bold text-blue-600 leading-tight">{{ adm.assigned_class.name }}</p>
-                                <p class="text-xs text-slate-400 mt-0.5">{{ adm.assigned_class.period.name }}</p>
+                                <a href="{% url 'manage_class_students' adm.assigned_class.id %}" class="font-bold text-blue-600 leading-tight hover:underline block">{{ adm.assigned_class.name }}</a>
+                                {% if adm.assigned_class_year %}
+                                    <span class="inline-block mt-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ adm.assigned_class_year.name }}</span>
+                                {% elif adm.assigned_class.period %}
+                                    <span class="inline-block mt-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ adm.assigned_class.period.name }}</span>
+                                {% endif %}
                             {% else %}
                                 <span class="text-slate-400 text-xs italic">Not Assigned</span>
                             {% endif %}
@@ -250,7 +266,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="py-12 text-center text-slate-400">
+                        <td colspan="7" class="py-12 text-center text-slate-400">
                             <div class="max-w-xs mx-auto">
                                 <div class="w-12 h-12 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-3">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>

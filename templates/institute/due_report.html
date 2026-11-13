@@ -150,7 +150,18 @@
                     <input type="date" name="due_date_to" value="{{ due_date_to }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 </div>
 
-                <div class="sm:col-span-2 lg:col-span-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Student Status</label>
+                    <select name="student_status" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="active" {% if selected_status == 'active' or not selected_status %}selected{% endif %}>Active Students</option>
+                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="warned" {% if selected_status == 'warned' %}selected{% endif %}>Warned</option>
+                        <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                        <option value="trashed" {% if selected_status == 'trashed' %}selected{% endif %}>Trashed</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-3">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Search Student</label>
                     <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Form No, Name..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 </div>
@@ -162,6 +173,14 @@
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20">Apply Matrix</button>
             </div>
         </form>
+    </div>
+
+    <!-- COUNT BADGE (MARKED AREA) -->
+    <div class="flex items-center justify-between px-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 shadow-xs">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span>Total Enrolled Due Records: <span class="text-amber-800 font-black text-sm">{{ page_obj.paginator.count|default:roster_data|length }}</span></span>
+        </div>
     </div>
 
     <!-- OUTSTANDING BALANCES ROSTER TABLE -->

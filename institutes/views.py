@@ -219,18 +219,38 @@ def get_allotment_memo_defaults(app):
                 place = fv.value
                 break
                 
+    app_no = None
     if getattr(app, 'application_no', None):
-        app_no = app.application_no
+        app_no = str(app.application_no).strip()
     elif getattr(app, 'form_no', None):
-        app_no = app.form_no
-    else:
-        app_no_val = None
+        app_no = str(app.form_no).strip()
+        
+    if not app_no:
+        exact_app_labels = [
+            'application number', 'application no', 'application no.', 
+            'application form no', 'application form number', 'application id',
+            'form number', 'form no', 'form no.', 'app no', 'app no.', 'app number'
+        ]
+        excluded_words = ['fee', 'date', 'status', 'mode', 'type', 'category', 'quota', 'receipt', 'code', 'photo', 'sign', 'certificate']
         for fv in app.field_values.all():
-            lbl = (fv.field.label if fv.field else fv.field_label or "").lower()
-            if 'application' in lbl or 'form no' in lbl or 'app no' in lbl:
-                app_no_val = fv.value
+            lbl = (fv.field.label if fv.field else fv.field_label or "").lower().strip()
+            val_str = str(fv.value or "").strip()
+            if not val_str:
+                continue
+            if any(lbl == pref or lbl.startswith(f"{pref}:") for pref in exact_app_labels):
+                app_no = val_str
                 break
-        app_no = app_no_val or str(app.id)
+            elif ('application' in lbl or 'form no' in lbl or 'app no' in lbl) and not any(ex in lbl for ex in excluded_words):
+                if len(val_str) < 30:
+                    app_no = val_str
+                    break
+
+    if not app_no:
+        admission = Admission.objects.filter(application=app).first()
+        if admission and admission.registration_id:
+            app_no = str(admission.registration_id).strip()
+        else:
+            app_no = f"{app.id:04d}" if app and app.id else ""
 
     admission = Admission.objects.filter(application=app).first()
     quota_val = None
@@ -366,7 +386,7 @@ def admission_list(request):
         processed_apps.append({
             "form_no": app.id,
             "name": std_name,
-            "student_first_name": app.student.first_name if app.student.first_name else std_name,
+            "student_first_name": std_name,
             "course": app.course,
             "academic_year": app.academic_year,
             "status": app.status,
@@ -1775,25 +1795,41 @@ def rank_list_view(request):
 # =========================
 def get_student_name(application):
     """
-    Returns the student's name from the User model first_name, 
-    falling back to dynamic field values, and finally username.
+    Returns the student's name:
+    Prioritizes application.display_name (dynamic application fields like Full Name,
+    Applicant Name, Student Name) to avoid conflicts when a user account submits
+    multiple applications or mobile number is shared, falling back to user first_name and username.
     """
-    # 1. Check User model
-    if application.student and application.student.first_name:
-        return application.student.first_name
+    if not application:
+        return ""
+    if hasattr(application, 'display_name') and application.display_name:
+        return application.display_name
 
-    # 2. Check for field marked as is_name_field
+    # 1. Check for field marked as is_name_field
     for v in application.field_values.all():
-        if v.field and getattr(v.field, 'is_name_field', False):
-            return v.value
+        if v.field and getattr(v.field, 'is_name_field', False) and v.value:
+            return str(v.value).strip()
         
-    # 3. Fallback to label search
+    # 2. Preferred candidate name labels
+    preferred_labels = ['full name', 'applicant name', 'candidate name', 'student name', 'name of applicant', 'name of candidate']
     for v in application.field_values.all():
-        field_label = v.field.label if v.field else v.field_label
-        if field_label:
-            label = field_label.lower()
-            if "name" in label and ":" not in str(v.value):
-                return v.value
+        field_label = (v.field.label if v.field else v.field_label) or ''
+        fl_clean = field_label.lower().strip()
+        if any(pref in fl_clean for pref in preferred_labels) and v.value and ":" not in str(v.value) and str(v.value).strip():
+            return str(v.value).strip()
+
+    # 3. Fallback to label search (excluding guardian/father/mother/board)
+    excluded_words = ['father', 'mother', 'guardian', 'board', 'school', 'institution', 'college', 'place']
+    for v in application.field_values.all():
+        field_label = (v.field.label if v.field else v.field_label) or ''
+        fl_clean = field_label.lower().strip()
+        if "name" in fl_clean and not any(ex in fl_clean for ex in excluded_words):
+            if v.value and ":" not in str(v.value) and str(v.value).strip():
+                return str(v.value).strip()
+
+    # 4. Check User model
+    if application.student and application.student.first_name:
+        return application.student.first_name.strip()
 
     if application.student:
         return application.student.username
@@ -2802,23 +2838,23 @@ def excel_import_students(request):
                     header_map['religion'] = idx
                 elif 'aadhaar' in h_clean or 'aadhar' in h_clean:
                     header_map['aadhaar_no'] = idx
-                elif 'registration' in h_clean or 'reg id' in h_clean or 'reg_id' in h_clean:
+                elif 'registration' in h_clean or 'reg id' in h_clean or 'reg_id' in h_clean or 'adm no' in h_clean or 'admission no' in h_clean:
                     header_map['registration_id'] = idx
-                elif 'date of join' in h_clean or 'join' in h_clean or 'doj' in h_clean:
+                elif 'joining period' in h_clean or ('period' in h_clean and 'date' not in h_clean):
+                    header_map['joining_period'] = idx
+                elif any(k in h_clean for k in ['date of join', 'joining date', 'admission date', 'date of admission', 'doj', 'admitted date', 'date of adm']) or ('join' in h_clean and 'period' not in h_clean):
                     header_map['date_of_join'] = idx
                 elif 'quota' in h_clean:
                     header_map['admission_quota'] = idx
-                elif 'academic session' in h_clean or 'academic year' in h_clean or 'session' in h_clean:
+                elif 'academic session' in h_clean or 'academic year' in h_clean or 'session' in h_clean or 'batch' in h_clean:
                     header_map['academic_session'] = idx
                 elif 'select course' in h_clean or 'course' in h_clean:
                     header_map['course'] = idx
                 elif 'fee category' in h_clean:
                     header_map['fee_category'] = idx
-                elif 'joining period' in h_clean or 'period' in h_clean:
-                    header_map['joining_period'] = idx
-                elif 'class year' in h_clean or 'semester' in h_clean:
+                elif any(k in h_clean for k in ['class year', 'semester', 'sem', 'sub category', 'level']) or h_clean == 'year':
                     header_map['class_year'] = idx
-                elif 'class' in h_clean:
+                elif any(k in h_clean for k in ['class', 'branch', 'department', 'dept', 'trade', 'stream', 'specialization', 'division']) and 'year' not in h_clean and 'fee' not in h_clean:
                     header_map['class'] = idx
                 elif 'care of' in h_clean:
                     header_map['care_of'] = idx
@@ -2950,7 +2986,7 @@ def excel_import_students(request):
                     elif doj_raw:
                         doj_str = str(doj_raw).strip()
                         parsed_date = None
-                        for fmt in ['%d-%m-%Y', '%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d.%m.%Y']:
+                        for fmt in ['%d-%m-%Y', '%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d.%m.%Y', '%d-%b-%Y', '%d %b, %Y', '%d %b %Y', '%d %B %Y', '%b %d, %Y', '%d-%m-%y', '%d/%m/%y']:
                             try:
                                 parsed_date = datetime.datetime.strptime(doj_str, fmt).date()
                                 break
@@ -2994,11 +3030,34 @@ def excel_import_students(request):
                     # Class lookup
                     assigned_class = None
                     if class_raw:
-                        assigned_class = Class.objects.filter(institute=institute).filter(
-                            Q(name__iexact=class_raw) | Q(name__icontains=class_raw)
-                        ).first()
-                    if not assigned_class and course:
-                        assigned_class = Class.objects.filter(institute=institute, course=course).first()
+                        clean_c = class_raw.strip()
+                        c_qs = Class.objects.filter(institute=institute)
+                        if course:
+                            c_qs_course = c_qs.filter(course=course)
+                            if c_qs_course.exists():
+                                c_qs = c_qs_course
+                        assigned_class = c_qs.filter(Q(name__iexact=clean_c) | Q(name__icontains=clean_c)).first()
+                        if not assigned_class:
+                            # Try normalized (& vs and, hyphens vs spaces)
+                            c_norm = clean_c.replace('&', 'and').replace('-', ' ').strip().lower()
+                            for candidate in c_qs:
+                                cand_norm = candidate.name.replace('&', 'and').replace('-', ' ').strip().lower()
+                                if c_norm in cand_norm or cand_norm in c_norm:
+                                    assigned_class = candidate
+                                    break
+                        if not assigned_class:
+                            # Try branch keywords (e.g. electrical, electronics, civil, mechanical, computer)
+                            c_words = [w.lower() for w in clean_c.replace('-', ' ').replace('/', ' ').split() if len(w) > 3 and w.lower() not in ['engineering', 'diploma', 'degree', 'regular']]
+                            if c_words:
+                                for candidate in c_qs:
+                                    cand_name_l = candidate.name.lower()
+                                    if all(w in cand_name_l for w in c_words):
+                                        assigned_class = candidate
+                                        break
+                    if not assigned_class and course and not class_raw:
+                        course_classes = Class.objects.filter(institute=institute, course=course)
+                        if course_classes.count() == 1:
+                            assigned_class = course_classes.first()
 
                     # Class Year / Semester lookup
                     assigned_class_year = None
@@ -3016,10 +3075,8 @@ def excel_import_students(request):
                         defaults={'email': email or f"{mobile}@jdt.local", 'role': 'student', 'first_name': full_name}
                     )
                     if not created:
-                        if full_name and user.first_name != full_name:
+                        if not user.first_name and full_name:
                             user.first_name = full_name
-                        if email and user.email != email:
-                            user.email = email
                         user.role = 'student'
                         user.save()
 
@@ -3192,7 +3249,13 @@ def student_list_view(request):
     if course_id:
         admissions = admissions.filter(application__course_id=course_id)
         
-    if status_filter:
+    status_filter = request.GET.get('status')
+    if status_filter is None or status_filter == '':
+        status_filter = 'active'
+    else:
+        status_filter = status_filter.strip().lower()
+
+    if status_filter != 'all':
         if status_filter in ['pending', 'selected', 'rejected', 'hold']:
             admissions = admissions.filter(application__status=status_filter)
         else:
@@ -3322,6 +3385,17 @@ def export_students_excel(request):
     class_id = request.GET.get('class_id')
     class_year_id = request.GET.get('class_year_id')
     fee_category_id = request.GET.get('fee_category_id')
+    status_filter = request.GET.get('status')
+    if status_filter is None or status_filter == '':
+        status_filter = 'active'
+    else:
+        status_filter = status_filter.strip().lower()
+
+    if status_filter != 'all':
+        if status_filter in ['pending', 'selected', 'rejected', 'hold']:
+            admissions = admissions.filter(application__status=status_filter)
+        else:
+            admissions = admissions.filter(status=status_filter)
 
     if form_id:
         admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
@@ -4025,6 +4099,14 @@ def manage_student_fees(request, admission_id):
         class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True)
     fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
     
+    # Multi-Year Academic Year Filter
+    academic_year_id = request.GET.get('academic_year_id')
+    institute_academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
+    if academic_year_id:
+        active_academic_year = AcademicYear.objects.filter(id=academic_year_id, institute=institute).first() or admission.application.academic_year
+    else:
+        active_academic_year = admission.application.academic_year
+
     # Mapped Fee Structure
     fee_heads_data = []
     total_demand = 0.0
@@ -4037,7 +4119,7 @@ def manage_student_fees(request, admission_id):
     
     if active_class and admission.assigned_class_year and admission.assigned_fee_category:
         structure = FeeStructure.objects.filter(
-            academic_year=admission.application.academic_year,
+            academic_year=active_academic_year,
             institute=institute,
             course=admission.selected_course,
             class_obj=active_class,
@@ -4074,8 +4156,17 @@ def manage_student_fees(request, admission_id):
                     fee_type=head.fee_type
                 ))
                 
-                # Effective demand is reduced by approved refunds so refund does NOT increase due amount
-                effective_demand = max(0.0, discounted_amount - approved_head_refunds)
+                # Check head discount from payments remarks
+                head_discount = 0.0
+                for p in payments:
+                    if p.remarks and '[Discount: ' in p.remarks:
+                        try:
+                            head_discount += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                        except Exception:
+                            pass
+
+                # Effective demand is reduced by approved refunds and head discounts
+                effective_demand = max(0.0, discounted_amount - approved_head_refunds - head_discount)
                 net_paid_fee = max(0.0, paid_fee - approved_head_refunds)
                 pending_fee = max(0.0, effective_demand - net_paid_fee)
                 pending_fine = fine_amt - paid_fine if has_fine else 0.0
@@ -4106,6 +4197,40 @@ def manage_student_fees(request, admission_id):
                 total_pending += max(0.0, pending_fee)
                 total_fine += paid_fine
 
+    # Calculate previous year dues if any
+    previous_dues_total = 0.0
+    prev_year_dues_list = []
+    if active_academic_year and admission.assigned_fee_category:
+        other_years = AcademicYear.objects.filter(institute=institute).exclude(id=active_academic_year.id)
+        for prev_yr in other_years:
+            prev_struct = FeeStructure.objects.filter(
+                academic_year=prev_yr,
+                institute=institute,
+                course=admission.selected_course,
+                fee_category=admission.assigned_fee_category
+            ).first()
+            if prev_struct:
+                for phead in prev_struct.heads.filter(is_active=True):
+                    p_disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and phead.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and phead.fee_type.is_discountable) else 0)
+                    p_disc_amt = float(phead.amount) * (1 - float(p_disc_pct or 0) / 100)
+                    p_payments = StudentFeePayment.objects.filter(admission=admission, fee_head=phead, is_cancelled=False)
+                    p_paid = sum(float(p.amount_paid) for p in p_payments)
+                    p_head_disc = 0.0
+                    for p in p_payments:
+                        if p.remarks and '[Discount: ' in p.remarks:
+                            try:
+                                p_head_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                            except Exception:
+                                pass
+                    p_due = max(0.0, p_disc_amt - p_paid - p_head_disc)
+                    if p_due > 0:
+                        previous_dues_total += p_due
+                        prev_year_dues_list.append({
+                            'year': prev_yr.name,
+                            'head': phead.fee_type.name,
+                            'due': p_due
+                        })
+
     # Fetch total approved refunds for overall summary metrics
     approved_refund_reqs = FeeRefundRequest.objects.filter(
         admission=admission,
@@ -4114,7 +4239,12 @@ def manage_student_fees(request, admission_id):
     
     total_refunded = sum(float(r.amount) for r in approved_refund_reqs)
                 
-    raw_history = StudentFeePayment.objects.filter(admission=admission).select_related('fee_head__fee_type').order_by('-created_at')
+    raw_history = StudentFeePayment.objects.filter(admission=admission).select_related('fee_head__fee_type', 'fee_head__fee_structure').order_by('-created_at')
+    if active_academic_year:
+        raw_history = raw_history.filter(
+            Q(fee_head__fee_structure__academic_year=active_academic_year) |
+            Q(fee_head__fee_structure__isnull=True)
+        )
     payments_history = group_payments_by_receipt(raw_history)
 
     # Append approved refund transactions into the Student Fee Ledger history
@@ -4153,7 +4283,13 @@ def manage_student_fees(request, admission_id):
         'total_pending': total_pending,
         'total_refunded': total_refunded,
         'total_fine_collected': total_fine,
-        'payments_history': payments_history
+        'payments_history': payments_history,
+        'active_academic_year': active_academic_year,
+        'institute_academic_years': institute_academic_years,
+        'selected_academic_year_id': academic_year_id,
+        'previous_dues_total': previous_dues_total,
+        'prev_year_dues_list': prev_year_dues_list,
+        'today_date': datetime.date.today().strftime('%Y-%m-%d'),
     })
 
 
@@ -4168,12 +4304,30 @@ def collect_student_fee(request, admission_id, head_id):
         payment_mode = request.POST.get('payment_mode', 'cash')
         reference_no = request.POST.get('reference_no', '')
         remarks = request.POST.get('remarks', '')
+        payment_date_str = request.POST.get('payment_date', '').strip()
+        manual_rcpt_no = request.POST.get('manual_receipt_no', '').strip()
+        discount_amount = request.POST.get('discount_amount', 0)
         
         try:
             amt_val = float(amount_paid) if amount_paid else 0.0
             fine_val = float(fine_paid) if fine_paid else 0.0
+            disc_val = float(discount_amount) if discount_amount else 0.0
+            
             inst = admission.application.institute if admission.application else admission.selected_course.institute
-            rcpt_no = generate_receipt_number(inst)
+            rcpt_no = manual_rcpt_no if manual_rcpt_no else generate_receipt_number(inst)
+            
+            if payment_date_str:
+                try:
+                    p_date = datetime.datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                except Exception:
+                    p_date = datetime.date.today()
+            else:
+                p_date = datetime.date.today()
+                
+            if disc_val > 0:
+                remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
+                admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+                admission.save()
             
             StudentFeePayment.objects.create(
                 admission=admission,
@@ -4184,18 +4338,18 @@ def collect_student_fee(request, admission_id, head_id):
                 reference_no=reference_no,
                 receipt_number=rcpt_no,
                 remarks=remarks,
-                payment_date=datetime.date.today()
+                payment_date=p_date
             )
             
             from .models import log_activity
             log_activity(
                 user=request.user,
                 module="Fee Management",
-                activity=f"Collected ₹{amt_val:.2f} (Fine: ₹{fine_val:.2f}) for student {admission.application.display_name} (Fee Head: {head.fee_type.name})",
+                activity=f"Collected ₹{amt_val:.2f} (Fine: ₹{fine_val:.2f}, Discount: ₹{disc_val:.2f}) for student {admission.application.display_name} (Fee Head: {head.fee_type.name})",
                 institute=admission.application.institute
             )
             
-            messages.success(request, f"Payment of ₹{amt_val + fine_val} recorded successfully!")
+            messages.success(request, f"Payment of ₹{amt_val + fine_val} recorded successfully! Receipt #{rcpt_no}")
         except Exception as e:
             messages.error(request, f"Error processing payment: {str(e)}")
             
@@ -4402,8 +4556,11 @@ def due_report(request):
     due_date_from = request.GET.get('due_date_from', '').strip() or request.GET.get('date_from', '').strip()
     due_date_to = request.GET.get('due_date_to', '').strip() or request.GET.get('date_to', '').strip()
     search_query = request.GET.get('q', '').strip()
+    student_status = request.GET.get('student_status', 'active').strip().lower()
     
     admissions_qs = Admission.objects.filter(application__institute=institute)
+    if student_status and student_status != 'all' and student_status in ['active', 'warned', 'suspended', 'trashed']:
+        admissions_qs = admissions_qs.filter(status=student_status)
     if academic_year_id:
         admissions_qs = admissions_qs.filter(application__academic_year_id=academic_year_id)
     if course_id:
@@ -4535,6 +4692,7 @@ def due_report(request):
         'selected_class': class_id,
         'selected_class_year': class_year_id,
         'selected_fee_category': fee_category_id,
+        'selected_status': student_status,
         'due_date_from': due_date_from,
         'due_date_to': due_date_to,
         'date_from': due_date_from,
@@ -4921,6 +5079,9 @@ def collect_multiple_fees(request, admission_id):
         payment_mode = request.POST.get('payment_mode', 'cash')
         reference_no = request.POST.get('reference_no', '')
         remarks = request.POST.get('remarks', '')
+        payment_date_str = request.POST.get('payment_date', '').strip()
+        manual_rcpt_no = request.POST.get('manual_receipt_no', '').strip()
+        discount_amount = request.POST.get('discount_amount', 0)
         
         if not head_ids:
             messages.error(request, "No fee heads were selected for collection.")
@@ -4931,11 +5092,20 @@ def collect_multiple_fees(request, admission_id):
         
         try:
             active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
+            disc_val = float(discount_amount) if discount_amount else 0.0
             
+            if payment_date_str:
+                try:
+                    p_date = datetime.datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                except Exception:
+                    p_date = datetime.date.today()
+            else:
+                p_date = datetime.date.today()
+                
             if active_class and admission.assigned_class_year and admission.assigned_fee_category:
                 structure = FeeStructure.objects.filter(
                     academic_year=admission.application.academic_year,
-                    institute=request.user.institute,
+                    institute=get_current_institute(request),
                     course=admission.selected_course,
                     class_obj=active_class,
                     class_year=admission.assigned_class_year,
@@ -4943,8 +5113,14 @@ def collect_multiple_fees(request, admission_id):
                 ).first()
                 
                 if structure:
-                    inst = admission.application.institute if admission.application else (admission.selected_course.institute if admission.selected_course else request.user.institute)
-                    rcpt_no = generate_receipt_number(inst) # Single receipt ID for all items collected together!
+                    inst = admission.application.institute if admission.application else (admission.selected_course.institute if admission.selected_course else get_current_institute(request))
+                    rcpt_no = manual_rcpt_no if manual_rcpt_no else generate_receipt_number(inst)
+                    heads = structure.heads.filter(id__in=head_ids, is_active=True)
+                    
+                    if disc_val > 0:
+                        remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
+                        admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+                        admission.save()
                     
                     for head in heads:
                         if head.fee_type.is_discountable:
@@ -4981,22 +5157,22 @@ def collect_multiple_fees(request, admission_id):
                                 reference_no=reference_no,
                                 receipt_number=rcpt_no,
                                 remarks=remarks,
-                                payment_date=datetime.date.today()
+                                payment_date=p_date
                             )
                             total_collected += (amt_val + fine_val)
                             success_count += 1
                             
-            if success_count > 0:
-                from .models import log_activity
-                log_activity(
-                    user=request.user,
-                    module="Fee Management",
-                    activity=f"Bulk collected ₹{total_collected:.2f} for {success_count} fee heads of student {admission.application.display_name} (Receipt #{rcpt_no})",
-                    institute=admission.application.institute
-                )
-                messages.success(request, f"Successfully collected ₹{total_collected:.2f} for {success_count} fee heads! (Receipt #{rcpt_no})")
-            else:
-                messages.warning(request, "Selected fee heads have already been fully paid.")
+                    if success_count > 0:
+                        from .models import log_activity
+                        log_activity(
+                            user=request.user,
+                            module="Fee Management",
+                            activity=f"Bulk collected ₹{total_collected:.2f} across {success_count} heads for student {admission.application.display_name} (Receipt #{rcpt_no})",
+                            institute=admission.application.institute
+                        )
+                        messages.success(request, f"Successfully collected ₹{total_collected:.2f} across {success_count} fee head(s)! Receipt #{rcpt_no}")
+                    else:
+                        messages.warning(request, "Selected fee heads were already fully settled.")
         except Exception as e:
             messages.error(request, f"Error processing bulk collection: {str(e)}")
             

@@ -21,11 +21,55 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+            <!-- Academic Session Switcher -->
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Session:</label>
+                <select onchange="window.location.href='?academic_year_id=' + this.value" class="bg-transparent font-bold text-xs text-blue-700 outline-none cursor-pointer">
+                    {% for ay in institute_academic_years %}
+                    <option value="{{ ay.id }}" {% if active_academic_year.id == ay.id %}selected{% endif %}>{{ ay.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <span class="text-xs font-bold text-slate-600 uppercase tracking-wider px-3 py-1.5 bg-slate-100 rounded-xl font-mono border border-slate-200">
-                Reg No: {{ admission.registration_id|default:"Not Active" }}
+                Reg No: {{ admission.register_number|default:admission.registration_id|default:"Not Active" }}
             </span>
         </div>
     </div>
+
+    <!-- PREVIOUS YEAR DUES WARNING BANNER -->
+    {% if previous_dues_total > 0 %}
+    <div class="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border-2 border-amber-400/80 shadow-md shadow-amber-500/10 space-y-3">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-amber-600 text-white font-bold text-[10px] uppercase tracking-wider rounded">Arrears Warning</span>
+                        <h4 class="text-base font-black text-amber-950">Outstanding Dues from Previous Academic Sessions</h4>
+                    </div>
+                    <p class="text-xs text-amber-900 mt-1">
+                        This student has uncleared dues totaling <strong class="font-mono text-sm text-amber-950">₹{{ previous_dues_total|floatformat:2 }}</strong> from previous academic years.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% for pd in prev_year_dues_list %}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/80 border border-amber-200 text-amber-900 rounded-lg text-xs font-semibold">
+                            <span>{{ pd.year }} ({{ pd.head }}):</span>
+                            <strong class="font-mono text-red-600">₹{{ pd.due|floatformat:2 }}</strong>
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end gap-2">
+                <span class="text-[11px] font-bold text-amber-800 bg-white/70 px-3 py-1.5 rounded-xl border border-amber-200">
+                    Status: Retain as past dues or rollover to arrears
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Django Messages -->
     {% if messages %}
@@ -382,6 +426,31 @@
                 </div>
             </div>
 
+            <!-- Date & Manual Receipt Number -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Payment Date</label>
+                    <input type="date" name="payment_date" id="modalPaymentDate" value="{{ today_date }}"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Manual Receipt # (Optional)</label>
+                    <input type="text" name="manual_receipt_no" id="modalReceiptNo" placeholder="Auto if blank"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold font-mono text-xs">
+                </div>
+            </div>
+
+            <!-- Discount Option -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Discount Amount (Deduction)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
+                    <input type="number" step="0.01" min="0" name="discount_amount" id="modalDiscountInput" value="0.00"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
+                </div>
+                <p class="text-[10px] text-slate-400 pl-1">Entering a discount reduces the ledger balance and records the concession.</p>
+            </div>
+
             <!-- Mode Selector -->
             <div class="space-y-2">
                 <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Collection Mode</label>
@@ -480,6 +549,30 @@
                     <option value="online">Online Payment</option>
                     <option value="bank_transfer">Bank Transfer</option>
                 </select>
+            </div>
+
+            <!-- Date & Manual Receipt Number -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Payment Date</label>
+                    <input type="date" name="payment_date" id="bulkModalPaymentDate" value="{{ today_date }}"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Manual Receipt # (Optional)</label>
+                    <input type="text" name="manual_receipt_no" id="bulkModalReceiptNo" placeholder="Auto if blank"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold font-mono text-xs">
+                </div>
+            </div>
+
+            <!-- Discount Option -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Discount Amount (Optional Concession)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
+                    <input type="number" step="0.01" min="0" name="discount_amount" id="bulkModalDiscountInput" value="0.00"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
+                </div>
             </div>
 
             <!-- Reference No -->
@@ -619,6 +712,9 @@
         document.getElementById('modalTitle').innerText = `Record: ${headName}`;
         document.getElementById('fullAmtLabel').innerText = `₹${(maxPendingFee + maxPendingFine).toFixed(2)}`;
         
+        const discountInput = document.getElementById('modalDiscountInput');
+        if (discountInput) discountInput.value = '0.00';
+        
         const form = document.getElementById('paymentForm');
         form.action = `/institute/student/{{ admission.id }}/fees/collect/${headId}/`;
         
@@ -672,6 +768,13 @@
                     fineInput.value = maxPendingFine.toFixed(2);
                 }
             };
+            const discInp = document.getElementById('modalDiscountInput');
+            if (discInp) {
+                discInp.oninput = () => {
+                    let disc = parseFloat(discInp.value) || 0.0;
+                    amtInput.value = Math.max(0, maxPendingFee - disc).toFixed(2);
+                };
+            }
         }
     }
 
