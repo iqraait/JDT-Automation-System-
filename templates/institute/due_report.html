@@ -17,10 +17,15 @@
                 <span class="text-xs font-semibold text-slate-400">• Outstanding Dues Roster</span>
             </div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Student Due Report</h1>
-            <p class="text-slate-500 text-xs md:text-sm mt-1">Comprehensive student fee balances, collected revenue, approved refunds, and outstanding dues.</p>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Comprehensive student fee balances, concessions/discounts, collected revenue, approved refunds, and past year dues rollover.</p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Multi-Student Transfer Action Button -->
+            <button type="button" id="bulkTransferBtn" onclick="submitBulkTransfer()" class="hidden px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-amber-600/20 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                <span>Transfer Selected Dues (<span id="selectedCountBadge">0</span>)</span>
+            </button>
             <a href="{% url 'fee_refund_request' %}" class="px-4 py-2.5 bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs rounded-xl transition hover:bg-amber-100 flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
                 <span>Request Refund</span>
@@ -33,7 +38,8 @@
     </div>
 
     <!-- METRICS CARDS -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        <!-- Demand -->
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
             <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -44,6 +50,18 @@
             </div>
         </div>
 
+        <!-- Concessions / Discounts -->
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-purple-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-700">Discounts & Concessions</span>
+                <p class="text-xl md:text-2xl font-black text-purple-700 font-mono">₹{{ total_all_discount|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <!-- Net Collected -->
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
             <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -54,6 +72,7 @@
             </div>
         </div>
 
+        <!-- Approved Refunds -->
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
             <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
@@ -64,12 +83,13 @@
             </div>
         </div>
 
+        <!-- Outstanding Due -->
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
             <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Outstanding Due</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Current Outstanding Due</span>
                 <p class="text-xl md:text-2xl font-black text-rose-600 font-mono">₹{{ total_all_pending|floatformat:2 }}</p>
             </div>
         </div>
@@ -131,6 +151,26 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Dues Filter Mode</label>
+                    <select name="due_view_mode" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="all" {% if selected_due_view_mode == 'all' or not selected_due_view_mode %}selected{% endif %}>All Students & Dues</option>
+                        <option value="has_prev_due" {% if selected_due_view_mode == 'has_prev_due' %}selected{% endif %}>Has Previous Year Dues</option>
+                        <option value="current_due_only" {% if selected_due_view_mode == 'current_due_only' %}selected{% endif %}>Current Year Dues Only</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Student Status</label>
+                    <select name="student_status" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="active" {% if selected_status == 'active' or not selected_status %}selected{% endif %}>Active Students</option>
+                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="warned" {% if selected_status == 'warned' %}selected{% endif %}>Warned</option>
+                        <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                        <option value="trashed" {% if selected_status == 'trashed' %}selected{% endif %}>Trashed</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Fee Head Type</label>
                     <select name="fee_type_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         <option value="">All Fee Heads</option>
@@ -150,18 +190,7 @@
                     <input type="date" name="due_date_to" value="{{ due_date_to }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Student Status</label>
-                    <select name="student_status" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                        <option value="active" {% if selected_status == 'active' or not selected_status %}selected{% endif %}>Active Students</option>
-                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
-                        <option value="warned" {% if selected_status == 'warned' %}selected{% endif %}>Warned</option>
-                        <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
-                        <option value="trashed" {% if selected_status == 'trashed' %}selected{% endif %}>Trashed</option>
-                    </select>
-                </div>
-
-                <div class="sm:col-span-2 lg:col-span-3">
+                <div class="sm:col-span-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Search Student</label>
                     <input type="text" name="q" value="{{ search_query }}" placeholder="Reg No, Form No, Name..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 </div>
@@ -190,16 +219,20 @@
                 <div class="w-3 h-3 rounded-full bg-blue-600"></div>
                 <h3 class="font-bold text-slate-800 text-base">Student Fee Dues Roster</h3>
             </div>
-            <span class="text-xs font-bold text-slate-500">Total Enrolled: {{ page_obj.paginator.count }} Students</span>
+            <span class="text-xs font-bold text-slate-500">Total Enrolled: {% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ roster_data|length }}{% endif %} Students</span>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-xs uppercase tracking-wider font-bold text-slate-700">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center w-10">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllStudents(this)" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" title="Select all students">
+                        </th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Student Info</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Class & Category</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Fee Demand</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Discount / Concession</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Gross Paid</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Approved Refunds</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Net Collected</th>
@@ -210,6 +243,9 @@
                 <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                     {% for row in roster_data %}
                     <tr class="hover:bg-slate-50/60 transition duration-150">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
+                            <input type="checkbox" name="student_selection" value="{{ row.admission.id }}" onchange="onStudentCbChange()" class="student-select-cb w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" data-prev-due="{{ row.previous_due }}">
+                        </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <span class="font-bold text-slate-900 block text-xs md:text-sm">{{ row.admission.application.display_name }}</span>
                             <span class="text-xs font-mono text-slate-500">Reg: {{ row.admission.registration_id|default:row.admission.application.id }}</span>
@@ -220,6 +256,12 @@
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono font-bold text-slate-800 text-xs md:text-sm">
                             ₹{{ row.demand|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono font-bold text-purple-700">
+                            ₹{{ row.discount_amount|floatformat:2 }}
+                            {% if row.manual_discount > 0 %}
+                            <span class="text-[10px] text-emerald-600 block">(Manual: ₹{{ row.manual_discount|floatformat:2 }})</span>
+                            {% endif %}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono font-bold text-slate-700">
                             ₹{{ row.collected|floatformat:2 }}
@@ -240,12 +282,26 @@
                             {% else %}
                             <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">PAID</span>
                             {% endif %}
+                            {% if row.previous_due > 0 %}
+                            <span class="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md block mt-1">
+                                +₹{{ row.previous_due|floatformat:2 }} (Past Dues)
+                            </span>
+                            {% endif %}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
                             <div class="flex items-center justify-center gap-1.5">
                                 <a href="{% url 'manage_student_fees' row.admission.id %}" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition">
                                     Ledger
                                 </a>
+                                {% if row.previous_due > 0 %}
+                                <form method="POST" action="{% url 'transfer_previous_year_dues' %}" class="inline" onsubmit="return confirm('Transfer ₹{{ row.previous_due|floatformat:2 }} previous year dues into current academic year for {{ row.admission.application.display_name }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="admission_id" value="{{ row.admission.id }}">
+                                    <button type="submit" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs" title="Transfer previous year dues to current year">
+                                        Transfer Due
+                                    </button>
+                                </form>
+                                {% endif %}
                                 <a href="{% url 'fee_refund_request' %}?admission_id={{ row.admission.id }}" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition" title="Request Refund">
                                     Refund
                                 </a>
@@ -254,7 +310,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="py-12 text-center text-slate-400">
+                        <td colspan="10" class="py-12 text-center text-slate-400">
                             <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             <p class="font-bold">No student fee records found matching criteria.</p>
                         </td>
@@ -293,6 +349,12 @@
 
 </div>
 
+<!-- Hidden Bulk Transfer Form -->
+<form id="bulkTransferForm" method="POST" action="{% url 'transfer_previous_year_dues' %}" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="selected_admission_ids" id="bulkSelectedIdsInput">
+</form>
+
 <script>
 // Dynamic Class -> Class Year filtering in Due Report
 document.addEventListener('DOMContentLoaded', function() {
@@ -326,5 +388,41 @@ document.addEventListener('DOMContentLoaded', function() {
     classSelect.addEventListener('change', updateClassYears);
     updateClassYears();
 });
+
+// Bulk Transfer Selection Controls
+function toggleSelectAllStudents(masterCb) {
+    const cbs = document.querySelectorAll('.student-select-cb');
+    cbs.forEach(cb => cb.checked = masterCb.checked);
+    updateBulkTransferBtn();
+}
+
+function onStudentCbChange() {
+    updateBulkTransferBtn();
+}
+
+function updateBulkTransferBtn() {
+    const selected = document.querySelectorAll('.student-select-cb:checked');
+    const btn = document.getElementById('bulkTransferBtn');
+    const badge = document.getElementById('selectedCountBadge');
+    if (selected.length > 0) {
+        btn.classList.remove('hidden');
+        badge.innerText = selected.length;
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+
+function submitBulkTransfer() {
+    const selected = document.querySelectorAll('.student-select-cb:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    if (!ids.length) {
+        alert("Please select at least one student.");
+        return;
+    }
+    if (confirm(`Are you sure you want to rollover and transfer previous year dues for ${ids.length} selected student(s) to the current academic year?`)) {
+        document.getElementById('bulkSelectedIdsInput').value = ids.join(',');
+        document.getElementById('bulkTransferForm').submit();
+    }
+}
 </script>
 {% endblock %}

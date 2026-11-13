@@ -3939,6 +3939,7 @@ def group_payments_by_receipt(payments_qs):
                 'fee_items': [],
                 'total_amount_paid': 0.0,
                 'total_fine_paid': 0.0,
+                'discount_amount': 0.0,
                 'grand_total': 0.0,
             }
             receipt_order.append(rcpt_id)
@@ -3951,6 +3952,13 @@ def group_payments_by_receipt(payments_qs):
 
         g['payments'].append(payment)
         fee_name = payment.fee_head.fee_type.name
+        p_disc = 0.0
+        if payment.remarks and '[Discount: ' in payment.remarks:
+            try:
+                p_disc = float(payment.remarks.split('[Discount: ')[1].split(']')[0])
+            except Exception:
+                p_disc = 0.0
+        g['discount_amount'] += p_disc
         g['fee_items'].append({
             'name': fee_name,
             'amount_paid': float(payment.amount_paid),
@@ -4078,6 +4086,177 @@ def cancel_fee_receipt(request, receipt_number):
 
 
 # =============================================================================
+# STUDENT FEE MANAGEMENT VIEWS & DUES ROLLOVER
+# =============================================================================
+def get_student_previous_year_dues(admission, current_academic_year, institute):
+    """
+    Computes total previous year dues and a detailed item breakdown for a student.
+    Excludes the active/current academic year and any heads that are 'Previous Year Dues / Arrears'.
+    """
+    total_prev_due = 0.0
+    prev_dues_list = []
+    
+    if not admission or not current_academic_year or not admission.selected_course:
+        return 0.0, []
+        
+    other_years = AcademicYear.objects.filter(institute=institute).exclude(id=current_academic_year.id)
+    if not other_years.exists():
+        return 0.0, []
+
+    for prev_yr in other_years:
+        prev_struct = FeeStructure.objects.filter(
+            academic_year=prev_yr,
+            institute=institute,
+            course=admission.selected_course,
+            fee_category=admission.assigned_fee_category
+        ).first()
+        
+        if prev_struct:
+            for phead in prev_struct.heads.filter(is_active=True).exclude(fee_type__name="Previous Year Dues / Arrears"):
+                p_disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and phead.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and phead.fee_type.is_discountable) else 0)
+                p_disc_amt = float(phead.amount) * (1 - float(p_disc_pct or 0) / 100)
+                p_payments = StudentFeePayment.objects.filter(admission=admission, fee_head=phead, is_cancelled=False)
+                p_paid = sum(float(p.amount_paid) for p in p_payments)
+                p_head_disc = 0.0
+                for p in p_payments:
+                    if p.remarks and '[Discount: ' in p.remarks:
+                        try:
+                            p_head_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                        except Exception:
+                            pass
+                p_due = max(0.0, p_disc_amt - p_paid - p_head_disc)
+                if p_due > 0.01:
+                    total_prev_due += p_due
+                    prev_dues_list.append({
+                        'year': prev_yr.name,
+                        'year_obj': prev_yr,
+                        'head': phead.fee_type.name,
+                        'fee_head_obj': phead,
+                        'due': p_due
+                    })
+                    
+    return total_prev_due, prev_dues_list
+
+
+@login_required
+def transfer_previous_year_dues(request):
+    """
+    Transfers uncleared dues from previous academic sessions to the current academic session.
+    Supported for both single student (via admission_id) and bulk selection (via selected_admission_ids).
+    """
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method.")
+        return redirect('due_report')
+        
+    institute = get_current_institute(request)
+    admission_id = request.POST.get('admission_id')
+    selected_ids_str = request.POST.get('selected_admission_ids', '')
+    
+    admission_ids = []
+    if admission_id:
+        admission_ids.append(admission_id)
+    elif selected_ids_str:
+        admission_ids = [aid.strip() for aid in selected_ids_str.split(',') if aid.strip().isdigit()]
+        
+    if not admission_ids:
+        messages.error(request, "No students selected for due rollover.")
+        return redirect(request.META.get('HTTP_REFERER') or 'due_report')
+        
+    success_transfers = 0
+    total_transferred_amount = 0.0
+    
+    from django.db import transaction
+    
+    with transaction.atomic():
+        arrear_fee_type, _ = FeeType.objects.get_or_create(
+            name="Previous Year Dues / Arrears",
+            defaults={
+                'description': "Transferred arrears/outstanding balance from previous academic session",
+                'is_discountable': False,
+                'is_active': True
+            }
+        )
+        
+        for aid in admission_ids:
+            adm = Admission.objects.filter(id=aid, application__institute=institute).first()
+            if not adm:
+                continue
+                
+            current_academic_year = adm.application.academic_year
+            active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
+            
+            if not active_class or not adm.assigned_class_year or not adm.assigned_fee_category:
+                continue
+                
+            current_structure = FeeStructure.objects.filter(
+                academic_year=current_academic_year,
+                institute=institute,
+                course=adm.selected_course,
+                class_obj=active_class,
+                class_year=adm.assigned_class_year,
+                fee_category=adm.assigned_fee_category
+            ).first()
+            
+            if not current_structure:
+                continue
+                
+            arrear_head = current_structure.heads.filter(fee_type=arrear_fee_type).first()
+            if not arrear_head:
+                arrear_head = FeeHead.objects.create(
+                    fee_structure=current_structure,
+                    fee_type=arrear_fee_type,
+                    amount=0.00,
+                    start_date=datetime.date.today(),
+                    due_date=datetime.date.today() + datetime.timedelta(days=30),
+                    fine_amount=0.00,
+                    is_active=True
+                )
+                
+            total_prev_due, prev_dues_list = get_student_previous_year_dues(adm, current_academic_year, institute)
+            if total_prev_due <= 0.01:
+                continue
+                
+            now_ts = int(datetime.datetime.now().timestamp())
+            for item in prev_dues_list:
+                p_head = item['fee_head_obj']
+                due_amt = item['due']
+                
+                # 1. Close due in previous year via settlement adjustment
+                StudentFeePayment.objects.create(
+                    admission=adm,
+                    fee_head=p_head,
+                    amount_paid=due_amt,
+                    fine_paid=0.00,
+                    payment_mode='cash',
+                    reference_no=f"ROLLOVER-{current_academic_year.id}",
+                    receipt_number=f"TRF-{p_head.id}-{adm.id}-{now_ts}",
+                    remarks=f"[Transferred to {current_academic_year.name}] Rollover transferred to current academic year"
+                )
+                
+                # 2. Record rollover demand in current year under arrear_head
+                StudentFeePayment.objects.create(
+                    admission=adm,
+                    fee_head=arrear_head,
+                    amount_paid=0.00,
+                    fine_paid=0.00,
+                    payment_mode='cash',
+                    reference_no='ROLLOVER-DEMAND',
+                    receipt_number=f"DEMAND-TRF-{p_head.id}-{adm.id}-{now_ts}",
+                    remarks=f"[Transferred Due: {due_amt:.2f}] Carried over from {item['year']} ({item['head']})"
+                )
+                
+            success_transfers += 1
+            total_transferred_amount += total_prev_due
+            
+    if success_transfers > 0:
+        messages.success(request, f"Successfully transferred ₹{total_transferred_amount:.2f} of previous year dues into the current academic year for {success_transfers} student(s).")
+    else:
+        messages.warning(request, "No eligible previous year dues were found to transfer for the selected student(s).")
+        
+    return redirect(request.META.get('HTTP_REFERER') or 'due_report')
+
+
+# =============================================================================
 # STUDENT FEE MANAGEMENT VIEWS
 # =============================================================================
 @login_required
@@ -4149,22 +4328,43 @@ def manage_student_fees(request, admission_id):
         if structure:
             heads = structure.heads.filter(is_active=True)
             for head in heads:
-                # CHECK IF DISCOUNT IS ELIGIBLE (User Enhancement 1)
-                if head.fee_type.is_discountable:
-                    discount_pct = admission.custom_discount_percentage if admission.custom_discount_percentage is not None else admission.assigned_fee_category.discount_percentage
-                    discount_pct = discount_pct or 0
-                else:
+                # Transferred Arrears head special handling
+                if head.fee_type.name == "Previous Year Dues / Arrears":
+                    rollover_records = StudentFeePayment.objects.filter(
+                        admission=admission,
+                        fee_head=head,
+                        reference_no='ROLLOVER-DEMAND',
+                        is_cancelled=False
+                    )
+                    arrear_demand = 0.0
+                    for r in rollover_records:
+                        if r.remarks and '[Transferred Due: ' in r.remarks:
+                            try:
+                                arrear_demand += float(r.remarks.split('[Transferred Due: ')[1].split(']')[0])
+                            except Exception:
+                                pass
+                    discounted_amount = arrear_demand
                     discount_pct = 0
-                
-                discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
-                
-                has_fine = False
-                fine_amt = 0.0
-                if datetime.date.today() > head.due_date:
-                    has_fine = True
-                    fine_amt = float(head.fine_amount)
+                    has_fine = False
+                    fine_amt = 0.0
+                    payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+                    if arrear_demand <= 0.01 and not payments.exists():
+                        continue
+                else:
+                    if head.fee_type.is_discountable:
+                        discount_pct = admission.custom_discount_percentage if admission.custom_discount_percentage is not None else admission.assigned_fee_category.discount_percentage
+                        discount_pct = discount_pct or 0
+                    else:
+                        discount_pct = 0
                     
-                payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False)
+                    discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
+                    has_fine = False
+                    fine_amt = 0.0
+                    if datetime.date.today() > head.due_date:
+                        has_fine = True
+                        fine_amt = float(head.fine_amount)
+                    payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+                
                 paid_fee = sum(float(p.amount_paid) for p in payments)
                 paid_fine = sum(float(p.fine_paid) for p in payments)
                 
@@ -4199,6 +4399,7 @@ def manage_student_fees(request, admission_id):
                     'discounted_amount': discounted_amount,
                     'effective_demand': effective_demand,
                     'discount_pct': discount_pct,
+                    'head_discount': head_discount,
                     'fine_amount': fine_amt,
                     'paid_fee': paid_fee,
                     'refunded_fee': approved_head_refunds,
@@ -4216,39 +4417,16 @@ def manage_student_fees(request, admission_id):
                 total_pending += max(0.0, pending_fee)
                 total_fine += paid_fine
 
-    # Calculate previous year dues if any
-    previous_dues_total = 0.0
-    prev_year_dues_list = []
-    if active_academic_year and admission.assigned_fee_category:
-        other_years = AcademicYear.objects.filter(institute=institute).exclude(id=active_academic_year.id)
-        for prev_yr in other_years:
-            prev_struct = FeeStructure.objects.filter(
-                academic_year=prev_yr,
-                institute=institute,
-                course=admission.selected_course,
-                fee_category=admission.assigned_fee_category
-            ).first()
-            if prev_struct:
-                for phead in prev_struct.heads.filter(is_active=True):
-                    p_disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and phead.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and phead.fee_type.is_discountable) else 0)
-                    p_disc_amt = float(phead.amount) * (1 - float(p_disc_pct or 0) / 100)
-                    p_payments = StudentFeePayment.objects.filter(admission=admission, fee_head=phead, is_cancelled=False)
-                    p_paid = sum(float(p.amount_paid) for p in p_payments)
-                    p_head_disc = 0.0
-                    for p in p_payments:
-                        if p.remarks and '[Discount: ' in p.remarks:
-                            try:
-                                p_head_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
-                            except Exception:
-                                pass
-                    p_due = max(0.0, p_disc_amt - p_paid - p_head_disc)
-                    if p_due > 0:
-                        previous_dues_total += p_due
-                        prev_year_dues_list.append({
-                            'year': prev_yr.name,
-                            'head': phead.fee_type.name,
-                            'due': p_due
-                        })
+    # Calculate previous year dues if any using unified helper
+    previous_dues_total, prev_year_dues_list = get_student_previous_year_dues(admission, active_academic_year, institute)
+
+    # Total discounts given
+    total_discounts_given = sum(item.get('head_discount', 0.0) for item in fee_heads_data)
+    total_concessions = sum(
+        max(0.0, float(item['head'].amount) - item['discounted_amount'])
+        for item in fee_heads_data if item['head'].fee_type.name != 'Previous Year Dues / Arrears'
+    )
+    total_all_discounts = total_discounts_given + total_concessions
 
     # Fetch total approved refunds for overall summary metrics
     approved_refund_reqs = FeeRefundRequest.objects.filter(
@@ -4258,7 +4436,7 @@ def manage_student_fees(request, admission_id):
     
     total_refunded = sum(float(r.amount) for r in approved_refund_reqs)
                 
-    raw_history = StudentFeePayment.objects.filter(admission=admission).select_related('fee_head__fee_type', 'fee_head__fee_structure').order_by('-created_at')
+    raw_history = StudentFeePayment.objects.filter(admission=admission).exclude(reference_no='ROLLOVER-DEMAND').select_related('fee_head__fee_type', 'fee_head__fee_structure').order_by('-created_at')
     if active_academic_year:
         raw_history = raw_history.filter(
             Q(fee_head__fee_structure__academic_year=active_academic_year) |
@@ -4302,6 +4480,9 @@ def manage_student_fees(request, admission_id):
         'total_pending': total_pending,
         'total_refunded': total_refunded,
         'total_fine_collected': total_fine,
+        'total_discounts_given': total_discounts_given,
+        'total_concessions': total_concessions,
+        'total_all_discounts': total_all_discounts,
         'payments_history': payments_history,
         'active_academic_year': active_academic_year,
         'institute_academic_years': institute_academic_years,
@@ -4520,6 +4701,7 @@ def daily_fee_collection(request):
     grouped = group_payments_by_receipt(payments_qs)
     
     total_overall_amount = sum(float(r['grand_total']) for r in grouped if not r.get('is_cancelled'))
+    total_overall_discount = sum(float(r.get('discount_amount', 0.0)) for r in grouped if not r.get('is_cancelled'))
     
     paginator = Paginator(grouped, 20)
     page_number = request.GET.get('page', 1)
@@ -4540,6 +4722,7 @@ def daily_fee_collection(request):
         'page_obj': page_obj,
         'receipts': page_obj.object_list,
         'total_overall_amount': total_overall_amount,
+        'total_overall_discount': total_overall_discount,
         'total_page_amount': total_page_amount,
         'batches': batches,
         'courses': courses,
@@ -4570,6 +4753,7 @@ def due_report(request):
     class_year_id = clean_id_param(request.GET.get('class_year_id'))
     fee_category_id = clean_id_param(request.GET.get('fee_category_id'))
     fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
+    due_view_mode = request.GET.get('due_view_mode', 'all').strip().lower()
     
     # Support both date_from/date_to and due_date_from/due_date_to
     due_date_from = request.GET.get('due_date_from', '').strip() or request.GET.get('date_from', '').strip()
@@ -4609,6 +4793,8 @@ def due_report(request):
     total_all_collected = 0.0
     total_all_pending = 0.0
     total_all_refunded = 0.0
+    total_all_discount = 0.0
+    total_all_prev_dues = 0.0
     
     for adm in admissions:
         active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
@@ -4634,6 +4820,8 @@ def due_report(request):
                 std_demand = 0.0
                 std_collected = 0.0
                 std_fines = 0.0
+                std_discount = 0.0
+                std_manual_discount = 0.0
                 discount_pct = 0
                 
                 has_matching_heads = heads.exists()
@@ -4641,18 +4829,54 @@ def due_report(request):
                     continue
                 
                 for head in heads:
-                    if head.fee_type.is_discountable:
-                        discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
-                        discount_pct = discount_pct or 0
-                    else:
+                    if head.fee_type.name == "Previous Year Dues / Arrears":
+                        rollover_records = StudentFeePayment.objects.filter(
+                            admission=adm,
+                            fee_head=head,
+                            reference_no='ROLLOVER-DEMAND',
+                            is_cancelled=False
+                        )
+                        arrear_demand = 0.0
+                        for r in rollover_records:
+                            if r.remarks and '[Transferred Due: ' in r.remarks:
+                                try:
+                                    arrear_demand += float(r.remarks.split('[Transferred Due: ')[1].split(']')[0])
+                                except Exception:
+                                    pass
+                        discounted_amount = arrear_demand
                         discount_pct = 0
-                        
-                    discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
-                    std_demand += discounted_amount
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+                        if arrear_demand <= 0.01 and not payments.exists():
+                            continue
+                    else:
+                        if head.fee_type.is_discountable:
+                            discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                            discount_pct = discount_pct or 0
+                        else:
+                            discount_pct = 0
+                            
+                        base_amt = float(head.amount)
+                        discounted_amount = base_amt * (1 - float(discount_pct) / 100)
+                        std_discount += (base_amt - discounted_amount)
+                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+
+                    head_paid = sum(float(p.amount_paid) for p in payments)
+                    head_fines = sum(float(p.fine_paid) for p in payments)
                     
-                    payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
-                    std_collected += sum(float(p.amount_paid) for p in payments)
-                    std_fines += sum(float(p.fine_paid) for p in payments)
+                    head_man_disc = 0.0
+                    for p in payments:
+                        if p.remarks and '[Discount: ' in p.remarks:
+                            try:
+                                head_man_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                            except Exception:
+                                pass
+                    std_manual_discount += head_man_disc
+                    std_discount += head_man_disc
+                    
+                    effective_head_demand = max(0.0, discounted_amount - head_man_disc)
+                    std_demand += effective_head_demand
+                    std_collected += head_paid
+                    std_fines += head_fines
                     
                 # Approved refunds for this student
                 approved_refunds = FeeRefundRequest.objects.filter(admission=adm, status='approved')
@@ -4663,22 +4887,36 @@ def due_report(request):
                 net_collected = (std_collected + std_fines) - std_refunded
                 pending_fee = max(0.0, effective_demand - (std_collected - std_refunded))
                 
+                # Previous Year Dues
+                prev_due_total, _ = get_student_previous_year_dues(adm, adm.application.academic_year, institute)
+                
+                if due_view_mode == 'has_prev_due' and prev_due_total <= 0.01:
+                    continue
+                if due_view_mode == 'current_due_only' and pending_fee <= 0.01:
+                    continue
+                    
                 roster_data.append({
                     'admission': adm,
                     'fee_category': adm.assigned_fee_category,
                     'discount_pct': discount_pct,
+                    'discount_amount': std_discount,
+                    'manual_discount': std_manual_discount,
                     'demand': effective_demand,
                     'collected': std_collected + std_fines,
                     'fine_collected': std_fines,
                     'refunded': std_refunded,
                     'net_collected': net_collected,
                     'pending': pending_fee,
+                    'previous_due': prev_due_total,
+                    'total_overall_due': pending_fee + prev_due_total,
                 })
                 
                 total_all_demand += effective_demand
                 total_all_collected += net_collected
                 total_all_pending += pending_fee
                 total_all_refunded += std_refunded
+                total_all_discount += std_discount
+                total_all_prev_dues += prev_due_total
 
     paginator = Paginator(roster_data, 25)
     page_number = request.GET.get('page', 1)
@@ -4700,6 +4938,8 @@ def due_report(request):
         'total_all_collected': total_all_collected,
         'total_all_pending': total_all_pending,
         'total_all_refunded': total_all_refunded,
+        'total_all_discount': total_all_discount,
+        'total_all_prev_dues': total_all_prev_dues,
         'batches': batches,
         'courses': courses,
         'classes': classes,
@@ -4712,6 +4952,7 @@ def due_report(request):
         'selected_class_year': class_year_id,
         'selected_fee_category': fee_category_id,
         'selected_status': student_status,
+        'selected_due_view_mode': due_view_mode,
         'due_date_from': due_date_from,
         'due_date_to': due_date_to,
         'date_from': due_date_from,
@@ -5291,7 +5532,7 @@ def export_fee_reports_excel(request):
     
     if report_type == 'audit':
         ws.title = "Collection Audit Log"
-        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Heads', 'Amount Paid', 'Penalty Paid', 'Mode', 'Reference No']
+        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Heads', 'Amount Paid', 'Discount Concession', 'Penalty Paid', 'Mode', 'Reference No']
         ws.append(headers)
         
         grouped_audit = group_payments_by_receipt(ledger_payments)
@@ -5303,6 +5544,7 @@ def export_fee_reports_excel(request):
                 p['admission'].registration_id or '-',
                 p['fee_types_str'],
                 float(p['total_amount_paid']),
+                float(p.get('discount_amount', 0.0)),
                 float(p['total_fine_paid']),
                 p['payment_mode_display'],
                 p['reference_no'] or '-'
@@ -5315,7 +5557,7 @@ def export_fee_reports_excel(request):
         else:
             ws.title = "Entire Fee Report"
             
-        headers = ['Register No', 'Student Name', 'Term & Class', 'Fee Category', 'Net Demand', 'Paid Fees', 'Fines Collected', 'Pending Balance']
+        headers = ['Register No', 'Student Name', 'Term & Class', 'Fee Category', 'Net Demand', 'Discount Concession', 'Paid Fees', 'Fines Collected', 'Pending Balance', 'Past Year Dues']
         ws.append(headers)
         
         for adm in admissions:
@@ -5338,25 +5580,57 @@ def export_fee_reports_excel(request):
                     std_demand = 0.0
                     std_collected = 0.0
                     std_fines = 0.0
+                    std_discount = 0.0
                     
                     for head in heads:
-                        if head.fee_type.is_discountable:
-                            discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
-                            discount_pct = discount_pct or 0
-                        else:
+                        if head.fee_type.name == "Previous Year Dues / Arrears":
+                            rollover_records = StudentFeePayment.objects.filter(
+                                admission=adm,
+                                fee_head=head,
+                                reference_no='ROLLOVER-DEMAND',
+                                is_cancelled=False
+                            )
+                            arrear_demand = 0.0
+                            for r in rollover_records:
+                                if r.remarks and '[Transferred Due: ' in r.remarks:
+                                    try:
+                                        arrear_demand += float(r.remarks.split('[Transferred Due: ')[1].split(']')[0])
+                                    except Exception:
+                                        pass
+                            discounted_amount = arrear_demand
                             discount_pct = 0
+                            payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+                        else:
+                            if head.fee_type.is_discountable:
+                                discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                                discount_pct = discount_pct or 0
+                            else:
+                                discount_pct = 0
+                                
+                            base_amt = float(head.amount)
+                            discounted_amount = base_amt * (1 - float(discount_pct) / 100)
+                            std_discount += (base_amt - discounted_amount)
+                            payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
                             
-                        discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
-                        std_demand += discounted_amount
+                        head_paid = sum(float(p.amount_paid) for p in payments)
+                        head_fines = sum(float(p.fine_paid) for p in payments)
+                        head_man_disc = 0.0
+                        for p in payments:
+                            if p.remarks and '[Discount: ' in p.remarks:
+                                try:
+                                    head_man_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                                except Exception:
+                                    pass
+                        std_discount += head_man_disc
+                        effective_head_demand = max(0.0, discounted_amount - head_man_disc)
+                        std_demand += effective_head_demand
+                        std_collected += head_paid
+                        std_fines += head_fines
                         
-                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
-                        std_collected += sum(float(p.amount_paid) for p in payments)
-                        std_fines += sum(float(p.fine_paid) for p in payments)
-                        
-                    pending_fee = std_demand - std_collected
-                    pending_fee = max(0.0, pending_fee)
+                    pending_fee = max(0.0, std_demand - std_collected)
+                    prev_due_total, _ = get_student_previous_year_dues(adm, adm.application.academic_year, institute)
                     
-                    if report_type == 'roster' and pending_fee <= 0:
+                    if report_type == 'roster' and (pending_fee <= 0 and prev_due_total <= 0):
                         continue # Skip fully paid students for outstanding roster
                         
                     class_term_str = f"{adm.assigned_class_year.name} - {adm.assigned_class.name}"
@@ -5366,9 +5640,11 @@ def export_fee_reports_excel(request):
                         class_term_str,
                         adm.assigned_fee_category.name,
                         std_demand,
+                        std_discount,
                         std_collected,
                         std_fines,
-                        pending_fee
+                        pending_fee,
+                        prev_due_total
                     ])
                     
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -5453,6 +5729,7 @@ def export_fee_reports_pdf(request):
             Paragraph("Register No", header_style),
             Paragraph("Demanded Heads", header_style),
             Paragraph("Amount Paid", header_style),
+            Paragraph("Discount", header_style),
             Paragraph("Penalty Paid", header_style),
             Paragraph("Mode", header_style),
             Paragraph("Reference No", header_style)
@@ -5468,12 +5745,13 @@ def export_fee_reports_pdf(request):
                 Paragraph(p['admission'].registration_id or '-', cell_style),
                 Paragraph(p['fee_types_str'], cell_style),
                 Paragraph(f"₹{p['total_amount_paid']:.2f}", cell_style),
+                Paragraph(f"₹{p.get('discount_amount', 0.0):.2f}", cell_style),
                 Paragraph(f"₹{p['total_fine_paid']:.2f}", cell_style),
                 Paragraph(p['payment_mode_display'], cell_style),
                 Paragraph(p['reference_no'] or '-', cell_style)
             ])
             
-        t = Table(data, colWidths=[60, 65, 120, 80, 100, 75, 75, 65, 100])
+        t = Table(data, colWidths=[55, 60, 110, 70, 95, 65, 55, 65, 60, 85])
     else:
         headers = [
             Paragraph("Register No", header_style),
@@ -5481,9 +5759,11 @@ def export_fee_reports_pdf(request):
             Paragraph("Term & Class", header_style),
             Paragraph("Fee Category", header_style),
             Paragraph("Net Demand", header_style),
+            Paragraph("Discount", header_style),
             Paragraph("Paid Fees", header_style),
-            Paragraph("Fines Collected", header_style),
-            Paragraph("Pending Balance", header_style)
+            Paragraph("Fines", header_style),
+            Paragraph("Pending Balance", header_style),
+            Paragraph("Past Dues", header_style)
         ]
         
         data = [headers]
@@ -5507,25 +5787,57 @@ def export_fee_reports_pdf(request):
                     std_demand = 0.0
                     std_collected = 0.0
                     std_fines = 0.0
+                    std_discount = 0.0
                     
                     for head in heads:
-                        if head.fee_type.is_discountable:
-                            discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
-                            discount_pct = discount_pct or 0
-                        else:
+                        if head.fee_type.name == "Previous Year Dues / Arrears":
+                            rollover_records = StudentFeePayment.objects.filter(
+                                admission=adm,
+                                fee_head=head,
+                                reference_no='ROLLOVER-DEMAND',
+                                is_cancelled=False
+                            )
+                            arrear_demand = 0.0
+                            for r in rollover_records:
+                                if r.remarks and '[Transferred Due: ' in r.remarks:
+                                    try:
+                                        arrear_demand += float(r.remarks.split('[Transferred Due: ')[1].split(']')[0])
+                                    except Exception:
+                                        pass
+                            discounted_amount = arrear_demand
                             discount_pct = 0
+                            payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+                        else:
+                            if head.fee_type.is_discountable:
+                                discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                                discount_pct = discount_pct or 0
+                            else:
+                                discount_pct = 0
+                                
+                            base_amt = float(head.amount)
+                            discounted_amount = base_amt * (1 - float(discount_pct) / 100)
+                            std_discount += (base_amt - discounted_amount)
+                            payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
                             
-                        discounted_amount = float(head.amount) * (1 - float(discount_pct) / 100)
-                        std_demand += discounted_amount
+                        head_paid = sum(float(p.amount_paid) for p in payments)
+                        head_fines = sum(float(p.fine_paid) for p in payments)
+                        head_man_disc = 0.0
+                        for p in payments:
+                            if p.remarks and '[Discount: ' in p.remarks:
+                                try:
+                                    head_man_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                                except Exception:
+                                    pass
+                        std_discount += head_man_disc
+                        effective_head_demand = max(0.0, discounted_amount - head_man_disc)
+                        std_demand += effective_head_demand
+                        std_collected += head_paid
+                        std_fines += head_fines
                         
-                        payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
-                        std_collected += sum(float(p.amount_paid) for p in payments)
-                        std_fines += sum(float(p.fine_paid) for p in payments)
-                        
-                    pending_fee = std_demand - std_collected
-                    pending_fee = max(0.0, pending_fee)
+                    pending_fee = max(0.0, std_demand - std_collected)
+                    prev_due_total, _ = get_student_previous_year_dues(adm, adm.application.academic_year, institute)
                     
-                    if report_type == 'roster' and pending_fee <= 0:
+                    if report_type == 'roster' and (pending_fee <= 0 and prev_due_total <= 0):
                         continue
                         
                     class_term_str = f"{adm.assigned_class_year.name} - {adm.assigned_class.name}"
@@ -5535,12 +5847,14 @@ def export_fee_reports_pdf(request):
                         Paragraph(class_term_str, cell_style),
                         Paragraph(adm.assigned_fee_category.name, cell_style),
                         Paragraph(f"₹{std_demand:.2f}", cell_style),
+                        Paragraph(f"₹{std_discount:.2f}", cell_style),
                         Paragraph(f"₹{std_collected:.2f}", cell_style),
                         Paragraph(f"₹{std_fines:.2f}", cell_style),
-                        Paragraph(f"₹{pending_fee:.2f}", cell_style)
+                        Paragraph(f"₹{pending_fee:.2f}", cell_style),
+                        Paragraph(f"₹{prev_due_total:.2f}", cell_style)
                     ])
                     
-        t = Table(data, colWidths=[90, 140, 130, 110, 65, 65, 65, 75])
+        t = Table(data, colWidths=[65, 120, 110, 85, 55, 50, 55, 50, 65, 65])
         
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),

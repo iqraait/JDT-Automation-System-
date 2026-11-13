@@ -63,9 +63,14 @@
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-end gap-2">
-                <span class="text-[11px] font-bold text-amber-800 bg-white/70 px-3 py-1.5 rounded-xl border border-amber-200">
-                    Status: Retain as past dues or rollover to arrears
-                </span>
+                <form method="POST" action="{% url 'transfer_previous_year_dues' %}" onsubmit="return confirm('Transfer ₹{{ previous_dues_total|floatformat:2 }} of previous year dues into current academic year {{ active_academic_year.name }}?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="admission_id" value="{{ admission.id }}">
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        <span>Transfer Dues to Current Year</span>
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -84,7 +89,7 @@
     {% endif %}
 
     <!-- OVERALL METRIC CARDS -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <!-- Demand -->
         <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-4 md:p-5 shadow-md shadow-blue-500/10 space-y-2 relative overflow-hidden group">
             <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
@@ -93,6 +98,16 @@
             <p class="text-xs font-bold uppercase tracking-wider text-blue-200">Total Fee Demand</p>
             <h3 class="text-xl md:text-2xl font-black font-mono">₹{{ total_demand|floatformat:2 }}</h3>
             <p class="text-xs text-blue-100 font-semibold bg-white/10 px-2 py-0.5 rounded-md inline-block">Effective Net Rate</p>
+        </div>
+
+        <!-- Concessions / Discounts -->
+        <div class="bg-white border border-purple-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 relative overflow-hidden group">
+            <div class="absolute -right-4 -bottom-4 text-purple-50 opacity-20 group-hover:scale-110 transition-transform duration-500">
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+            </div>
+            <p class="text-xs font-bold uppercase tracking-wider text-purple-700">Discounts & Concessions</p>
+            <h3 class="text-xl md:text-2xl font-black font-mono text-purple-700">₹{{ total_all_discounts|floatformat:2 }}</h3>
+            <p class="text-xs text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded-md inline-block">Total Concessions</p>
         </div>
 
         <!-- Collected -->
@@ -260,6 +275,9 @@
                             <div>
                                 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Net Demand</p>
                                 <p class="font-bold text-slate-800 text-xs md:text-sm font-mono">₹{{ item.effective_demand|floatformat:2 }}</p>
+                                {% if item.head_discount > 0 %}
+                                <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-1 rounded block mt-0.5">(Discount: ₹{{ item.head_discount|floatformat:2 }})</span>
+                                {% endif %}
                             </div>
                             <div>
                                 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Net Paid</p>
@@ -318,7 +336,8 @@
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Receipt / Voucher ID</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Date</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Fee Particulars</th>
-                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Amount</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Amount Paid</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Discount</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Fines Collected</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Mode</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Reference No</th>
@@ -339,6 +358,13 @@
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-semibold text-slate-700">{{ payment.fee_types_str }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-black font-mono text-xs md:text-sm {% if payment.is_refund %}text-amber-700{% else %}text-slate-800{% endif %}">
                             {% if payment.is_refund %}-₹{{ payment.total_amount_paid|floatformat:2 }}{% else %}₹{{ payment.total_amount_paid|floatformat:2 }}{% endif %}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-purple-700 font-mono">
+                            {% if payment.discount_amount > 0 %}
+                            ₹{{ payment.discount_amount|floatformat:2 }}
+                            {% else %}
+                            -
+                            {% endif %}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-amber-600 font-mono">₹{{ payment.total_fine_paid|floatformat:2 }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
@@ -367,7 +393,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="py-12 text-center text-slate-400 italic">No receipts or refunds recorded yet for this student.</td>
+                        <td colspan="10" class="py-12 text-center text-slate-400 italic">No receipts or refunds recorded yet for this student.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

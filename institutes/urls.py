@@ -70,6 +70,7 @@ urlpatterns = [
     path('fee-reports/', fee_reports, name='fee_reports'),
     path('daily-fee-collection/', daily_fee_collection, name='daily_fee_collection'),
     path('due-report/', due_report, name='due_report'),
+    path('fees/transfer-previous-dues/', transfer_previous_year_dues, name='transfer_previous_year_dues'),
     path('fee-refund-request/', fee_refund_request, name='fee_refund_request'),
     path('fee-refund-approval/', fee_refund_approval, name='fee_refund_approval'),
     path('fee-refund/<int:refund_id>/approve/', fee_refund_approve, name='fee_refund_approve'),

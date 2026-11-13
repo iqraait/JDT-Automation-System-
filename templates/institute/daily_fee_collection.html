@@ -121,12 +121,18 @@
         </form>
     </div>
 
-    <!-- COUNT BADGE (MARKED AREA) -->
-    <div class="flex items-center justify-between px-2">
+    <!-- COUNT BADGE & DISCOUNT SUMMARY (MARKED AREA) -->
+    <div class="flex flex-wrap items-center justify-between gap-3 px-2">
         <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-900 shadow-xs">
             <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
             <span>Total Collection Records: <span class="text-emerald-700 font-black text-sm">{% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ receipts|length }}{% endif %}</span></span>
         </div>
+        {% if total_overall_discount > 0 %}
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-xl text-xs font-bold text-purple-900 shadow-xs">
+            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            <span>Total Discounts Allowed: <span class="text-purple-700 font-black text-sm font-mono">₹{{ total_overall_discount|floatformat:2 }}</span></span>
+        </div>
+        {% endif %}
     </div>
 
     <!-- DAILY COLLECTION LOG TABLE -->
@@ -186,6 +192,11 @@
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">
                             <span class="font-mono font-black text-sm text-emerald-600">₹{{ r.grand_total|floatformat:2 }}</span>
+                            {% if r.discount_amount > 0 %}
+                            <span class="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded-md block mt-0.5" title="Discount Granted">
+                                Disc: -₹{{ r.discount_amount|floatformat:2 }}
+                            </span>
+                            {% endif %}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
                             <a href="{% url 'print_fee_receipt' r.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition">
@@ -219,6 +230,12 @@
                     <span class="text-xs font-black uppercase tracking-wider text-emerald-700">Overall Total:</span>
                     <strong class="font-mono text-sm">₹{{ total_overall_amount|floatformat:2 }}</strong>
                 </span>
+                {% if total_overall_discount > 0 %}
+                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-xl border border-purple-200 shadow-xs flex items-center gap-1.5">
+                    <span class="text-xs font-black uppercase tracking-wider text-purple-700">Total Discounts:</span>
+                    <strong class="font-mono text-sm">₹{{ total_overall_discount|floatformat:2 }}</strong>
+                </span>
+                {% endif %}
             </div>
 
             {% if page_obj.has_other_pages %}
