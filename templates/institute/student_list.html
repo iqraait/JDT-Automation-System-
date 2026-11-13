@@ -165,7 +165,7 @@
                             {% if page_obj %}{{ forloop.counter0|add:page_obj.start_index }}{% else %}{{ forloop.counter }}{% endif %}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
-                            <span class="font-bold font-mono text-indigo-700">{{ adm.register_number|default:adm.registration_id }}</span>
+                            <span class="font-bold font-mono text-indigo-700">{{ adm.registration_id }}</span>
                             <p class="text-xs text-slate-400 font-medium mt-0.5">Joined: {{ adm.date_of_join|date:"d M, Y" }}</p>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
