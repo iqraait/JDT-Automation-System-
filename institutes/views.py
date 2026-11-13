@@ -3904,9 +3904,28 @@ def group_payments_by_receipt(payments_qs):
     for payment in payments_qs:
         rcpt_id = payment.receipt_number or f"REC-{payment.id}"
         if rcpt_id not in receipt_dict:
+            adm = payment.admission
+            class_name = "--"
+            class_year_name = "--"
+            fee_cat_name = "General"
+            if adm:
+                if adm.assigned_class:
+                    class_name = adm.assigned_class.name
+                if adm.assigned_class_year:
+                    class_year_name = adm.assigned_class_year.name
+                elif adm.joining_period:
+                    class_year_name = adm.joining_period.name
+                elif adm.assigned_class and getattr(adm.assigned_class, 'period', None):
+                    class_year_name = adm.assigned_class.period.name
+                if adm.assigned_fee_category:
+                    fee_cat_name = adm.assigned_fee_category.name
+
             receipt_dict[rcpt_id] = {
                 'receipt_number': rcpt_id,
                 'admission': payment.admission,
+                'class_name': class_name,
+                'class_year_name': class_year_name,
+                'fee_category_name': fee_cat_name,
                 'payment_date': payment.payment_date,
                 'payment_mode': payment.payment_mode,
                 'payment_mode_display': payment.get_payment_mode_display(),

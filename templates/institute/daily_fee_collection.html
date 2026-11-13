@@ -168,11 +168,11 @@
                             <span class="text-xs font-mono text-slate-500">ID: {{ r.admission.registration_id|default:r.admission.application.id }}</span>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
-                            <span class="font-semibold text-slate-800 block">{{ r.admission.assigned_class.name|default:"--" }}</span>
-                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ r.admission.assigned_fee_category.name|default:"General" }}</span>
+                            <span class="font-semibold text-slate-800 block">{{ r.class_name|default:"--" }}</span>
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{{ r.fee_category_name|default:"General" }}</span>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
-                            <span class="font-bold text-slate-800 block">{{ r.admission.assigned_class_year.name|default:r.admission.joining_period.name|default:"--" }}</span>
+                            <span class="font-bold text-slate-800 block">{{ r.class_year_name|default:"--" }}</span>
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <span class="font-semibold text-slate-700 max-w-xs block truncate">{{ r.fee_types_str }}</span>

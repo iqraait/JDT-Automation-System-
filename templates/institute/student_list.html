@@ -182,10 +182,10 @@
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             {% if adm.assigned_class %}
-                                <a href="{% url 'manage_class_students' adm.assigned_class.id %}" class="font-bold text-blue-600 leading-tight hover:underline block">{{ adm.assigned_class.name }}</a>
+                                <p class="font-bold text-blue-600 leading-tight">{{ adm.assigned_class.name }}</p>
                                 {% if adm.assigned_class_year %}
                                     <span class="inline-block mt-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ adm.assigned_class_year.name }}</span>
-                                {% elif adm.assigned_class.period %}
+                                {% elif adm.assigned_class and adm.assigned_class.period %}
                                     <span class="inline-block mt-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ adm.assigned_class.period.name }}</span>
                                 {% endif %}
                             {% else %}
