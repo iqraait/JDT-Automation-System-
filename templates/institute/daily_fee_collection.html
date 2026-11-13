@@ -125,7 +125,7 @@
     <div class="flex items-center justify-between px-2">
         <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-900 shadow-xs">
             <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-            <span>Total Collection Records: <span class="text-emerald-700 font-black text-sm">{{ page_obj.paginator.count|default:receipts|length }}</span></span>
+            <span>Total Collection Records: <span class="text-emerald-700 font-black text-sm">{% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ receipts|length }}{% endif %}</span></span>
         </div>
     </div>
 
