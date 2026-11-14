@@ -121,6 +121,9 @@
                     <a href="{% url 'fee_refund_approval' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'fee-refund-approval' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
                         <span>• Refund Approvals</span>
                     </a>
+                    <a href="{% url 'transferred_fees_report' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'transferred-fees' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
+                        <span>• Transferred Fees</span>
+                    </a>
                     {% endif %}
                     {% if user_privileges.perm_fee_receipts %}
                     <a href="{% url 'receipt_list' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'receipt' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
@@ -135,6 +138,17 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- MODULE: MASTER REPORTS HUB -->
+            <div class="space-y-1">
+                <a href="{% url 'reports_center' %}" class="flex items-center justify-between px-4 py-2 text-blue-100 hover:bg-white/10 rounded-xl transition duration-200 group font-normal text-[11px] {% if 'reports-center' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="h-4 w-4 opacity-90 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="font-bold">Reports Center</span>
+                    </div>
+                    <span class="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">Reports</span>
+                </a>
+            </div>
 
             <!-- MODULE 4: SYSTEM ADMINISTRATION -->
             {% if user_privileges.perm_activity_logs or user_privileges.perm_system_backup or user_privileges.perm_employee_privileges %}

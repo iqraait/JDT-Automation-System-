@@ -504,4 +504,28 @@ class FeeRefundRequestItem(models.Model):
     def __str__(self):
         return f"Refund #{self.refund_request.id} - {self.fee_type.name}: ₹{self.amount}"
 
+
+class TransferredFee(models.Model):
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='transferred_fees')
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='transferred_fees')
+    source_academic_year = models.ForeignKey('institutes.AcademicYear', on_delete=models.CASCADE, related_name='transferred_out_fees')
+    target_academic_year = models.ForeignKey('institutes.AcademicYear', on_delete=models.CASCADE, related_name='transferred_in_fees')
+    original_due_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount_reason = models.CharField(max_length=255, blank=True, null=True)
+    transferred_amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Net amount added to current year arrears")
+    status = models.CharField(max_length=20, default='approved')
+    remarks = models.TextField(blank=True, null=True)
+    transferred_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='transferred_fees_actions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Transferred Fee"
+        verbose_name_plural = "Transferred Fees"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Transfer #{self.id} - {self.admission.registration_id or self.admission.id} - ₹{self.transferred_amount}"
+
+
 

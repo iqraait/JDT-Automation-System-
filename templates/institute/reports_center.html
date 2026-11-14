@@ -1,0 +1,241 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block header_title %}Reports Center & Analytics{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TAB NAVIGATION BAR -->
+    {% include 'institute/fee_nav_tabs.html' %}
+
+    <!-- HEADER & SEARCH BANNER -->
+    <div class="bg-white rounded-2xl p-6 md:p-8 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-lg border border-blue-100">Central Directory</span>
+                <span class="text-xs font-semibold text-slate-400">• Master Reports Hub</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mt-1.5">Reports Center</h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Access, filter, and export all institutional data, student ledgers, fee collections, and academic reports by name.</p>
+        </div>
+
+        <!-- Live Instant Search Bar -->
+        <div class="w-full md:w-80">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Find Report by Name</label>
+            <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
+                <input type="text" id="reportSearchInput" onkeyup="filterReports()" placeholder="Type 'due', 'student', 'fee', 'transfer'..."
+                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK STATS OVERVIEW -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-1">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Enrolled Students</span>
+            <p class="text-xl md:text-2xl font-black text-slate-800 font-mono">{{ total_students_count }}</p>
+            <span class="text-[10px] text-blue-600 font-bold">Active Directory</span>
+        </div>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-1">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Fee Receipts Issued</span>
+            <p class="text-xl md:text-2xl font-black text-emerald-600 font-mono">{{ total_receipts_count }}</p>
+            <span class="text-[10px] text-emerald-600 font-bold">Audited Transactions</span>
+        </div>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-1">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Past Dues Transferred</span>
+            <p class="text-xl md:text-2xl font-black text-purple-600 font-mono">{{ total_transfers_count }}</p>
+            <span class="text-[10px] text-purple-600 font-bold">Rollover Arrears</span>
+        </div>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-xs space-y-1">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Refund Requests</span>
+            <p class="text-xl md:text-2xl font-black text-amber-600 font-mono">{{ total_refunds_count }}</p>
+            <span class="text-[10px] text-amber-600 font-bold">Processed Disbursements</span>
+        </div>
+    </div>
+
+    <!-- REPORTS GRID -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="reportsGrid">
+
+        <!-- 1. Student List Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="student list report roster admission directory students export register">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-blue-100">Enrollment</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Student List Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Complete registered students directory, course enrollments, quota category, class assignments, and active admission status.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'student_list' %}" class="flex-1 text-center py-2 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition">
+                    View Roster
+                </a>
+                <a href="{% url 'export_students_excel' %}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Export Excel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 2. Daily Fee Collection Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="fee collection report daily revenue transaction receipt cash online payments financial ledger">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-emerald-100">Revenue</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Fee Collection Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Daily and period-wise fee collection register with receipt numbers, collection modes, discounts allowed, and fine breakdowns.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'daily_fee_collection' %}" class="flex-1 text-center py-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition">
+                    View Register
+                </a>
+                <a href="{% url 'export_fee_reports_excel' %}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Export Excel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. Student Fee Due & Outstanding Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="due report fee dues outstanding balance arrears pending concessions past dues rollover">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-amber-100">Dues</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Student Fee Due Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Comprehensive outstanding fee balances, fee demands, concessions, net dues, past year arrears, and rollover actions.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'due_report' %}" class="flex-1 text-center py-2 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition">
+                    View Dues Matrix
+                </a>
+                <a href="{% url 'export_fee_reports_excel' %}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Export Excel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 4. Transferred Fees / Arrears Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="transferred fees report rollover arrears past year dues discounts concession carry over">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-purple-100">Arrears Rollover</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Transferred Fees Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Audit log of previous academic year dues transferred into current year, concessions granted, discount reasons, and audit trails.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'transferred_fees_report' %}" class="flex-1 text-center py-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition">
+                    View Audit
+                </a>
+                <a href="{% url 'export_transferred_fees_excel' %}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Export Excel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 5. Fee Refund & Disbursement Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="fee refund report disbursements refund requests cancellations approval payments">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002-2z"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-rose-100">Disbursements</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Fee Refund Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Student fee refund requests, workflow approvals, authorized reimbursement sums, and rejection audit logs.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'fee_refund_approval' %}" class="flex-1 text-center py-2 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition">
+                    View Approvals
+                </a>
+                <a href="{% url 'fee_refund_request' %}" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition">
+                    Requests
+                </a>
+            </div>
+        </div>
+
+        <!-- 6. Academic Rank & Merit List Report -->
+        <div class="report-card bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition space-y-4 flex flex-col justify-between"
+             data-keywords="rank list report academic merit ranking marks admission scores entrance qualifying">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    </div>
+                    <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-indigo-100">Merit</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Academic Rank List Report</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Course-wise applicant merit rankings, qualifying examination marks, quota status, and rank spreadsheets.</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <a href="{% url 'rank_list' %}" class="flex-1 text-center py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition">
+                    View Rankings
+                </a>
+                <a href="{% url 'export_rank_excel' %}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Export Excel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Empty State if search finds no report -->
+    <div id="noReportsFound" class="hidden bg-white rounded-2xl p-12 text-center border border-slate-200/80 space-y-2">
+        <svg class="w-12 h-12 text-slate-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <h4 class="font-bold text-slate-700 text-sm">No matching reports found</h4>
+        <p class="text-xs text-slate-400">Try searching for keywords like "fee", "due", "student", or "transfer".</p>
+    </div>
+
+</div>
+
+<script>
+function filterReports() {
+    const query = document.getElementById('reportSearchInput').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.report-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        const text = (card.innerText + " " + (card.dataset.keywords || "")).toLowerCase();
+        if (!query || text.includes(query)) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    const noReportsDiv = document.getElementById('noReportsFound');
+    if (visibleCount === 0) {
+        noReportsDiv.classList.remove('hidden');
+    } else {
+        noReportsDiv.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

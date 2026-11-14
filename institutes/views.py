@@ -4138,11 +4138,68 @@ def get_student_previous_year_dues(admission, current_academic_year, institute):
     return total_prev_due, prev_dues_list
 
 
+def get_student_current_year_due(admission, current_academic_year, institute):
+    """
+    Computes total pending fee due for a student in the specified current academic year.
+    """
+    if not admission or not current_academic_year or not admission.selected_course:
+        return 0.0
+    active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
+    if not active_class or not admission.assigned_class_year or not admission.assigned_fee_category:
+        return 0.0
+    struct = FeeStructure.objects.filter(
+        academic_year=current_academic_year,
+        institute=institute,
+        course=admission.selected_course,
+        class_obj=active_class,
+        class_year=admission.assigned_class_year,
+        fee_category=admission.assigned_fee_category
+    ).first()
+    if not struct:
+        return 0.0
+    total_due = 0.0
+    for head in struct.heads.filter(is_active=True):
+        if head.fee_type.name == "Previous Year Dues / Arrears":
+            rollover_records = StudentFeePayment.objects.filter(
+                admission=admission, fee_head=head, reference_no='ROLLOVER-DEMAND', is_cancelled=False
+            )
+            head_demand = 0.0
+            for r in rollover_records:
+                if r.remarks and '[Transferred Due: ' in r.remarks:
+                    try:
+                        head_demand += float(r.remarks.split('[Transferred Due: ')[1].split(']')[0])
+                    except Exception:
+                        pass
+            payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+            paid = sum(float(p.amount_paid) for p in payments)
+            total_due += max(0.0, head_demand - paid)
+        else:
+            disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and head.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and head.fee_type.is_discountable) else 0)
+            disc_amt = float(head.amount) * (1 - float(disc_pct or 0) / 100)
+            payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
+            paid = sum(float(p.amount_paid) for p in payments)
+            disc = 0.0
+            for p in payments:
+                if p.remarks and '[Discount: ' in p.remarks:
+                    try:
+                        disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                    except Exception:
+                        pass
+            refunds = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                refund_request__admission=admission, refund_request__status='approved', fee_type=head.fee_type
+            ))
+            eff_demand = max(0.0, disc_amt - refunds - disc)
+            net_paid = max(0.0, paid - refunds)
+            total_due += max(0.0, eff_demand - net_paid)
+    return total_due
+
+
 @login_required
 def transfer_previous_year_dues(request):
     """
     Transfers uncleared dues from previous academic sessions to the current academic session.
     Supported for both single student (via admission_id) and bulk selection (via selected_admission_ids).
+    Allows discount/concession deduction with reason and logs into TransferredFee table.
     """
     if request.method != 'POST':
         messages.error(request, "Invalid request method.")
@@ -4151,6 +4208,13 @@ def transfer_previous_year_dues(request):
     institute = get_current_institute(request)
     admission_id = request.POST.get('admission_id')
     selected_ids_str = request.POST.get('selected_admission_ids', '')
+    source_academic_year_id = clean_id_param(request.POST.get('source_academic_year_id'))
+    
+    try:
+        discount_amount = max(0.0, float(request.POST.get('discount_amount', 0.0) or 0.0))
+    except (ValueError, TypeError):
+        discount_amount = 0.0
+    discount_reason = request.POST.get('discount_reason', '').strip()
     
     admission_ids = []
     if admission_id:
@@ -4164,8 +4228,10 @@ def transfer_previous_year_dues(request):
         
     success_transfers = 0
     total_transferred_amount = 0.0
+    total_discounts_given = 0.0
     
     from django.db import transaction
+    from academics.models import TransferredFee
     
     with transaction.atomic():
         arrear_fee_type, _ = FeeType.objects.get_or_create(
@@ -4177,14 +4243,16 @@ def transfer_previous_year_dues(request):
             }
         )
         
+        current_academic_year = AcademicYear.objects.filter(
+            institute=institute, is_active=True
+        ).order_by('-name').first() or AcademicYear.objects.filter(institute=institute).order_by('-name').first()
+        
         for aid in admission_ids:
             adm = Admission.objects.filter(id=aid, application__institute=institute).first()
             if not adm:
                 continue
                 
-            current_academic_year = adm.application.academic_year
             active_class = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
-            
             if not active_class or not adm.assigned_class_year or not adm.assigned_fee_category:
                 continue
                 
@@ -4198,7 +4266,14 @@ def transfer_previous_year_dues(request):
             ).first()
             
             if not current_structure:
-                continue
+                current_structure = FeeStructure.objects.filter(
+                    academic_year=current_academic_year,
+                    institute=institute,
+                    course=adm.selected_course,
+                    class_obj=active_class
+                ).first()
+                if not current_structure:
+                    continue
                 
             arrear_head = current_structure.heads.filter(fee_type=arrear_fee_type).first()
             if not arrear_head:
@@ -4216,12 +4291,23 @@ def transfer_previous_year_dues(request):
             if total_prev_due <= 0.01:
                 continue
                 
+            if source_academic_year_id:
+                filtered_list = [item for item in prev_dues_list if str(item['year_obj'].id) == str(source_academic_year_id)]
+                if filtered_list:
+                    prev_dues_list = filtered_list
+                    total_prev_due = sum(item['due'] for item in prev_dues_list)
+                    
+            source_year = prev_dues_list[0]['year_obj'] if prev_dues_list else (adm.application.academic_year or current_academic_year)
+            
+            student_discount = min(discount_amount, total_prev_due) if len(admission_ids) == 1 else 0.0
+            net_transferred = max(0.0, total_prev_due - student_discount)
+            
             now_ts = int(datetime.datetime.now().timestamp())
             for item in prev_dues_list:
                 p_head = item['fee_head_obj']
                 due_amt = item['due']
                 
-                # 1. Close due in previous year via settlement adjustment
+                disc_note = f" [Discount: ₹{student_discount:.2f} - {discount_reason}]" if student_discount > 0 else ""
                 StudentFeePayment.objects.create(
                     admission=adm,
                     fee_head=p_head,
@@ -4230,26 +4316,42 @@ def transfer_previous_year_dues(request):
                     payment_mode='cash',
                     reference_no=f"ROLLOVER-{current_academic_year.id}",
                     receipt_number=f"TRF-{p_head.id}-{adm.id}-{now_ts}",
-                    remarks=f"[Transferred to {current_academic_year.name}] Rollover transferred to current academic year"
+                    remarks=f"[Transferred to {current_academic_year.name}]{disc_note} Transferred to current academic year"
                 )
                 
-                # 2. Record rollover demand in current year under arrear_head
-                StudentFeePayment.objects.create(
-                    admission=adm,
-                    fee_head=arrear_head,
-                    amount_paid=0.00,
-                    fine_paid=0.00,
-                    payment_mode='cash',
-                    reference_no='ROLLOVER-DEMAND',
-                    receipt_number=f"DEMAND-TRF-{p_head.id}-{adm.id}-{now_ts}",
-                    remarks=f"[Transferred Due: {due_amt:.2f}] Carried over from {item['year']} ({item['head']})"
-                )
-                
+            disc_demand_note = f" (Original Past Due: ₹{total_prev_due:.2f}, Discount Concession: ₹{student_discount:.2f} - {discount_reason})" if student_discount > 0 else ""
+            StudentFeePayment.objects.create(
+                admission=adm,
+                fee_head=arrear_head,
+                amount_paid=0.00,
+                fine_paid=0.00,
+                payment_mode='cash',
+                reference_no='ROLLOVER-DEMAND',
+                receipt_number=f"DEMAND-TRF-{adm.id}-{now_ts}",
+                remarks=f"[Transferred Due: {net_transferred:.2f}] Carried over from {source_year.name}{disc_demand_note}"
+            )
+            
+            TransferredFee.objects.create(
+                institute=institute,
+                admission=adm,
+                source_academic_year=source_year,
+                target_academic_year=current_academic_year,
+                original_due_amount=total_prev_due,
+                discount_amount=student_discount,
+                discount_reason=discount_reason,
+                transferred_amount=net_transferred,
+                status='approved',
+                remarks=f"Transferred from {source_year.name} to {current_academic_year.name}. Reason: {discount_reason or 'Arrear Rollover'}",
+                transferred_by=request.user if request.user.is_authenticated else None
+            )
+            
             success_transfers += 1
-            total_transferred_amount += total_prev_due
+            total_transferred_amount += net_transferred
+            total_discounts_given += student_discount
             
     if success_transfers > 0:
-        messages.success(request, f"Successfully transferred ₹{total_transferred_amount:.2f} of previous year dues into the current academic year for {success_transfers} student(s).")
+        disc_msg = f" (Total Discounts Granted: ₹{total_discounts_given:.2f})" if total_discounts_given > 0 else ""
+        messages.success(request, f"Successfully transferred ₹{total_transferred_amount:.2f} of previous year dues into current academic year {current_academic_year.name} for {success_transfers} student(s){disc_msg}.")
     else:
         messages.warning(request, "No eligible previous year dues were found to transfer for the selected student(s).")
         
@@ -4300,10 +4402,15 @@ def manage_student_fees(request, admission_id):
     # Multi-Year Academic Year Filter
     academic_year_id = request.GET.get('academic_year_id')
     institute_academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
+    current_academic_year = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name').first() or institute_academic_years.first()
+    
     if academic_year_id:
         active_academic_year = AcademicYear.objects.filter(id=academic_year_id, institute=institute).first() or admission.application.academic_year
     else:
-        active_academic_year = admission.application.academic_year
+        active_academic_year = admission.application.academic_year or current_academic_year
+
+    is_previous_year = bool(current_academic_year and active_academic_year and active_academic_year.id != current_academic_year.id)
+    current_year_due = get_student_current_year_due(admission, current_academic_year, institute) if is_previous_year else 0.0
 
     # Mapped Fee Structure
     fee_heads_data = []
@@ -4487,6 +4594,9 @@ def manage_student_fees(request, admission_id):
         'active_academic_year': active_academic_year,
         'institute_academic_years': institute_academic_years,
         'selected_academic_year_id': academic_year_id,
+        'is_previous_year': is_previous_year,
+        'current_academic_year': current_academic_year,
+        'current_year_due': current_year_due,
         'previous_dues_total': previous_dues_total,
         'prev_year_dues_list': prev_year_dues_list,
         'today_date': datetime.date.today().strftime('%Y-%m-%d'),
@@ -4788,6 +4898,10 @@ def due_report(request):
         
     admissions = list(admissions_qs.select_related('application__student', 'selected_course', 'assigned_class', 'assigned_class_year', 'assigned_fee_category'))
     
+    batches = AcademicYear.objects.filter(institute=institute).order_by('-name')
+    latest_academic_year = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name').first() or batches.first()
+    is_previous_year = bool(academic_year_id and latest_academic_year and int(academic_year_id) != latest_academic_year.id)
+    
     roster_data = []
     total_all_demand = 0.0
     total_all_collected = 0.0
@@ -4909,6 +5023,7 @@ def due_report(request):
                     'pending': pending_fee,
                     'previous_due': prev_due_total,
                     'total_overall_due': pending_fee + prev_due_total,
+                    'current_year_due': get_student_current_year_due(adm, latest_academic_year, institute) if is_previous_year else 0.0,
                 })
                 
                 total_all_demand += effective_demand
@@ -4941,6 +5056,8 @@ def due_report(request):
         'total_all_discount': total_all_discount,
         'total_all_prev_dues': total_all_prev_dues,
         'batches': batches,
+        'latest_academic_year': latest_academic_year,
+        'is_previous_year': is_previous_year,
         'courses': courses,
         'classes': classes,
         'class_years': class_years,
@@ -4959,6 +5076,174 @@ def due_report(request):
         'date_to': due_date_to,
         'search_query': search_query,
         'active_tab': 'due_report'
+    })
+
+
+@login_required
+def transferred_fees_report(request):
+    institute = get_current_institute(request)
+    from academics.models import TransferredFee
+    
+    source_year_id = clean_id_param(request.GET.get('source_year_id'))
+    target_year_id = clean_id_param(request.GET.get('target_year_id'))
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    search_query = request.GET.get('q', '').strip()
+    
+    qs = TransferredFee.objects.filter(institute=institute).select_related(
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'admission__assigned_class_year',
+        'source_academic_year', 'target_academic_year', 'transferred_by'
+    ).order_by('-created_at')
+    
+    if source_year_id:
+        qs = qs.filter(source_academic_year_id=source_year_id)
+    if target_year_id:
+        qs = qs.filter(target_academic_year_id=target_year_id)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    if search_query:
+        qs = qs.filter(
+            Q(admission__application__student__first_name__icontains=search_query) |
+            Q(admission__application__student__last_name__icontains=search_query) |
+            Q(admission__registration_id__icontains=search_query) |
+            Q(admission__register_number__icontains=search_query) |
+            Q(discount_reason__icontains=search_query) |
+            Q(remarks__icontains=search_query)
+        )
+        
+    total_count = qs.count()
+    total_original = sum(float(t.original_due_amount) for t in qs)
+    total_discount = sum(float(t.discount_amount) for t in qs)
+    total_net_transferred = sum(float(t.transferred_amount) for t in qs)
+    
+    paginator = Paginator(qs, 25)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    batches = AcademicYear.objects.filter(institute=institute).order_by('-name')
+    
+    return render(request, 'institute/transferred_fees_report.html', {
+        'page_obj': page_obj,
+        'transfers': page_obj.object_list,
+        'total_count': total_count,
+        'total_original': total_original,
+        'total_discount': total_discount,
+        'total_net_transferred': total_net_transferred,
+        'batches': batches,
+        'selected_source_year': source_year_id,
+        'selected_target_year': target_year_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search_query': search_query,
+        'active_tab': 'transferred_fees'
+    })
+
+
+@login_required
+def export_transferred_fees_excel(request):
+    institute = get_current_institute(request)
+    from academics.models import TransferredFee
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    source_year_id = clean_id_param(request.GET.get('source_year_id'))
+    target_year_id = clean_id_param(request.GET.get('target_year_id'))
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    search_query = request.GET.get('q', '').strip()
+    
+    qs = TransferredFee.objects.filter(institute=institute).select_related(
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'admission__assigned_class_year',
+        'source_academic_year', 'target_academic_year', 'transferred_by'
+    ).order_by('-created_at')
+    
+    if source_year_id:
+        qs = qs.filter(source_academic_year_id=source_year_id)
+    if target_year_id:
+        qs = qs.filter(target_academic_year_id=target_year_id)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    if search_query:
+        qs = qs.filter(
+            Q(admission__application__student__first_name__icontains=search_query) |
+            Q(admission__application__student__last_name__icontains=search_query) |
+            Q(admission__registration_id__icontains=search_query) |
+            Q(discount_reason__icontains=search_query)
+        )
+        
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Transferred Fees"
+    
+    headers = [
+        "Transfer ID", "Date", "Student Name", "Reg / Admission #",
+        "Course", "Class", "From Academic Year", "To Academic Year",
+        "Original Due (₹)", "Discount Concession (₹)", "Discount Reason",
+        "Net Transferred Arrears (₹)", "Status", "Transferred By"
+    ]
+    ws.append(headers)
+    
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    
+    for col_num in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        
+    for item in qs:
+        app = item.admission.application
+        ws.append([
+            f"TRF-{item.id:05d}",
+            item.created_at.strftime('%Y-%m-%d %H:%M'),
+            app.display_name,
+            item.admission.registration_id or item.admission.register_number or str(item.admission.id),
+            item.admission.selected_course.name if item.admission.selected_course else "--",
+            item.admission.assigned_class.name if item.admission.assigned_class else "--",
+            item.source_academic_year.name if item.source_academic_year else "--",
+            item.target_academic_year.name if item.target_academic_year else "--",
+            float(item.original_due_amount),
+            float(item.discount_amount),
+            item.discount_reason or "--",
+            float(item.transferred_amount),
+            item.status.upper(),
+            item.transferred_by.get_full_name() or item.transferred_by.username if item.transferred_by else "Admin"
+        ])
+        
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+        
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="transferred_fees_report_{datetime.date.today()}.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def reports_center(request):
+    institute = get_current_institute(request)
+    from academics.models import TransferredFee
+    
+    total_students_count = Admission.objects.filter(application__institute=institute).count()
+    total_receipts_count = StudentFeePayment.objects.filter(admission__application__institute=institute, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND').values('receipt_number').distinct().count()
+    total_transfers_count = TransferredFee.objects.filter(institute=institute).count()
+    total_refunds_count = FeeRefundRequest.objects.filter(institute=institute).count()
+    
+    return render(request, 'institute/reports_center.html', {
+        'total_students_count': total_students_count,
+        'total_receipts_count': total_receipts_count,
+        'total_transfers_count': total_transfers_count,
+        'total_refunds_count': total_refunds_count,
+        'active_tab': 'reports_center'
     })
 
 

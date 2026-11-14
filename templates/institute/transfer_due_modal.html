@@ -1,0 +1,160 @@
+<!-- =============================================================================
+     INTERACTIVE TRANSFER PREVIOUS YEAR DUE POP-UP MODAL
+     ============================================================================= -->
+<div id="transferDueModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[160] p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2rem] shadow-2xl border border-slate-100 transform transition-all p-6 md:p-8 space-y-5 my-auto">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight">Transfer Previous Year Due</h3>
+                    <p class="text-xs text-slate-500 font-semibold" id="trfStudentSub">Roll over prior session arrears into current academic year</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeTransferModal()" class="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'transfer_previous_year_dues' %}" id="transferDueForm" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="admission_id" id="trfAdmissionId">
+            <input type="hidden" name="source_academic_year_id" id="trfSourceYearId">
+
+            <!-- Student Summary Card -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-bold uppercase tracking-wider">Student Name:</span>
+                    <span class="font-black text-slate-900 text-sm" id="trfStudentName">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-bold uppercase tracking-wider">Reg / Admission #:</span>
+                    <span class="font-mono font-bold text-slate-700" id="trfStudentReg">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-bold uppercase tracking-wider">Course & Class:</span>
+                    <span class="font-semibold text-slate-700" id="trfStudentCourse">--</span>
+                </div>
+            </div>
+
+            <!-- Due Comparison Matrix -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-amber-50/80 border border-amber-200 p-3.5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-amber-800 block" id="trfSourceYearLabel">Previous Year Due</span>
+                    <span class="text-xl font-black font-mono text-amber-800 block mt-1" id="trfOriginalDueLabel">₹0.00</span>
+                    <span class="text-[10px] text-amber-600 font-bold block mt-0.5">Prior Session Arrears</span>
+                </div>
+                <div class="bg-blue-50/80 border border-blue-200 p-3.5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-800 block" id="trfTargetYearLabel">Current Year Due</span>
+                    <span class="text-xl font-black font-mono text-blue-800 block mt-1" id="trfCurrentDueLabel">₹0.00</span>
+                    <span class="text-[10px] text-blue-600 font-bold block mt-0.5">Active Session Balance</span>
+                </div>
+            </div>
+
+            <!-- Discount Section -->
+            <div class="bg-purple-50/70 border border-purple-200/80 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                        <span>Discount on Past Due (Concession)</span>
+                    </label>
+                    <span class="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">Optional</span>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-purple-800 mb-1">Deduction / Discount Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-purple-400 text-xs">₹</span>
+                        <input type="number" step="0.01" min="0" name="discount_amount" id="trfDiscountInput" value="0.00" oninput="recalcTransferDue()"
+                            class="w-full bg-white border border-purple-200 text-purple-900 pl-8 pr-3.5 py-2.5 rounded-xl text-xs font-mono font-black focus:ring-2 focus:ring-purple-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-purple-800 mb-1">Reason for Discount / Concession</label>
+                    <input type="text" name="discount_reason" id="trfDiscountReason" placeholder="e.g. Management concession / COVID relief / Scholarship..."
+                        class="w-full bg-white border border-purple-200 text-purple-900 px-3.5 py-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500 outline-none placeholder-purple-300">
+                </div>
+            </div>
+
+            <!-- Projected Impact Summary Card -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-4 space-y-2.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-300 font-semibold">Net Amount to Transfer:</span>
+                    <strong class="font-mono text-emerald-400 font-black text-base" id="trfNetTransferLabel">₹0.00</strong>
+                </div>
+                <div class="border-t border-slate-700/80 pt-2.5 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-300 block">Projected Total Due</span>
+                        <span class="text-[10px] text-slate-400">Current Due + Transferred Arrears</span>
+                    </div>
+                    <strong class="font-mono text-2xl text-amber-300 font-black" id="trfProjectedTotalLabel">₹0.00</strong>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" onclick="closeTransferModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Approve / Transfer</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let trfOrigDue = 0.0;
+let trfCurrDue = 0.0;
+
+function openTransferModal(admId, stuName, regId, courseName, className, prevDue, currDue, sourceYearName, targetYearName, sourceYearId) {
+    document.getElementById('trfAdmissionId').value = admId;
+    document.getElementById('trfSourceYearId').value = sourceYearId || '';
+    document.getElementById('trfStudentName').innerText = stuName;
+    document.getElementById('trfStudentReg').innerText = regId;
+    document.getElementById('trfStudentCourse').innerText = `${courseName} - ${className}`;
+    
+    trfOrigDue = parseFloat(prevDue) || 0.0;
+    trfCurrDue = parseFloat(currDue) || 0.0;
+
+    document.getElementById('trfSourceYearLabel').innerText = (sourceYearName || "Previous Year") + " Due";
+    document.getElementById('trfTargetYearLabel').innerText = (targetYearName || "Current Year") + " Due";
+    document.getElementById('trfOriginalDueLabel').innerText = `₹${trfOrigDue.toFixed(2)}`;
+    document.getElementById('trfCurrentDueLabel').innerText = `₹${trfCurrDue.toFixed(2)}`;
+    
+    const discInput = document.getElementById('trfDiscountInput');
+    discInput.value = '0.00';
+    discInput.max = trfOrigDue;
+    document.getElementById('trfDiscountReason').value = '';
+    
+    recalcTransferDue();
+
+    const modal = document.getElementById('transferDueModal');
+    modal.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[160] p-4 overflow-y-auto";
+}
+
+function closeTransferModal() {
+    const modal = document.getElementById('transferDueModal');
+    modal.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[160] p-4 overflow-y-auto";
+}
+
+function recalcTransferDue() {
+    const discInput = document.getElementById('trfDiscountInput');
+    let disc = parseFloat(discInput.value) || 0.0;
+    if (disc < 0) disc = 0.0;
+    if (disc > trfOrigDue) {
+        disc = trfOrigDue;
+        discInput.value = disc.toFixed(2);
+    }
+    const netTransfer = Math.max(0.0, trfOrigDue - disc);
+    const projectedTotal = trfCurrDue + netTransfer;
+
+    document.getElementById('trfNetTransferLabel').innerText = `₹${netTransfer.toFixed(2)}`;
+    document.getElementById('trfProjectedTotalLabel').innerText = `₹${projectedTotal.toFixed(2)}`;
+}
+</script>

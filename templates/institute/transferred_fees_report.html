@@ -1,0 +1,248 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block header_title %}Transferred Fees & Arrears Audit{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TAB NAVIGATION BAR -->
+    {% include 'institute/fee_nav_tabs.html' %}
+
+    <!-- HEADER & SUMMARY BANNER -->
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-purple-50 text-purple-700 font-bold text-xs rounded-lg border border-purple-100">Financial Audit</span>
+                <span class="text-xs font-semibold text-slate-400">• Past Dues Rollover</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Transferred Fees & Arrears Register</h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1">Audit log of all student past year dues rolled over into the current academic year, concessions allowed, and authorization histories.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'due_report' %}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-2 border border-slate-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <span>Due Report Matrix</span>
+            </a>
+            <a href="{% url 'export_transferred_fees_excel' %}?{% for k,v in request.GET.items %}{{ k }}={{ v }}&{% endfor %}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Export Excel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- METRICS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Transfers -->
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Transfers</span>
+                <p class="text-xl md:text-2xl font-black text-slate-800 font-mono">{{ total_count }}</p>
+                <span class="text-[10px] text-slate-400 font-semibold">Processed Records</span>
+            </div>
+        </div>
+
+        <!-- Original Dues -->
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Original Past Dues</span>
+                <p class="text-xl md:text-2xl font-black text-amber-800 font-mono">₹{{ total_original|floatformat:2 }}</p>
+                <span class="text-[10px] text-amber-600 font-semibold">Prior Sessions Total</span>
+            </div>
+        </div>
+
+        <!-- Total Discounts Given -->
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-purple-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-700">Discounts Concessions</span>
+                <p class="text-xl md:text-2xl font-black text-purple-700 font-mono">₹{{ total_discount|floatformat:2 }}</p>
+                <span class="text-[10px] text-purple-600 font-semibold">Granted at Transfer</span>
+            </div>
+        </div>
+
+        <!-- Net Transferred -->
+        <div class="bg-white rounded-2xl p-4 md:p-5 border border-emerald-200/80 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Net Transferred Arrears</span>
+                <p class="text-xl md:text-2xl font-black text-emerald-600 font-mono">₹{{ total_net_transferred|floatformat:2 }}</p>
+                <span class="text-[10px] text-emerald-600 font-semibold">Charged to Current Year</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER MATRIX -->
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-xs border border-slate-200/80">
+        <form method="GET" action="{% url 'transferred_fees_report' %}" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">From Session (Source)</label>
+                    <select name="source_year_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Source Sessions</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}" {% if selected_source_year == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">To Session (Target)</label>
+                    <select name="target_year_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">All Target Sessions</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}" {% if selected_target_year == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Transfer Date From</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Transfer Date To</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Search Student / Reason</label>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Student Name, Reg #, Discount Reason..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+
+                <div class="flex items-end justify-end gap-3">
+                    <a href="{% url 'transferred_fees_report' %}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition">Reset Filters</a>
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20">Apply Matrix</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></div>
+                <h3 class="font-bold text-slate-800 text-base">Transferred Arrears Audit Log</h3>
+            </div>
+            <span class="text-xs font-bold text-slate-500">Filtered: {{ total_count }} Transactions</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200 text-xs uppercase tracking-wider font-bold text-slate-700">
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">ID & Date</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Student Details</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Course & Class</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Rollover Direction</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Original Past Due</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Discount Given</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Net Transferred</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Authorized By</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    {% for item in transfers %}
+                    <tr class="hover:bg-slate-50/60 transition duration-150">
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="font-mono font-bold text-purple-700 block text-xs md:text-sm">TRF-{{ item.id|stringformat:"05d" }}</span>
+                            <span class="text-xs text-slate-500 font-semibold">{{ item.created_at|date:"M d, Y H:i" }}</span>
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="font-bold text-slate-900 block text-xs md:text-sm">{{ item.admission.application.display_name }}</span>
+                            <span class="text-xs font-mono text-slate-500">ID: {{ item.admission.registration_id|default:item.admission.register_number|default:item.admission.id }}</span>
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="font-semibold text-slate-800 block">{{ item.admission.selected_course.name|default:"--" }}</span>
+                            <span class="text-xs text-slate-500">{{ item.admission.assigned_class.name|default:"--" }}</span>
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <div class="flex items-center gap-1.5 text-xs">
+                                <span class="px-2 py-0.5 bg-amber-50 text-amber-800 font-bold rounded border border-amber-200">{{ item.source_academic_year.name }}</span>
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                <span class="px-2 py-0.5 bg-blue-50 text-blue-800 font-bold rounded border border-blue-200">{{ item.target_academic_year.name }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono font-bold text-amber-800">
+                            ₹{{ item.original_due_amount|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">
+                            {% if item.discount_amount > 0 %}
+                            <span class="font-mono font-bold text-purple-700 block">-₹{{ item.discount_amount|floatformat:2 }}</span>
+                            {% if item.discount_reason %}
+                            <span class="text-[10px] text-slate-400 block truncate max-w-[150px] ml-auto" title="{{ item.discount_reason }}">{{ item.discount_reason }}</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-slate-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono font-black text-sm text-emerald-600">
+                            ₹{{ item.transferred_amount|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold inline-block">
+                                {{ item.transferred_by.get_full_name|default:item.transferred_by.username|default:"Admin" }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">
+                            <a href="{% url 'manage_student_fees' item.admission.id %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition inline-block">
+                                View Ledger
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-slate-400">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <p class="font-bold">No transferred fee records found matching criteria.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION BAR -->
+        <div class="px-6 py-4 md:px-8 md:py-5 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="text-xs font-bold text-slate-600">
+                Showing {{ page_obj.start_index|default:1 }} to {{ page_obj.end_index|default:transfers|length }} of {{ total_count }} transfer records
+            </div>
+
+            {% if page_obj.has_other_pages %}
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Prev</a>
+                {% endif %}
+                
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
+                    {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
