@@ -143,7 +143,7 @@
                 <h3 class="font-bold text-slate-800 text-base">Collection Audit Entries</h3>
             </div>
             <div class="flex items-center gap-3">
-                {% if user_privileges.perm_delete_fee_collection %}
+                {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
                 <form id="bulkDeleteForm" method="post" action="{% url 'delete_fee_collection' %}" class="inline-flex items-center gap-2" onsubmit="return confirmBulkDelete();">
                     {% csrf_token %}
                     <button type="submit" id="bulkDeleteBtn" disabled class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-xs inline-flex items-center gap-1.5">
@@ -160,7 +160,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-xs uppercase tracking-wider font-bold text-slate-700">
-                        {% if user_privileges.perm_delete_fee_collection %}
+                        {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
                         <th class="py-3 px-3 w-10 text-center">
                             <input type="checkbox" id="selectAllReceipts" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
                         </th>
@@ -178,7 +178,7 @@
                 <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                     {% for r in receipts %}
                     <tr class="hover:bg-slate-50/60 transition duration-150 {% if r.is_cancelled %}bg-red-50/40{% endif %}">
-                        {% if user_privileges.perm_delete_fee_collection %}
+                        {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
                         <td class="py-3 px-3 text-center">
                             <input type="checkbox" name="selected_receipts" value="{{ r.receipt_number }}" form="bulkDeleteForm" class="receipt-select-chk w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
                         </td>
@@ -225,7 +225,7 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                     Print
                                 </a>
-                                {% if user_privileges.perm_delete_fee_collection %}
+                                {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
                                 <form method="post" action="{% url 'delete_fee_collection' %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete receipt #{{ r.receipt_number }}? This will remove the transaction and restore student outstanding dues.');">
                                     {% csrf_token %}
                                     <input type="hidden" name="receipt_number" value="{{ r.receipt_number }}">
@@ -240,7 +240,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if user_privileges.perm_delete_fee_collection %}9{% else %}8{% endif %}" class="py-12 text-center text-slate-400">
+                        <td colspan="{% if user.is_superuser or user_privileges.perm_delete_fee_collection %}9{% else %}8{% endif %}" class="py-12 text-center text-slate-400">
                             <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             <p class="font-bold">No collection records found for the selected criteria.</p>
                         </td>
