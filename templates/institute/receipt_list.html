@@ -215,7 +215,7 @@
                                 </button>
 
                                 <!-- Cancel Button -->
-                                {% if not rcpt.is_cancelled %}
+                                {% if not rcpt.is_cancelled and (user.is_superuser or user_privileges.perm_cancel_fee_receipt) %}
                                 <button onclick="openCancelModal('{{ rcpt.receipt_number }}', '{{ rcpt.admission.application.display_name }}')" title="Cancel Receipt" class="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition-all shadow-xs flex items-center justify-center">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>

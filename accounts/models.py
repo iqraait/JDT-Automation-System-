@@ -82,6 +82,7 @@ class UserPrivilege(models.Model):
     perm_fee_receipts = models.BooleanField(default=True, verbose_name="Fee Receipts")
     perm_payment_details = models.BooleanField(default=True, verbose_name="Payment Details")
     perm_delete_fee_collection = models.BooleanField(default=True, verbose_name="Delete Fee Collections & Receipts")
+    perm_cancel_fee_receipt = models.BooleanField(default=True, verbose_name="Cancel Fee Receipts")
 
     # System Administration
     perm_activity_logs = models.BooleanField(default=True, verbose_name="Activity Logs")

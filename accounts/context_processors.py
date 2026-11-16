@@ -19,6 +19,7 @@ def active_institute_context(request):
         'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
         'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
         'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details', 'perm_delete_fee_collection',
+        'perm_cancel_fee_receipt',
         'perm_activity_logs', 'perm_system_backup', 'perm_employee_privileges'
     ]
     

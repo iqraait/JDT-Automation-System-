@@ -4120,8 +4120,11 @@ def receipt_list(request):
 
 @login_required
 def cancel_fee_receipt(request, receipt_number):
+    if not (request.user.is_superuser or request.user.has_privilege('perm_cancel_fee_receipt')):
+        messages.error(request, "Permission Denied: You do not have privilege to cancel fee receipts.")
+        return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
+
     institute = get_current_institute(request)
-    from django.utils import timezone
     if request.method == 'POST':
         reason = request.POST.get('cancellation_reason', 'Cancelled by administrator').strip()
         payments = StudentFeePayment.objects.filter(
@@ -4133,6 +4136,12 @@ def cancel_fee_receipt(request, receipt_number):
                 is_cancelled=True,
                 cancelled_at=timezone.now(),
                 cancellation_reason=reason
+            )
+            log_activity(
+                user=request.user,
+                module="Fee Management",
+                activity=f"Cancelled receipt #{receipt_number}. Reason: {reason}",
+                institute=institute
             )
             messages.success(request, f"Receipt #{receipt_number} has been cancelled successfully.")
         else:
@@ -6614,6 +6623,7 @@ def employee_privileges_view(request):
             'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
             'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
             'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details', 'perm_delete_fee_collection',
+            'perm_cancel_fee_receipt',
             'perm_activity_logs', 'perm_system_backup', 'perm_employee_privileges'
         ]
 
