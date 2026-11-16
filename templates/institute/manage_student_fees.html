@@ -390,10 +390,22 @@
                                 Approved Refund
                             </span>
                             {% else %}
-                            <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 font-bold rounded-xl text-xs transition-all inline-flex items-center gap-1 shadow-xs">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                Print
-                            </a>
+                            <div class="inline-flex items-center gap-1.5">
+                                <a href="{% url 'print_fee_receipt' payment.receipt_number %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 font-bold rounded-xl text-xs transition-all inline-flex items-center gap-1 shadow-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                    Print
+                                </a>
+                                {% if user_privileges.perm_delete_fee_collection %}
+                                <form method="post" action="{% url 'delete_fee_collection' %}" onsubmit="return confirm('Are you sure you want to permanently delete receipt #{{ payment.receipt_number }}? This will remove the transaction record and restore this student\'s dues.');" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="receipt_number" value="{{ payment.receipt_number }}">
+                                    <button type="submit" title="Delete Collection & Restore Dues" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 font-bold rounded-xl text-xs transition-all inline-flex items-center gap-1 shadow-xs">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                             {% endif %}
                         </td>
                     </tr>

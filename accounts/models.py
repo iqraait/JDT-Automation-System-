@@ -49,11 +49,14 @@ class User(AbstractUser):
         return self.institute
 
     def has_privilege(self, perm_name):
-        if self.is_superuser or self.role == 'student':
+        if self.is_superuser:
             return True
+        if self.role == 'student':
+            return False if 'delete' in perm_name else True
         if hasattr(self, 'privileges') and self.privileges:
-            return getattr(self.privileges, perm_name, True)
-        return True
+            default_val = False if 'delete' in perm_name else True
+            return getattr(self.privileges, perm_name, default_val)
+        return False if 'delete' in perm_name else True
 
     def __str__(self):
         return self.first_name if self.first_name else self.username
@@ -79,6 +82,7 @@ class UserPrivilege(models.Model):
     perm_fee_reports = models.BooleanField(default=True, verbose_name="Fee Reports & Dues")
     perm_fee_receipts = models.BooleanField(default=True, verbose_name="Fee Receipts")
     perm_payment_details = models.BooleanField(default=True, verbose_name="Payment Details")
+    perm_delete_fee_collection = models.BooleanField(default=False, verbose_name="Delete Fee Collections & Receipts")
 
     # System Administration
     perm_activity_logs = models.BooleanField(default=True, verbose_name="Activity Logs")

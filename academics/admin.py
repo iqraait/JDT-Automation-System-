@@ -189,10 +189,20 @@ class FeeTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'is_discountable', 'is_active']
     search_fields = ['name']
 
+def advance_date_by_years(orig_date, years=1):
+    if not orig_date:
+        return orig_date
+    try:
+        return orig_date.replace(year=orig_date.year + years)
+    except ValueError:
+        return orig_date.replace(year=orig_date.year + years, day=28)
+
+
 @admin.register(FeeStructure)
 class FeeStructureAdmin(admin.ModelAdmin):
     list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category', 'duplicate_link']
     list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
+    actions = ['duplicate_selected_fee_structures']
     inlines = [FeeHeadInline]
 
     def duplicate_link(self, obj):
@@ -204,6 +214,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
         from django.urls import path
         urls = super().get_urls()
         custom_urls = [
+            path('bulk-duplicate/', self.admin_site.admin_view(self.bulk_duplicate_view), name='academics_feestructure_bulk_duplicate'),
             path('<int:object_id>/duplicate/', self.admin_site.admin_view(self.duplicate_view), name='academics_feestructure_duplicate'),
         ]
         return custom_urls + urls
@@ -297,11 +308,278 @@ class FeeStructureAdmin(admin.ModelAdmin):
         }
         return render(request, 'admin/academics/feestructure/duplicate.html', context)
 
+    def bulk_duplicate_view(self, request):
+        """Bulk duplicate all fee structures from one Academic Year and/or Institute to another."""
+        from django import forms
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        from institutes.models import AcademicYear, Institute, log_activity
+
+        class BulkDuplicateForm(forms.Form):
+            source_academic_year = forms.ModelChoiceField(
+                queryset=AcademicYear.objects.all().order_by('-name'),
+                label="Source Academic Year",
+                help_text="Year to copy structures FROM"
+            )
+            target_academic_year = forms.ModelChoiceField(
+                queryset=AcademicYear.objects.all().order_by('-name'),
+                label="Target Academic Year",
+                help_text="Year to copy structures TO"
+            )
+            source_institute = forms.ModelChoiceField(
+                queryset=Institute.objects.all().order_by('name'),
+                required=False,
+                empty_label="-- All Institutes --",
+                label="Source Institute",
+                help_text="Leave empty to duplicate across all institutes, or choose one"
+            )
+            target_institute = forms.ModelChoiceField(
+                queryset=Institute.objects.all().order_by('name'),
+                required=False,
+                empty_label="-- Same Institute as Source --",
+                label="Target Institute",
+                help_text="Choose a specific institute to duplicate to, or leave empty to keep same institute"
+            )
+            advance_dates_by_years = forms.IntegerField(
+                initial=1,
+                min_value=0,
+                max_value=10,
+                label="Advance Fee Dates By (Years)",
+                help_text="Number of years to advance start_date and due_date in Fee Heads (default: 1)"
+            )
+            skip_existing = forms.BooleanField(
+                initial=True,
+                required=False,
+                label="Skip Existing Structures",
+                help_text="If checked, skip any fee structure that already exists in the target year/institute"
+            )
+
+        if request.method == 'POST':
+            form = BulkDuplicateForm(request.POST)
+            if form.is_valid():
+                source_year = form.cleaned_data['source_academic_year']
+                target_year = form.cleaned_data['target_academic_year']
+                source_inst = form.cleaned_data['source_institute']
+                target_inst = form.cleaned_data['target_institute']
+                adv_years = form.cleaned_data['advance_dates_by_years']
+                skip_exist = form.cleaned_data['skip_existing']
+
+                if source_year == target_year and (source_inst == target_inst or not target_inst):
+                    form.add_error(None, "Source and Target cannot be identical without a different Target Institute.")
+                else:
+                    structures_qs = FeeStructure.objects.filter(academic_year=source_year)
+                    if source_inst:
+                        structures_qs = structures_qs.filter(institute=source_inst)
+
+                    if not structures_qs.exists():
+                        form.add_error(None, f"No fee structures found for {source_year.name}.")
+                    else:
+                        created_count = 0
+                        skipped_count = 0
+                        heads_count = 0
+
+                        for struct in structures_qs:
+                            dest_inst = target_inst if target_inst else struct.institute
+                            exists = FeeStructure.objects.filter(
+                                academic_year=target_year,
+                                institute=dest_inst,
+                                course=struct.course,
+                                class_obj=struct.class_obj,
+                                class_year=struct.class_year,
+                                fee_category=struct.fee_category
+                            ).exists()
+
+                            if exists:
+                                if skip_exist:
+                                    skipped_count += 1
+                                    continue
+
+                            new_struct = FeeStructure.objects.create(
+                                academic_year=target_year,
+                                institute=dest_inst,
+                                course=struct.course,
+                                class_obj=struct.class_obj,
+                                class_year=struct.class_year,
+                                fee_category=struct.fee_category
+                            )
+                            created_count += 1
+
+                            for head in struct.heads.all():
+                                new_start = advance_date_by_years(head.start_date, adv_years)
+                                new_due = advance_date_by_years(head.due_date, adv_years)
+                                FeeHead.objects.create(
+                                    fee_structure=new_struct,
+                                    fee_type=head.fee_type,
+                                    amount=head.amount,
+                                    start_date=new_start,
+                                    due_date=new_due,
+                                    fine_amount=head.fine_amount,
+                                    is_active=head.is_active
+                                )
+                                heads_count += 1
+
+                        log_activity(
+                            user=request.user,
+                            module="Fee Configuration",
+                            activity=f"Bulk duplicated {created_count} fee structures ({heads_count} heads) from {source_year.name} to {target_year.name} (Skipped {skipped_count})",
+                            institute=source_inst or None
+                        )
+
+                        messages.success(
+                            request,
+                            f"Successfully bulk duplicated {created_count} fee structure(s) with {heads_count} fee heads from '{source_year.name}' to '{target_year.name}'! (Skipped {skipped_count} existing)"
+                        )
+                        return redirect('admin:academics_feestructure_changelist')
+        else:
+            form = BulkDuplicateForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta,
+            'form': form,
+            'title': 'Bulk Duplicate Fee Structures by Year / Institute',
+        }
+        return render(request, 'admin/academics/feestructure/bulk_duplicate.html', context)
+
+    def duplicate_selected_fee_structures(self, request, queryset):
+        """Admin action: Duplicate selected fee structures to a target Academic Year / Institute."""
+        from django import forms
+        from django.shortcuts import render
+        from django.contrib import messages
+        from institutes.models import AcademicYear, Institute, log_activity
+
+        class ActionDuplicateForm(forms.Form):
+            target_academic_year = forms.ModelChoiceField(
+                queryset=AcademicYear.objects.all().order_by('-name'),
+                label="Target Academic Year"
+            )
+            target_institute = forms.ModelChoiceField(
+                queryset=Institute.objects.all().order_by('name'),
+                required=False,
+                empty_label="-- Keep Same Institute as Source --",
+                label="Target Institute"
+            )
+            advance_dates_by_years = forms.IntegerField(
+                initial=1, min_value=0, max_value=10, label="Advance Fee Dates By (Years)"
+            )
+            skip_existing = forms.BooleanField(
+                initial=True, required=False, label="Skip Existing Structures"
+            )
+
+        if 'apply' in request.POST:
+            form = ActionDuplicateForm(request.POST)
+            if form.is_valid():
+                target_year = form.cleaned_data['target_academic_year']
+                target_inst = form.cleaned_data['target_institute']
+                adv_years = form.cleaned_data['advance_dates_by_years']
+                skip_exist = form.cleaned_data['skip_existing']
+
+                created_count = 0
+                skipped_count = 0
+                heads_count = 0
+
+                for struct in queryset:
+                    dest_inst = target_inst if target_inst else struct.institute
+                    exists = FeeStructure.objects.filter(
+                        academic_year=target_year,
+                        institute=dest_inst,
+                        course=struct.course,
+                        class_obj=struct.class_obj,
+                        class_year=struct.class_year,
+                        fee_category=struct.fee_category
+                    ).exists()
+
+                    if exists:
+                        if skip_exist:
+                            skipped_count += 1
+                            continue
+
+                    new_struct = FeeStructure.objects.create(
+                        academic_year=target_year,
+                        institute=dest_inst,
+                        course=struct.course,
+                        class_obj=struct.class_obj,
+                        class_year=struct.class_year,
+                        fee_category=struct.fee_category
+                    )
+                    created_count += 1
+
+                    for head in struct.heads.all():
+                        new_start = advance_date_by_years(head.start_date, adv_years)
+                        new_due = advance_date_by_years(head.due_date, adv_years)
+                        FeeHead.objects.create(
+                            fee_structure=new_struct,
+                            fee_type=head.fee_type,
+                            amount=head.amount,
+                            start_date=new_start,
+                            due_date=new_due,
+                            fine_amount=head.fine_amount,
+                            is_active=head.is_active
+                        )
+                        heads_count += 1
+
+                log_activity(
+                    user=request.user,
+                    module="Fee Configuration",
+                    activity=f"Action duplicated {created_count} fee structures ({heads_count} heads) to {target_year.name} (Skipped {skipped_count})",
+                    institute=None
+                )
+
+                self.message_user(
+                    request,
+                    f"Successfully duplicated {created_count} selected structure(s) with {heads_count} fee heads to '{target_year.name}'! (Skipped {skipped_count} existing)",
+                    level=messages.SUCCESS
+                )
+                return None
+        else:
+            form = ActionDuplicateForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta,
+            'queryset': queryset,
+            'form': form,
+            'title': f'Duplicate {queryset.count()} Selected Fee Structure(s)',
+        }
+        return render(request, 'admin/academics/feestructure/confirm_bulk_duplicate.html', context)
+    duplicate_selected_fee_structures.short_description = "Duplicate selected fee structures to another Year/Institute"
+
+
 @admin.register(StudentFeePayment)
 class StudentFeePaymentAdmin(admin.ModelAdmin):
-    list_display = ['admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no']
-    list_filter = ['payment_mode', 'payment_date']
-    search_fields = ['admission__register_number', 'reference_no']
+    list_display = ['receipt_number', 'admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no', 'is_cancelled']
+    list_filter = ['payment_mode', 'payment_date', 'is_cancelled']
+    search_fields = ['receipt_number', 'admission__register_number', 'admission__registration_id', 'reference_no']
+    actions = ['delete_selected_payments_and_restore_dues']
+
+    def delete_selected_payments_and_restore_dues(self, request, queryset):
+        """Admin action to permanently delete selected payments and restore dues."""
+        from django.contrib import messages
+        from institutes.models import log_activity
+        if not (request.user.is_superuser or request.user.has_privilege('perm_delete_fee_collection')):
+            self.message_user(request, "Permission Denied: You do not have privilege to delete fee collections & receipts.", level=messages.ERROR)
+            return
+
+        count = queryset.count()
+        total_amount = sum(float(p.amount_paid + p.fine_paid) for p in queryset)
+        receipts = list(queryset.values_list('receipt_number', flat=True).distinct())
+
+        queryset.delete()
+
+        log_activity(
+            user=request.user,
+            module="Fee Management",
+            activity=f"Admin deleted {count} payment records ({len(receipts)} receipts) totaling ₹{total_amount:.2f}. Restored student dues.",
+            institute=None
+        )
+
+        self.message_user(
+            request,
+            f"Successfully deleted {count} payment records ({len(receipts)} receipts) totaling ₹{total_amount:.2f}. Student outstanding dues have been restored.",
+            level=messages.SUCCESS
+        )
+    delete_selected_payments_and_restore_dues.short_description = "Delete selected fee collections & restore student dues"
+
 
 
 class FeeRefundRequestItemInline(admin.TabularInline):

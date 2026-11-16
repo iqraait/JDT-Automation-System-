@@ -6525,7 +6525,7 @@ def employee_privileges_view(request):
         perm_fields = [
             'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
             'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
-            'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details',
+            'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details', 'perm_delete_fee_collection',
             'perm_activity_logs', 'perm_system_backup', 'perm_employee_privileges'
         ]
 
@@ -6547,6 +6547,186 @@ def employee_privileges_view(request):
         'user_tagged_inst_ids': user_tagged_inst_ids,
         'user_search': user_search,
     })
+
+
+def advance_date_by_years(orig_date, years=1):
+    """Safely advance date by N years, handling leap years (e.g., Feb 29 -> Feb 28)."""
+    if not orig_date:
+        return orig_date
+    try:
+        return orig_date.replace(year=orig_date.year + years)
+    except ValueError:
+        return orig_date.replace(year=orig_date.year + years, day=28)
+
+
+@login_required
+def delete_fee_collection(request):
+    """
+    Delete collected fee entries / receipts from the backend.
+    Enforces perm_delete_fee_collection privilege. Supports single receipt,
+    bulk selected receipts, or single payment id.
+    Restores student pending dues automatically.
+    """
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method.")
+        return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
+
+    if not (request.user.is_superuser or request.user.has_privilege('perm_delete_fee_collection')):
+        messages.error(request, "Permission Denied: You do not have privilege to delete fee collections & receipts.")
+        return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
+
+    institute = get_current_institute(request)
+    receipt_number = request.POST.get('receipt_number')
+    selected_receipts = request.POST.getlist('selected_receipts')
+    payment_id = request.POST.get('payment_id')
+
+    receipts_to_delete = set()
+    if receipt_number and receipt_number.strip():
+        receipts_to_delete.add(receipt_number.strip())
+    if selected_receipts:
+        for r in selected_receipts:
+            if r and r.strip():
+                receipts_to_delete.add(r.strip())
+
+    payments_qs = StudentFeePayment.objects.none()
+    if receipts_to_delete:
+        payments_qs = StudentFeePayment.objects.filter(
+            admission__application__institute=institute,
+            receipt_number__in=receipts_to_delete
+        )
+    elif payment_id:
+        payments_qs = StudentFeePayment.objects.filter(
+            admission__application__institute=institute,
+            id=payment_id
+        )
+
+    if not payments_qs.exists():
+        messages.warning(request, "No matching fee collection records found to delete.")
+        return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
+
+    deleted_count = payments_qs.count()
+    total_amount = sum(float(p.amount_paid + p.fine_paid) for p in payments_qs)
+    receipts_list = list(payments_qs.values_list('receipt_number', flat=True).distinct())
+
+    # Perform deletion
+    payments_qs.delete()
+
+    log_activity(
+        user=request.user,
+        module="Fee Management",
+        activity=f"Deleted {len(receipts_list)} fee receipt(s) ({', '.join([str(x) for x in receipts_list[:10]])}) totaling ₹{total_amount:.2f}. Restored student dues.",
+        institute=institute
+    )
+
+    messages.success(request, f"Successfully deleted {len(receipts_list)} fee receipt(s) / {deleted_count} collection entry(s) totaling ₹{total_amount:.2f}. Outstanding dues and student ledger have been restored.")
+    return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
+
+
+@login_required
+def duplicate_fee_structures_institute_view(request):
+    """
+    Allow institute admins to duplicate fee structures by year within their active institute.
+    Copies FeeStructure along with all FeeHead items, advancing dates by 1 or more years.
+    """
+    institute = get_current_institute(request)
+    if not (request.user.is_superuser or request.user.role == 'employee'):
+        messages.error(request, "Permission denied.")
+        return redirect('dashboard')
+
+    academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
+    courses = Course.objects.filter(institute=institute).order_by('name')
+
+    if request.method == 'POST':
+        source_year_id = clean_id_param(request.POST.get('source_year'))
+        target_year_id = clean_id_param(request.POST.get('target_year'))
+        course_id = clean_id_param(request.POST.get('course'))
+        advance_years = int(request.POST.get('advance_years', 1) or 1)
+        skip_existing = request.POST.get('skip_existing') == 'on'
+
+        if not source_year_id or not target_year_id:
+            messages.error(request, "Please select both Source and Target Academic Years.")
+            return redirect('duplicate_fee_structures_institute')
+
+        if source_year_id == target_year_id:
+            messages.error(request, "Source and Target Academic Years cannot be identical.")
+            return redirect('duplicate_fee_structures_institute')
+
+        source_year = get_object_or_404(AcademicYear, id=source_year_id, institute=institute)
+        target_year = get_object_or_404(AcademicYear, id=target_year_id, institute=institute)
+
+        structures_qs = FeeStructure.objects.filter(academic_year=source_year, institute=institute)
+        if course_id:
+            structures_qs = structures_qs.filter(course_id=course_id)
+
+        if not structures_qs.exists():
+            messages.warning(request, f"No fee structures found for {source_year.name}.")
+            return redirect('duplicate_fee_structures_institute')
+
+        created_count = 0
+        skipped_count = 0
+        heads_count = 0
+
+        for struct in structures_qs:
+            exists = FeeStructure.objects.filter(
+                academic_year=target_year,
+                institute=institute,
+                course=struct.course,
+                class_obj=struct.class_obj,
+                class_year=struct.class_year,
+                fee_category=struct.fee_category
+            ).exists()
+
+            if exists:
+                if skip_existing:
+                    skipped_count += 1
+                    continue
+
+            new_struct = FeeStructure.objects.create(
+                academic_year=target_year,
+                institute=institute,
+                course=struct.course,
+                class_obj=struct.class_obj,
+                class_year=struct.class_year,
+                fee_category=struct.fee_category
+            )
+            created_count += 1
+
+            for head in struct.heads.all():
+                new_start = advance_date_by_years(head.start_date, advance_years)
+                new_due = advance_date_by_years(head.due_date, advance_years)
+                FeeHead.objects.create(
+                    fee_structure=new_struct,
+                    fee_type=head.fee_type,
+                    amount=head.amount,
+                    start_date=new_start,
+                    due_date=new_due,
+                    fine_amount=head.fine_amount,
+                    is_active=head.is_active
+                )
+                heads_count += 1
+
+        log_activity(
+            user=request.user,
+            module="Fee Configuration",
+            activity=f"Duplicated {created_count} fee structures ({heads_count} heads) from {source_year.name} to {target_year.name} (Skipped {skipped_count})",
+            institute=institute
+        )
+
+        messages.success(request, f"Successfully duplicated {created_count} fee structures with {heads_count} fee heads from {source_year.name} to {target_year.name}! (Skipped {skipped_count} existing)")
+        return redirect('duplicate_fee_structures_institute')
+
+    year_stats = []
+    for y in academic_years:
+        count = FeeStructure.objects.filter(academic_year=y, institute=institute).count()
+        year_stats.append({'year': y, 'count': count})
+
+    return render(request, 'institute/duplicate_fee_structures.html', {
+        'academic_years': academic_years,
+        'courses': courses,
+        'year_stats': year_stats,
+        'active_tab': 'duplicate_structures',
+    })
+
 
 
 
