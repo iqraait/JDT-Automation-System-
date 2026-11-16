@@ -17,7 +17,7 @@ from academics.models import (
     FeeRefundRequest, FeeRefundRequestItem
 )
 from applications.models import Application, ApplicationFieldValue, FeeCategory, Admission, TrashedStudent
-from .models import Institute, AcademicYear
+from .models import Institute, AcademicYear, log_activity
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -30,6 +30,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 import json
 import datetime
+from django.utils import timezone
 from core.utils import generate_application_pdf
 from django.core.exceptions import ObjectDoesNotExist
 
