@@ -234,7 +234,16 @@
 
                 <div class="student-details">
                     <div><b>Name :</b> <span class="dotted-line" style="min-width: 80%;">{{ app.display_name }}</span></div>
-                    <div><b>Class :</b> <span class="dotted-line" style="min-width: 81%;">{{ class_name }}</span></div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <div style="flex: 1.2; display: flex; align-items: baseline; padding-right: 15px;">
+                            <b style="white-space: nowrap;">Class :</b>&nbsp;
+                            <span class="dotted-line" style="flex: 1; min-width: 60px;">{{ assigned_class_name|default:class_name }}</span>
+                        </div>
+                        <div style="flex: 1; display: flex; align-items: baseline;">
+                            <b style="white-space: nowrap;">Year/Sem :</b>&nbsp;
+                            <span class="dotted-line" style="flex: 1; min-width: 60px;">{{ year_sem|default:"--" }}</span>
+                        </div>
+                    </div>
                     <div><b>Courses :</b> <span class="dotted-line" style="min-width: 78%;">{{ course_name }}</span></div>
                 </div>
 
@@ -303,7 +312,16 @@
 
                 <div class="student-details">
                     <div><b>Name :</b> <span class="dotted-line" style="min-width: 80%;">{{ app.display_name }}</span></div>
-                    <div><b>Class :</b> <span class="dotted-line" style="min-width: 81%;">{{ class_name }}</span></div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <div style="flex: 1.2; display: flex; align-items: baseline; padding-right: 15px;">
+                            <b style="white-space: nowrap;">Class :</b>&nbsp;
+                            <span class="dotted-line" style="flex: 1; min-width: 60px;">{{ assigned_class_name|default:class_name }}</span>
+                        </div>
+                        <div style="flex: 1; display: flex; align-items: baseline;">
+                            <b style="white-space: nowrap;">Year/Sem :</b>&nbsp;
+                            <span class="dotted-line" style="flex: 1; min-width: 60px;">{{ year_sem|default:"--" }}</span>
+                        </div>
+                    </div>
                     <div><b>Courses :</b> <span class="dotted-line" style="min-width: 78%;">{{ course_name }}</span></div>
                 </div>
 

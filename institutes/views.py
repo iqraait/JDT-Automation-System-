@@ -290,14 +290,40 @@ def admission_list(request):
     ).order_by('-id')
     
     # Filters
-    form_id = request.GET.get('form_id')
-    name = request.GET.get('name')
+    form_id = request.GET.get('form_id', '').strip()
+    name = request.GET.get('name', '').strip()
+    q = request.GET.get('q', '').strip()
     admission_year = request.GET.get('year')
     course_id = request.GET.get('course_id')
     status_filter = request.GET.get('status')
     
+    from django.db.models import Q
+    if q:
+        q_filter = (
+            Q(student__first_name__icontains=q) |
+            Q(student__last_name__icontains=q) |
+            Q(student__username__icontains=q) |
+            Q(admission__registration_id__icontains=q) |
+            Q(admission__register_number__icontains=q)
+        )
+        clean_q = q.upper().replace('APP-', '').strip()
+        if clean_q.isdigit():
+            q_filter |= Q(id=int(clean_q))
+        applications = applications.filter(q_filter)
+
     if form_id:
-        applications = applications.filter(id=form_id)
+        f_clean = form_id.strip()
+        f_filter = (
+            Q(admission__registration_id__icontains=f_clean) |
+            Q(admission__register_number__icontains=f_clean) |
+            Q(student__username__icontains=f_clean) |
+            Q(student__first_name__icontains=f_clean) |
+            Q(student__last_name__icontains=f_clean)
+        )
+        clean_f = f_clean.upper().replace('APP-', '').strip()
+        if clean_f.isdigit():
+            f_filter |= Q(id=int(clean_f))
+        applications = applications.filter(f_filter)
         
     if admission_year:
         applications = applications.filter(academic_year_id=admission_year)
@@ -310,13 +336,14 @@ def admission_list(request):
     elif status_filter == 'pending':
         applications = applications.filter(admission__isnull=True)
 
-    from django.db.models import Q
     if name:
         name_clean = name.strip()
         applications = applications.filter(
             Q(student__first_name__icontains=name_clean) |
             Q(student__last_name__icontains=name_clean) |
-            Q(student__username__icontains=name_clean)
+            Q(student__username__icontains=name_clean) |
+            Q(admission__registration_id__icontains=name_clean) |
+            Q(admission__register_number__icontains=name_clean)
         )
 
     # Get active academic years related to selected institute
@@ -3222,8 +3249,9 @@ def student_list_view(request):
     )
 
     # Filters
-    form_id = request.GET.get('form_id') # Search by Admission No / Register Number
-    name = request.GET.get('name')
+    form_id = (request.GET.get('form_id') or '').strip() # Search by Admission No / Register Number
+    name = (request.GET.get('name') or '').strip()
+    q = (request.GET.get('q') or '').strip()
     batch_id = request.GET.get('batch_id')
     course_id = request.GET.get('course_id')
     status_filter = request.GET.get('status')
@@ -3231,14 +3259,42 @@ def student_list_view(request):
     class_year_id = request.GET.get('class_year_id')
     fee_category_id = request.GET.get('fee_category_id')
 
+    if q:
+        q_filter = (
+            Q(register_number__icontains=q) |
+            Q(registration_id__icontains=q) |
+            Q(application__student__first_name__icontains=q) | 
+            Q(application__student__last_name__icontains=q) |
+            Q(application__student__username__icontains=q) |
+            Q(application__field_values__field__is_name_field=True, application__field_values__value__icontains=q) |
+            Q(application__field_values__field__label__icontains='name', application__field_values__value__icontains=q)
+        )
+        clean_q = q.upper().replace('APP-', '').strip()
+        if clean_q.isdigit():
+            q_filter |= Q(application__id=int(clean_q)) | Q(id=int(clean_q))
+        admissions = admissions.filter(q_filter)
+
     if form_id:
-        admissions = admissions.filter(Q(register_number__icontains=form_id) | Q(registration_id__icontains=form_id))
+        f_filter = (
+            Q(register_number__icontains=form_id) |
+            Q(registration_id__icontains=form_id) |
+            Q(application__student__first_name__icontains=form_id) |
+            Q(application__student__last_name__icontains=form_id) |
+            Q(application__student__username__icontains=form_id)
+        )
+        clean_f = form_id.upper().replace('APP-', '').strip()
+        if clean_f.isdigit():
+            f_filter |= Q(application__id=int(clean_f)) | Q(id=int(clean_f))
+        admissions = admissions.filter(f_filter)
     
     if name:
         name_clean = name.strip()
         admissions = admissions.filter(
             Q(application__student__first_name__icontains=name_clean) | 
+            Q(application__student__last_name__icontains=name_clean) |
             Q(application__student__username__icontains=name_clean) |
+            Q(register_number__icontains=name_clean) |
+            Q(registration_id__icontains=name_clean) |
             Q(application__field_values__field__is_name_field=True, application__field_values__value__icontains=name_clean) |
             Q(application__field_values__field__label__icontains='name', application__field_values__value__icontains=name_clean)
         ).distinct()
@@ -3994,7 +4050,7 @@ def receipt_list(request):
     selected_year = request.GET.get('year', '')
     selected_course = request.GET.get('course', '')
     selected_category = request.GET.get('category', '')
-    status_filter = request.GET.get('status', 'all')
+    status_filter = request.GET.get('status', 'active')
     search_query = request.GET.get('q', '').strip()
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
@@ -4721,8 +4777,10 @@ def print_fee_receipt(request, receipt_number):
     total_ps = int(round((grand_total - total_rs) * 100))
     amount_in_words = num_to_words(grand_total)
 
-    class_name = admission.assigned_class_year.name if admission.assigned_class_year else (admission.assigned_class.name if admission.assigned_class else "Semester / Class")
-    course_name = admission.selected_course.name if admission.selected_course else (app.course.name if app.course else "")
+    assigned_class_name = admission.assigned_class.name if admission.assigned_class else (admission.selected_course.name if admission.selected_course else (app.course.name if app and app.course else ""))
+    year_sem = admission.assigned_class_year.name if admission.assigned_class_year else (admission.joining_period.name if admission.joining_period else "")
+    course_name = admission.selected_course.name if admission.selected_course else (app.course.name if app and app.course else "")
+    is_cancelled = any(p.is_cancelled for p in payments)
 
     context = {
         'receipt_number': receipt_number,
@@ -4736,8 +4794,11 @@ def print_fee_receipt(request, receipt_number):
         'total_rs': total_rs,
         'total_ps': f"{total_ps:02d}",
         'amount_in_words': amount_in_words,
-        'class_name': class_name,
+        'class_name': assigned_class_name,
+        'assigned_class_name': assigned_class_name,
+        'year_sem': year_sem,
         'course_name': course_name,
+        'is_cancelled': is_cancelled,
         'payment_date': first_payment.payment_date,
         'payment_mode': first_payment.get_payment_mode_display(),
         'reference_no': first_payment.reference_no,
@@ -4768,6 +4829,7 @@ def daily_fee_collection(request):
     fee_type_id = clean_id_param(request.GET.get('fee_type_id'))
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+    status_filter = request.GET.get('status', 'active')
     search_query = request.GET.get('q', '').strip()
     
     payments_qs = StudentFeePayment.objects.filter(
@@ -4790,6 +4852,10 @@ def daily_fee_collection(request):
         payments_qs = payments_qs.filter(admission__assigned_fee_category_id=fee_category_id)
     if fee_type_id:
         payments_qs = payments_qs.filter(fee_head__fee_type_id=fee_type_id)
+    if status_filter == 'active':
+        payments_qs = payments_qs.filter(is_cancelled=False)
+    elif status_filter == 'cancelled':
+        payments_qs = payments_qs.filter(is_cancelled=True)
     if date_from:
         payments_qs = payments_qs.filter(payment_date__gte=date_from)
     if date_to:
@@ -4846,6 +4912,7 @@ def daily_fee_collection(request):
         'selected_class_year': class_year_id,
         'selected_fee_category': fee_category_id,
         'selected_fee_type': fee_type_id,
+        'status_filter': status_filter,
         'date_from': date_from,
         'date_to': date_to,
         'search_query': search_query,
@@ -5388,6 +5455,17 @@ def fee_refund_request(request):
             total_refunded = sum(float(r.amount) for r in approved_refunds)
             total_pending = sum(float(r.amount) for r in pending_refunds)
             
+            # Parse collection discounts granted to student
+            total_discount = 0.0
+            for p in active_payments:
+                if p.remarks and '[Discount: ' in p.remarks:
+                    try:
+                        total_discount += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                    except Exception:
+                        pass
+            if total_discount == 0.0 and selected_admission.discount_amount:
+                total_discount = float(selected_admission.discount_amount)
+
             max_refundable = max(0.0, (total_paid + total_fines) - (total_refunded + total_pending))
             
             # Build Itemized Fee Type Breakdown for Student
@@ -5426,6 +5504,13 @@ def fee_refund_request(request):
             for ft in sorted(tagged_fee_types, key=lambda x: x.name):
                 ft_payments = active_payments.filter(fee_head__fee_type=ft)
                 ft_paid = sum(float(p.amount_paid) + float(p.fine_paid) for p in ft_payments)
+                ft_discount = 0.0
+                for p in ft_payments:
+                    if p.remarks and '[Discount: ' in p.remarks:
+                        try:
+                            ft_discount += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                        except Exception:
+                            pass
                 
                 ft_refunded = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
                     refund_request__admission=selected_admission,
@@ -5444,16 +5529,18 @@ def fee_refund_request(request):
                 fee_type_breakdown.append({
                     'fee_type': ft,
                     'paid_amount': ft_paid,
+                    'discount_amount': ft_discount,
                     'refunded_amount': ft_refunded,
                     'pending_refund_amount': ft_pending,
                     'max_refundable': ft_max
                 })
 
-            net_due = max(0.0, std_demand - ((total_paid + total_fines) - total_refunded))
+            net_due = max(0.0, std_demand - total_discount - ((total_paid + total_fines) - total_refunded))
 
             selected_student_details = {
                 'admission': selected_admission,
                 'total_demand': std_demand,
+                'total_discount': total_discount,
                 'total_paid': total_paid,
                 'total_fines': total_fines,
                 'total_paid_gross': total_paid + total_fines,
@@ -6608,17 +6695,22 @@ def delete_fee_collection(request):
     total_amount = sum(float(p.amount_paid + p.fine_paid) for p in payments_qs)
     receipts_list = list(payments_qs.values_list('receipt_number', flat=True).distinct())
 
-    # Perform deletion
-    payments_qs.delete()
+    # Perform soft-deletion / cancellation to retain audit history
+    reason = request.POST.get('cancellation_reason', '').strip() or f"Cancelled/Deleted by {request.user.username}"
+    payments_qs.update(
+        is_cancelled=True,
+        cancelled_at=timezone.now(),
+        cancellation_reason=reason
+    )
 
     log_activity(
         user=request.user,
         module="Fee Management",
-        activity=f"Deleted {len(receipts_list)} fee receipt(s) ({', '.join([str(x) for x in receipts_list[:10]])}) totaling ₹{total_amount:.2f}. Restored student dues.",
+        activity=f"Cancelled/Deleted {len(receipts_list)} fee receipt(s) ({', '.join([str(x) for x in receipts_list[:10]])}) totaling ₹{total_amount:.2f}. Restored student dues.",
         institute=institute
     )
 
-    messages.success(request, f"Successfully deleted {len(receipts_list)} fee receipt(s) / {deleted_count} collection entry(s) totaling ₹{total_amount:.2f}. Outstanding dues and student ledger have been restored.")
+    messages.success(request, f"Successfully marked {len(receipts_list)} fee receipt(s) / {deleted_count} collection entry(s) totaling ₹{total_amount:.2f} as Cancelled / Deleted. Outstanding dues and student ledger have been restored.")
     return redirect(request.META.get('HTTP_REFERER', 'receipt_list'))
 
 

@@ -68,9 +68,9 @@
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wider pl-1 block">Receipt Status</label>
                 <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-semibold text-xs">
-                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Receipts</option>
-                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
-                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled Only</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Receipts (Default)</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled / Deleted Receipts</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Receipts (Active & Cancelled)</option>
                 </select>
             </div>
 
@@ -81,7 +81,7 @@
 
             <div class="xl:col-span-7 flex justify-between items-center pt-2">
                  <div>
-                    {% if search_query or selected_year or selected_course or selected_category or status_filter != 'all' or date_from or date_to %}
+                    {% if search_query or selected_year or selected_course or selected_category or status_filter != 'active' or date_from or date_to %}
                         <a href="{% url 'receipt_list' %}" class="text-xs font-bold text-rose-600 hover:text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
                             <span class="w-4 h-4 bg-rose-50 rounded-md flex items-center justify-center font-black">×</span>
                             Reset Filters
