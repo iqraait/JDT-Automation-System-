@@ -22,3 +22,4 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(set_existing_cancel_privileges_true, migrations.RunPython.noop),
     ]
+

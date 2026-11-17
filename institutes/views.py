@@ -4190,7 +4190,11 @@ def get_student_previous_year_dues(admission, current_academic_year, institute):
                             p_head_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
                         except Exception:
                             pass
-                p_due = max(0.0, p_disc_amt - p_paid - p_head_disc)
+                p_refunds = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
+                    refund_request__admission=admission, refund_request__status='approved', fee_type=phead.fee_type
+                ))
+                p_net_paid = max(0.0, p_paid - p_refunds)
+                p_due = max(0.0, p_disc_amt - p_head_disc - p_net_paid)
                 if p_due > 0.01:
                     total_prev_due += p_due
                     prev_dues_list.append({
@@ -4254,9 +4258,9 @@ def get_student_current_year_due(admission, current_academic_year, institute):
             refunds = sum(float(item.amount) for item in FeeRefundRequestItem.objects.filter(
                 refund_request__admission=admission, refund_request__status='approved', fee_type=head.fee_type
             ))
-            eff_demand = max(0.0, disc_amt - refunds - disc)
+            head_demand = max(0.0, disc_amt - disc)
             net_paid = max(0.0, paid - refunds)
-            total_due += max(0.0, eff_demand - net_paid)
+            total_due += max(0.0, head_demand - net_paid)
     return total_due
 
 
@@ -4430,7 +4434,18 @@ def transfer_previous_year_dues(request):
 @login_required
 def manage_student_fees(request, admission_id):
     institute = get_current_institute(request)
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=institute)
+    admission = Admission.objects.filter(id=admission_id).select_related('application__institute', 'selected_course__institute').first()
+    if not admission:
+        raise Http404("No Admission matches the given query.")
+
+    adm_institute = admission.application.institute if admission.application else (admission.selected_course.institute if admission.selected_course else None)
+    accessible = request.user.get_accessible_institutes() if hasattr(request.user, 'get_accessible_institutes') else ([request.user.institute] if getattr(request.user, 'institute', None) else [])
+
+    if not (request.user.is_superuser or (adm_institute and adm_institute in accessible) or (adm_institute == institute)):
+        raise Http404("You do not have permission to access students from this institute.")
+
+    if adm_institute and (request.user.is_superuser or adm_institute in accessible):
+        institute = adm_institute
     
     if request.method == 'POST':
         class_year_id = request.POST.get('class_year_id')
@@ -4557,8 +4572,8 @@ def manage_student_fees(request, admission_id):
                         except Exception:
                             pass
 
-                # Effective demand is reduced by approved refunds and head discounts
-                effective_demand = max(0.0, discounted_amount - approved_head_refunds - head_discount)
+                # Fee demand is reduced by head discounts/concessions, not by refunds
+                effective_demand = max(0.0, discounted_amount - head_discount)
                 net_paid_fee = max(0.0, paid_fee - approved_head_refunds)
                 pending_fee = max(0.0, effective_demand - net_paid_fee)
                 pending_fine = fine_amt - paid_fine if has_fine else 0.0
@@ -4671,7 +4686,13 @@ def manage_student_fees(request, admission_id):
 
 @login_required
 def collect_student_fee(request, admission_id, head_id):
-    admission = get_object_or_404(Admission, id=admission_id, application__institute=get_current_institute(request))
+    admission = Admission.objects.filter(id=admission_id).select_related('application__institute', 'selected_course__institute').first()
+    if not admission:
+        raise Http404("No Admission matches the given query.")
+    adm_institute = admission.application.institute if admission.application else (admission.selected_course.institute if admission.selected_course else None)
+    accessible = request.user.get_accessible_institutes() if hasattr(request.user, 'get_accessible_institutes') else ([request.user.institute] if getattr(request.user, 'institute', None) else [])
+    if not (request.user.is_superuser or (adm_institute and adm_institute in accessible) or (adm_institute == get_current_institute(request))):
+        raise Http404("You do not have permission to access students from this institute.")
     head = get_object_or_404(FeeHead, id=head_id)
     
     if request.method == 'POST':
@@ -5073,10 +5094,10 @@ def due_report(request):
                 approved_refunds = FeeRefundRequest.objects.filter(admission=adm, status='approved')
                 std_refunded = sum(float(r.amount) for r in approved_refunds)
                 
-                # Refund reduces effective demand so remaining refund amount is NOT considered due
-                effective_demand = max(0.0, std_demand - std_refunded)
-                net_collected = (std_collected + std_fines) - std_refunded
-                pending_fee = max(0.0, effective_demand - (std_collected - std_refunded))
+                # Demand is not reduced by refunds; refund reduces net collections and restores due
+                effective_demand = std_demand
+                net_collected = max(0.0, (std_collected + std_fines) - std_refunded)
+                pending_fee = max(0.0, effective_demand - max(0.0, std_collected - std_refunded))
                 
                 # Previous Year Dues
                 prev_due_total, _ = get_student_previous_year_dues(adm, adm.application.academic_year, institute)
@@ -6551,7 +6572,7 @@ def switch_active_institute(request, institute_id):
     """
     from .models import Institute
     target_inst = get_object_or_404(Institute, id=institute_id)
-    accessible = request.user.get_accessible_institutes() if hasattr(request.user, 'get_accessible_institutes') else [request.user.institute]
+    accessible = request.user.get_accessible_institutes() if hasattr(request.user, 'get_accessible_institutes') else ([request.user.institute] if getattr(request.user, 'institute', None) else [])
 
     if request.user.is_superuser or target_inst in accessible:
         request.session['active_institute_id'] = target_inst.id
@@ -6559,7 +6580,11 @@ def switch_active_institute(request, institute_id):
     else:
         messages.error(request, "You do not have access to that institute.")
 
-    return redirect(request.META.get('HTTP_REFERER', '/institute/dashboard/'))
+    referer = request.META.get('HTTP_REFERER', '')
+    if referer and any(p in referer for p in ['/student/', '/fees/collect/', '/fees/manage/', '/fees/settle/']):
+        return redirect('/institute/dashboard/')
+
+    return redirect(referer if referer else '/institute/dashboard/')
 
 
 # =========================
