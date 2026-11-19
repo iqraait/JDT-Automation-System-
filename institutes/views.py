@@ -3930,6 +3930,34 @@ def generate_receipt_number(institute=None):
 
 
 def ensure_receipt_numbers():
+    # 1. Normalize any legacy TRF- or DEMAND-TRF- receipt numbers to institute code format (e.g. TT/3)
+    legacy_trf = StudentFeePayment.objects.filter(
+        Q(receipt_number__startswith='TRF-') | Q(receipt_number__startswith='DEMAND-TRF-')
+    ).order_by('id')
+    
+    if legacy_trf.exists():
+        batch_map = {}
+        for p in legacy_trf:
+            parts = p.receipt_number.split('-')
+            ts_key = parts[-1] if parts[-1].isdigit() else str(p.payment_date)
+            key = (p.admission_id, ts_key)
+            if key not in batch_map:
+                batch_map[key] = []
+            batch_map[key].append(p)
+            
+        for key, p_list in batch_map.items():
+            first_p = p_list[0]
+            inst = None
+            if first_p.admission and first_p.admission.application:
+                inst = first_p.admission.application.institute
+            elif first_p.admission and first_p.admission.selected_course:
+                inst = first_p.admission.selected_course.institute
+            new_rcpt = generate_receipt_number(inst)
+            for p in p_list:
+                p.receipt_number = new_rcpt
+                p.save(update_fields=['receipt_number'])
+
+    # 2. Assign receipt numbers to any unassigned payments
     unassigned = StudentFeePayment.objects.filter(Q(receipt_number__isnull=True) | Q(receipt_number=''))
     if unassigned.exists():
         for p in unassigned:
@@ -3950,7 +3978,7 @@ def ensure_receipt_numbers():
                     elif p.admission and p.admission.selected_course:
                         inst = p.admission.selected_course.institute
                     p.receipt_number = generate_receipt_number(inst)
-                p.save()
+                p.save(update_fields=['receipt_number'])
 
 
 def group_payments_by_receipt(payments_qs):
@@ -4016,12 +4044,13 @@ def group_payments_by_receipt(payments_qs):
             except Exception:
                 p_disc = 0.0
         g['discount_amount'] += p_disc
-        g['fee_items'].append({
-            'name': fee_name,
-            'amount_paid': float(payment.amount_paid),
-            'fine_paid': float(payment.fine_paid),
-            'total': float(payment.amount_paid) + float(payment.fine_paid)
-        })
+        if payment.reference_no != 'ROLLOVER-DEMAND' or (float(payment.amount_paid) > 0 or float(payment.fine_paid) > 0):
+            g['fee_items'].append({
+                'name': fee_name,
+                'amount_paid': float(payment.amount_paid),
+                'fine_paid': float(payment.fine_paid),
+                'total': float(payment.amount_paid) + float(payment.fine_paid)
+            })
         g['total_amount_paid'] += float(payment.amount_paid)
         g['total_fine_paid'] += float(payment.fine_paid)
         g['grand_total'] += (float(payment.amount_paid) + float(payment.fine_paid))
@@ -4033,6 +4062,13 @@ def group_payments_by_receipt(payments_qs):
     grouped_list = []
     for rcpt_id in receipt_order:
         g = receipt_dict[rcpt_id]
+        if not g['fee_items'] and g['payments']:
+            g['fee_items'].append({
+                'name': g['payments'][0].fee_head.fee_type.name,
+                'amount_paid': float(g['payments'][0].amount_paid),
+                'fine_paid': float(g['payments'][0].fine_paid),
+                'total': float(g['payments'][0].amount_paid) + float(g['payments'][0].fine_paid)
+            })
         g['fee_types_str'] = ", ".join(item['name'] for item in g['fee_items'])
         grouped_list.append(g)
         
@@ -4080,14 +4116,22 @@ def receipt_list(request):
         payments = payments.filter(payment_date__lte=date_to)
         
     if search_query:
-        payments = payments.filter(
-            Q(receipt_number__icontains=search_query) |
-            Q(admission__registration_id__icontains=search_query) |
-            Q(admission__application__form_no__icontains=search_query) |
-            Q(admission__application__student__first_name__icontains=search_query) |
-            Q(admission__application__student__last_name__icontains=search_query) |
-            Q(reference_no__icontains=search_query)
+        clean_q = search_query.strip()
+        raw_q = clean_q.lstrip('#').strip()
+        search_filter = (
+            Q(receipt_number__icontains=clean_q) |
+            Q(receipt_number__icontains=raw_q) |
+            Q(admission__registration_id__icontains=clean_q) |
+            Q(admission__register_number__icontains=clean_q) |
+            Q(admission__application__student__first_name__icontains=clean_q) |
+            Q(admission__application__student__last_name__icontains=clean_q) |
+            Q(admission__application__student__username__icontains=clean_q) |
+            Q(reference_no__icontains=clean_q)
         )
+        digits_only = clean_q.upper().replace('APP-', '').replace('#', '').strip()
+        if digits_only.isdigit():
+            search_filter |= Q(admission__application__id=int(digits_only)) | Q(admission__id=int(digits_only))
+        payments = payments.filter(search_filter)
         
     grouped = group_payments_by_receipt(payments)
     
@@ -4372,7 +4416,9 @@ def transfer_previous_year_dues(request):
             student_discount = min(discount_amount, total_prev_due) if len(admission_ids) == 1 else 0.0
             net_transferred = max(0.0, total_prev_due - student_discount)
             
-            now_ts = int(datetime.datetime.now().timestamp())
+            inst_obj = adm.application.institute if (adm.application and adm.application.institute) else (adm.selected_course.institute if adm.selected_course else institute)
+            trf_rcpt_no = generate_receipt_number(inst_obj)
+
             for item in prev_dues_list:
                 p_head = item['fee_head_obj']
                 due_amt = item['due']
@@ -4385,7 +4431,7 @@ def transfer_previous_year_dues(request):
                     fine_paid=0.00,
                     payment_mode='cash',
                     reference_no=f"ROLLOVER-{current_academic_year.id}",
-                    receipt_number=f"TRF-{p_head.id}-{adm.id}-{now_ts}",
+                    receipt_number=trf_rcpt_no,
                     remarks=f"[Transferred to {current_academic_year.name}]{disc_note} Transferred to current academic year"
                 )
                 
@@ -4397,7 +4443,7 @@ def transfer_previous_year_dues(request):
                 fine_paid=0.00,
                 payment_mode='cash',
                 reference_no='ROLLOVER-DEMAND',
-                receipt_number=f"DEMAND-TRF-{adm.id}-{now_ts}",
+                receipt_number=trf_rcpt_no,
                 remarks=f"[Transferred Due: {net_transferred:.2f}] Carried over from {source_year.name}{disc_demand_note}"
             )
             
