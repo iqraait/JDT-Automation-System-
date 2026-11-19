@@ -355,7 +355,7 @@
                     {% for payment in payments_history %}
                     <tr class="hover:bg-slate-50/60 transition-colors {% if payment.is_refund %}bg-amber-50/20{% endif %}">
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-blue-700 font-mono text-xs md:text-sm">
-                            #{{ payment.receipt_number }}
+                            {{ payment.receipt_number }}
                             {% if payment.is_refund %}
                             <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-md ml-1 uppercase">Refund</span>
                             {% endif %}
@@ -396,7 +396,7 @@
                                     Print
                                 </a>
                                 {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
-                                <form method="post" action="{% url 'delete_fee_collection' %}" onsubmit="return confirm('Are you sure you want to permanently delete receipt #{{ payment.receipt_number }}? This will remove the transaction record and restore this student\'s dues.');" class="inline">
+                                <form method="post" action="{% url 'delete_fee_collection' %}" onsubmit="return confirm('Are you sure you want to permanently delete receipt {{ payment.receipt_number }}? This will remove the transaction record and restore this student\'s dues.');" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="receipt_number" value="{{ payment.receipt_number }}">
                                     <button type="submit" title="Delete Collection & Restore Dues" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 font-bold rounded-xl text-xs transition-all inline-flex items-center gap-1 shadow-xs">

@@ -145,7 +145,7 @@
                         
                         <!-- Receipt Number -->
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-slate-800">
-                            <span class="font-mono text-xs md:text-sm {% if rcpt.is_cancelled %}text-red-700 line-through{% else %}text-blue-700{% endif %}">#{{ rcpt.receipt_number }}</span>
+                            <span class="font-mono text-xs md:text-sm {% if rcpt.is_cancelled %}text-red-700 line-through{% else %}text-blue-700{% endif %}">{{ rcpt.receipt_number }}</span>
                         </td>
                         
                         <!-- Collection Date -->
@@ -225,7 +225,7 @@
 
                                 <!-- Delete Button (with privilege) -->
                                 {% if user.is_superuser or user_privileges.perm_delete_fee_collection %}
-                                <form method="post" action="{% url 'delete_fee_collection' %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete receipt #{{ rcpt.receipt_number }}? This will remove the transaction record and restore student dues.');">
+                                <form method="post" action="{% url 'delete_fee_collection' %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete receipt {{ rcpt.receipt_number }}? This will remove the transaction record and restore student dues.');">
                                     {% csrf_token %}
                                     <input type="hidden" name="receipt_number" value="{{ rcpt.receipt_number }}">
                                     <button type="submit" title="Delete Collection & Restore Dues" class="p-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 rounded-lg transition-all shadow-xs flex items-center justify-center">
@@ -355,7 +355,7 @@
 
 <script>
 function viewReceiptDetails(rcptNo, name, date, amount, particulars, mode, ref, isCancelled, reason) {
-    document.getElementById('viewRcptTitle').innerText = 'Receipt #' + rcptNo;
+    document.getElementById('viewRcptTitle').innerText = 'Receipt ' + rcptNo;
     document.getElementById('vName').innerText = name;
     document.getElementById('vDate').innerText = date;
     document.getElementById('vAmount').innerText = amount;
@@ -379,7 +379,7 @@ function closeViewModal() {
 }
 
 function openCancelModal(rcptNo, name) {
-    document.getElementById('cancelRcptId').innerText = '#' + rcptNo;
+    document.getElementById('cancelRcptId').innerText = rcptNo;
     document.getElementById('cancelName').innerText = name;
     document.getElementById('cancelForm').action = '/institute/fee-receipt/' + rcptNo + '/cancel/';
     document.getElementById('cancelModal').classList.remove('hidden');
