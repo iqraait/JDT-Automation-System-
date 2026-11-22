@@ -1,0 +1,253 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Academic Calendar & Upcoming Events | JDT CMS{% endblock %}
+
+{% block header_title %}Academic Calendar & Events{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- HEADER BAR -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div>
+            <div class="flex items-center gap-3">
+                <h2 class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Academic Calendar & Events</h2>
+                <span class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-black uppercase tracking-wider">Active</span>
+            </div>
+            <p class="text-xs md:text-sm text-slate-500 font-medium mt-1">Schedule and manage official holidays, exams, reminders, and institutional dates.</p>
+        </div>
+        <button type="button" onclick="openAddEventModal()" class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 group">
+            <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Schedule New Event
+        </button>
+    </div>
+
+    <!-- METRICS STRIP -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Scheduled</span>
+                <span class="text-2xl font-black text-slate-800 font-mono">{{ total_events_count }}</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Upcoming Events</span>
+                <span class="text-2xl font-black text-emerald-600 font-mono">{{ upcoming_events.count }}</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Official Holidays</span>
+                <span class="text-2xl font-black text-amber-600 font-mono">{{ holidays_count }}</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Past Events</span>
+                <span class="text-2xl font-black text-purple-600 font-mono">{{ past_events.count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN ROSTER OF UPCOMING EVENTS -->
+    <div class="bg-white rounded-[2rem] border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                Upcoming Schedule & Roster
+            </h3>
+            <span class="text-xs font-bold text-slate-400">Live Dashboard Feed Connected</span>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            {% for event in upcoming_events %}
+            <div class="p-5 md:p-6 hover:bg-slate-50/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <!-- Date Block -->
+                    <div class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-center border shadow-xs
+                        {% if event.is_holiday %}bg-amber-50 border-amber-200 text-amber-800
+                        {% elif event.event_type == 'exam' %}bg-blue-50 border-blue-200 text-blue-800
+                        {% elif event.event_type == 'reminder' %}bg-rose-50 border-rose-200 text-rose-800
+                        {% else %}bg-purple-50 border-purple-200 text-purple-800{% endif %}">
+                        <span class="text-xl font-black font-mono leading-none">{{ event.start_date.day }}</span>
+                        <span class="text-[10px] font-black uppercase tracking-wider mt-0.5">{{ event.start_date|date:"M" }}</span>
+                    </div>
+
+                    <!-- Event Details -->
+                    <div class="space-y-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="text-base font-black text-slate-900">{{ event.title }}</h4>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider
+                                {% if event.is_holiday %}bg-amber-100 text-amber-800
+                                {% elif event.event_type == 'exam' %}bg-blue-100 text-blue-800
+                                {% elif event.event_type == 'reminder' %}bg-rose-100 text-rose-800
+                                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {% if event.is_holiday %}🌴 Holiday{% else %}{{ event.get_event_type_display }}{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">
+                            {{ event.start_date|date:"d M, Y" }}{% if event.end_date and event.end_date != event.start_date %} to {{ event.end_date|date:"d M, Y" }}{% endif %}
+                            {% if event.description %} • <span class="text-slate-600">{{ event.description }}</span>{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="flex items-center gap-2 sm:self-center">
+                    <form method="POST" action="{% url 'delete_academic_event' event.id %}" onsubmit="return confirm('Remove this event from the calendar?');">
+                        {% csrf_token %}
+                        <button type="submit" class="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Delete Event">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center space-y-3">
+                <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <h4 class="text-base font-bold text-slate-700">No Upcoming Events Scheduled</h4>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">Use the "Schedule New Event" button above to add upcoming institutional dates, exams, holidays, or reminders.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- PAST EVENTS ACCORDION / ARCHIVE -->
+    {% if past_events %}
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 group">
+        <summary class="text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between">
+            <span>Past Events History ({{ past_events.count }} Archived)</span>
+            <span class="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="mt-4 divide-y divide-slate-100">
+            {% for event in past_events %}
+            <div class="py-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                <div class="flex items-center gap-3">
+                    <span class="font-mono font-bold text-slate-400">{{ event.start_date|date:"d M, Y" }}</span>
+                    <span class="font-bold text-slate-700">{{ event.title }}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{{ event.get_event_type_display }}</span>
+                </div>
+                <form method="POST" action="{% url 'delete_academic_event' event.id %}" onsubmit="return confirm('Delete archived event?');">
+                    {% csrf_token %}
+                    <button type="submit" class="text-slate-400 hover:text-rose-500 text-[11px] font-bold">Remove</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
+</div>
+
+<!-- ADD EVENT MODAL -->
+<div id="addEventModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[150] p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 space-y-5 my-auto animate-fade-in">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-xl font-black text-slate-800">Schedule Academic Event</h3>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">Calendar & Executive Dashboard Telemetry</p>
+            </div>
+            <button type="button" onclick="closeAddEventModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'manage_academic_events' %}" class="space-y-4">
+            {% csrf_token %}
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Event Title *</label>
+                <input type="text" name="title" required placeholder="e.g. Last Date for Exam Form, Semester Exam, Ramadan Holiday"
+                       class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Event Category *</label>
+                <select name="event_type" id="modalEventType" onchange="onEventTypeChange()"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs appearance-none cursor-pointer">
+                    <option value="event">Academic Event / Function</option>
+                    <option value="holiday">Official Holiday</option>
+                    <option value="exam">Examination Date</option>
+                    <option value="reminder">Reminder / Important Deadline</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Start Date *</label>
+                    <input type="date" name="start_date" required value="{{ today_str }}"
+                           class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">End Date (Optional)</label>
+                    <input type="date" name="end_date"
+                           class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Description / Notes</label>
+                <textarea name="description" rows="2" placeholder="e.g. Applicable to all undergraduate batches or staff note..."
+                          class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-2.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-medium text-xs"></textarea>
+            </div>
+
+            <div class="pt-1">
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" name="is_holiday" id="modalIsHoliday" class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500">
+                    <span class="text-xs font-bold text-slate-700">Mark as Official Holiday (Institutions Closed)</span>
+                </label>
+            </div>
+
+            <div class="flex gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeAddEventModal()" class="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition text-xs">Cancel</button>
+                <button type="submit" class="flex-[2] py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition shadow-lg shadow-blue-500/20 text-xs uppercase tracking-wider">Save Event</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddEventModal() {
+    const modal = document.getElementById('addEventModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+function closeAddEventModal() {
+    const modal = document.getElementById('addEventModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+function onEventTypeChange() {
+    const type = document.getElementById('modalEventType').value;
+    const holCb = document.getElementById('modalIsHoliday');
+    if (type === 'holiday' && holCb) {
+        holCb.checked = true;
+    }
+}
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAddEventModal();
+});
+</script>
+{% endblock %}

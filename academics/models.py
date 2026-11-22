@@ -541,4 +541,32 @@ class TransferredFee(models.Model):
         return f"Transfer #{self.id} - {self.admission.registration_id or self.admission.id} - ₹{self.transferred_amount}"
 
 
+# ✅ ACADEMIC CALENDAR & UPCOMING EVENTS
+class AcademicEvent(models.Model):
+    EVENT_TYPES = (
+        ('holiday', 'Holiday'),
+        ('exam', 'Examination'),
+        ('event', 'Academic Event / Function'),
+        ('reminder', 'Reminder / Meeting'),
+    )
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='academic_events')
+    academic_year = models.ForeignKey('institutes.AcademicYear', on_delete=models.SET_NULL, null=True, blank=True, related_name='academic_events')
+    title = models.CharField(max_length=255)
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPES, default='event')
+    start_date = models.DateField(db_index=True)
+    end_date = models.DateField(null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    is_holiday = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_events')
+
+    class Meta:
+        ordering = ['start_date', 'id']
+        verbose_name = "Academic Event"
+        verbose_name_plural = "Academic Events"
+
+    def __str__(self):
+        return f"{self.title} ({self.start_date})"
+
+
 

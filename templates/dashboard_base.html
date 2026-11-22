@@ -97,10 +97,13 @@
                     </a>
                     {% endif %}
                     {% if user_privileges.perm_course_inventory %}
-                    <a href="{% url 'course_list' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'academics' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
+                    <a href="{% url 'course_list' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'courses' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
                         <span>• Course Inventory</span>
                     </a>
                     {% endif %}
+                    <a href="{% url 'manage_academic_events' %}" class="flex items-center gap-2.5 px-4 py-2 text-[11px] font-normal text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition duration-200 {% if 'events' in request.path %}bg-white/20 text-white shadow-sm{% endif %}">
+                        <span>• Calendar & Events</span>
+                    </a>
                 </div>
             </div>
             {% endif %}

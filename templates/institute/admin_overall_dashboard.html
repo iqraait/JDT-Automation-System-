@@ -223,7 +223,7 @@
                         <span class="flex items-center gap-2 text-slate-600">
                             <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Overdue
                         </span>
-                        <span class="font-bold text-rose-600 font-mono">₹{{ total_outstanding_dues|floatformat:0 }}</span>
+                        <span class="font-bold text-rose-600 font-mono">₹{{ total_overdue_dues|floatformat:0 }}</span>
                     </div>
                 </div>
             </div>
@@ -487,42 +487,36 @@
                     <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
                     Upcoming Events
                 </h3>
-                <span class="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer">View Calendar →</span>
+                <a href="{% url 'manage_academic_events' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition">View Calendar →</a>
             </div>
 
             <div class="space-y-3">
+                {% for ev in upcoming_events %}
                 <div class="flex items-center gap-3.5 p-2 rounded-2xl hover:bg-slate-50 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center justify-center flex-shrink-0 text-blue-700">
-                        <span class="text-sm font-black font-mono leading-none">25</span>
-                        <span class="text-[9px] font-bold uppercase mt-0.5">Oct</span>
+                    <div class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-center border
+                        {% if ev.is_holiday %}bg-amber-50 border-amber-100 text-amber-700
+                        {% elif ev.event_type == 'exam' %}bg-blue-50 border-blue-100 text-blue-700
+                        {% elif ev.event_type == 'reminder' %}bg-rose-50 border-rose-100 text-rose-700
+                        {% else %}bg-purple-50 border-purple-100 text-purple-700{% endif %}">
+                        <span class="text-sm font-black font-mono leading-none">{{ ev.start_date.day }}</span>
+                        <span class="text-[9px] font-bold uppercase mt-0.5">{{ ev.start_date|date:"M" }}</span>
                     </div>
-                    <div>
-                        <h4 class="text-xs font-black text-slate-800">Last Date for Exam Form</h4>
-                        <p class="text-[11px] text-slate-400 font-medium">B.C.A-test / Degree Batch</p>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-black text-slate-800 truncate">{{ ev.title }}</h4>
+                        <p class="text-[11px] text-slate-400 font-medium truncate">
+                            {% if ev.is_holiday %}🌴 Holiday{% else %}{{ ev.get_event_type_display }}{% endif %}
+                            {% if ev.description %} • {{ ev.description }}{% endif %}
+                        </p>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-3.5 p-2 rounded-2xl hover:bg-slate-50 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center flex-shrink-0 text-indigo-700">
-                        <span class="text-sm font-black font-mono leading-none">28</span>
-                        <span class="text-[9px] font-bold uppercase mt-0.5">Oct</span>
-                    </div>
-                    <div>
-                        <h4 class="text-xs font-black text-slate-800">Internal Assessment</h4>
-                        <p class="text-[11px] text-slate-400 font-medium">Semester Examination</p>
-                    </div>
+                {% empty %}
+                <div class="py-6 text-center space-y-2">
+                    <p class="text-xs font-bold text-slate-500">No upcoming events scheduled</p>
+                    <a href="{% url 'manage_academic_events' %}" class="inline-block text-[11px] font-bold text-blue-600 hover:underline">
+                        + Add Events / Holidays in Calendar
+                    </a>
                 </div>
-
-                <div class="flex items-center gap-3.5 p-2 rounded-2xl hover:bg-slate-50 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col items-center justify-center flex-shrink-0 text-purple-700">
-                        <span class="text-sm font-black font-mono leading-none">05</span>
-                        <span class="text-[9px] font-bold uppercase mt-0.5">Nov</span>
-                    </div>
-                    <div>
-                        <h4 class="text-xs font-black text-slate-800">Parent-Teacher Meet</h4>
-                        <p class="text-[11px] text-slate-400 font-medium">Academic Review Session</p>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 

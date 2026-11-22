@@ -2307,6 +2307,7 @@ def admin_overall_dashboard(request):
 
     # Total Outstanding Dues across active students
     total_outstanding_dues = 0.0
+    total_overdue_dues = 0.0
     for adm in admissions_base.filter(status='active').select_related(
         'assigned_class', 'assigned_class_year', 'assigned_fee_category', 'selected_course', 'application__academic_year'
     ):
@@ -2324,9 +2325,27 @@ def admin_overall_dashboard(request):
                 for head in fs.heads.filter(is_active=True):
                     discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else (adm.assigned_fee_category.discount_percentage if adm.assigned_fee_category else 0)
                     disc_amount = float(head.amount) * (1 - float(discount_pct or 0) / 100)
-                    paid = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).aggregate(t=Sum('amount_paid'))['t'] or 0.0
-                    pending = max(0.0, disc_amount - float(paid))
+                    
+                    payments = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False)
+                    paid = sum(float(p.amount_paid) for p in payments)
+                    
+                    # Deduct manual discounts / concessions recorded for this head or student
+                    head_man_disc = 0.0
+                    for p in payments:
+                        if p.remarks and '[Discount: ' in p.remarks:
+                            try:
+                                head_man_disc += float(p.remarks.split('[Discount: ')[1].split(']')[0])
+                            except Exception:
+                                pass
+                    if head_man_disc == 0 and float(adm.discount_amount or 0) > 0:
+                        head_man_disc = float(adm.discount_amount or 0)
+                        
+                    effective_head_demand = max(0.0, disc_amount - head_man_disc)
+                    pending = max(0.0, effective_head_demand - paid)
+                    
                     total_outstanding_dues += pending
+                    if pending > 0 and head.due_date and head.due_date < today:
+                        total_overdue_dues += pending
 
     total_expected_fees = total_collection_grand + total_outstanding_dues
     fee_paid_pct = round((total_collection_grand / total_expected_fees * 100), 1) if total_expected_fees > 0 else (100.0 if total_collection_grand > 0 else 0.0)
@@ -2391,7 +2410,14 @@ def admin_overall_dashboard(request):
     top_dept_name = active_courses.first().name if active_courses.exists() else "Computer Science"
     notices = NoticeBoard.objects.filter(institute=institute).order_by('-created_at')[:4]
 
-    # 9. Unified Chronological Activity Feed
+    # 9. Upcoming Events & Calendar
+    from academics.models import AcademicEvent
+    upcoming_events = AcademicEvent.objects.filter(
+        institute=institute,
+        start_date__gte=today
+    ).order_by('start_date', 'id')[:5]
+
+    # 10. Unified Chronological Activity Feed
     recent_activities = []
     for r in recent_receipts[:4]:
         st_name = r['admission'].application.display_name if (r.get('admission') and r['admission'].application) else 'Student'
@@ -2444,6 +2470,7 @@ def admin_overall_dashboard(request):
         'total_collection_grand': total_collection_grand,
         'total_discounts_granted': float(total_discounts_granted),
         'total_outstanding_dues': total_outstanding_dues,
+        'total_overdue_dues': total_overdue_dues,
         'total_expected_fees': total_expected_fees,
         'fee_paid_pct': fee_paid_pct,
         'fee_pending_pct': fee_pending_pct,
@@ -2453,6 +2480,7 @@ def admin_overall_dashboard(request):
         'top_class_name': top_class_name,
         'top_dept_name': top_dept_name,
         'notices': notices,
+        'upcoming_events': upcoming_events,
         'recent_activities': recent_activities,
         'recent_receipts': recent_receipts,
         'recent_admissions': recent_admissions,
