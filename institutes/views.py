@@ -2236,13 +2236,19 @@ def admin_overall_dashboard(request):
         return redirect('/')
 
     # Active Academic Year Filter
-    active_year_id = clean_id_param(request.GET.get('academic_year_id'))
-    academic_years = AcademicYear.objects.filter(institute=institute).order_by('-is_active', '-name')
+    active_year_param = request.GET.get('academic_year_id')
+    academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
     active_year = None
-    if active_year_id:
-        active_year = academic_years.filter(id=active_year_id).first()
-    if not active_year:
-        active_year = academic_years.filter(is_active=True).first() or academic_years.first()
+    if active_year_param == 'all':
+        active_year = None
+    elif active_year_param:
+        active_year = academic_years.filter(id=clean_id_param(active_year_param)).first()
+    else:
+        # Default to the academic year with existing admissions/students, or the active year
+        year_with_admissions = academic_years.filter(
+            id__in=Admission.objects.filter(application__institute=institute).values_list('application__academic_year_id', flat=True)
+        ).first()
+        active_year = year_with_admissions or academic_years.filter(is_active=True).first() or academic_years.first()
 
     today = timezone.now().date()
 
@@ -2251,6 +2257,7 @@ def admin_overall_dashboard(request):
     if active_year:
         admissions_base = admissions_base.filter(application__academic_year=active_year)
 
+    total_students_count = admissions_base.count()
     total_active_students = admissions_base.filter(status='active').count()
     total_warned_students = admissions_base.filter(status='warned').count()
     total_suspended_students = admissions_base.filter(status='suspended').count()
@@ -2260,7 +2267,7 @@ def admin_overall_dashboard(request):
         apps_base = apps_base.filter(academic_year=active_year)
     total_applications = apps_base.count()
     total_admitted_apps = apps_base.filter(status='admitted').count()
-    total_pending_apps = apps_base.filter(status='pending').count()
+    total_pending_apps = apps_base.filter(status__in=['pending', 'pending_payment', 'submitted']).count()
     total_verified_apps = apps_base.filter(status__in=['selected', 'verified']).count()
 
     # 2. Academics & Courses
@@ -2269,13 +2276,19 @@ def admin_overall_dashboard(request):
     total_classes_count = Class.objects.filter(course__institute=institute).count()
 
     # 3. Financial Collections
-    from django.db.models import Sum
+    from django.db.models import Sum, Q
     payments_base = StudentFeePayment.objects.filter(
         admission__application__institute=institute,
         is_cancelled=False
     )
     if active_year:
         payments_base = payments_base.filter(admission__application__academic_year=active_year)
+
+    paid_admission_ids = set(payments_base.values_list('admission_id', flat=True))
+    paid_students_count = admissions_base.filter(id__in=paid_admission_ids).count()
+    pending_students_count = max(0, total_students_count - paid_students_count)
+    paid_students_pct = round((paid_students_count / total_students_count * 100), 1) if total_students_count > 0 else 0.0
+    pending_students_pct = round(100.0 - paid_students_pct, 1) if total_students_count > 0 else 0.0
 
     # Today's Collections
     today_payments = payments_base.filter(payment_date=today)
@@ -2309,11 +2322,16 @@ def admin_overall_dashboard(request):
             ).first()
             if fs:
                 for head in fs.heads.filter(is_active=True):
-                    discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                    discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else (adm.assigned_fee_category.discount_percentage if adm.assigned_fee_category else 0)
                     disc_amount = float(head.amount) * (1 - float(discount_pct or 0) / 100)
                     paid = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).aggregate(t=Sum('amount_paid'))['t'] or 0.0
                     pending = max(0.0, disc_amount - float(paid))
                     total_outstanding_dues += pending
+
+    total_expected_fees = total_collection_grand + total_outstanding_dues
+    fee_paid_pct = round((total_collection_grand / total_expected_fees * 100), 1) if total_expected_fees > 0 else (100.0 if total_collection_grand > 0 else 0.0)
+    fee_pending_pct = round(100.0 - fee_paid_pct, 1) if total_expected_fees > 0 else 0.0
+    fee_circle_offset = round(282.74 * (1.0 - (fee_paid_pct / 100.0)), 2)
 
     # 4. Recent Collections Feed (latest receipts)
     recent_payments_qs = StudentFeePayment.objects.filter(
@@ -2331,23 +2349,90 @@ def admin_overall_dashboard(request):
 
     # 6. Course-wise Breakdown
     course_stats = []
-    for c in active_courses[:8]:
-        c_students = admissions_base.filter(selected_course=c, status='active').count()
+    for c in active_courses[:6]:
+        c_students = admissions_base.filter(selected_course=c).count()
         c_paid = payments_base.filter(admission__selected_course=c).aggregate(t=Sum('amount_paid'))['t'] or 0.0
+        c_pct = round(c_students / total_students_count * 100, 1) if total_students_count > 0 else 0.0
         course_stats.append({
             'course': c,
+            'name': c.name,
             'student_count': c_students,
+            'pct': c_pct,
             'total_paid': float(c_paid)
         })
+
+    # 7. Monthly Intake / Admissions 6-month Bar Chart Trend
+    import calendar
+    months_trend = []
+    curr_date = today.replace(day=1)
+    for i in range(5, -1, -1):
+        m_year = curr_date.year
+        m_month = curr_date.month - i
+        while m_month <= 0:
+            m_month += 12
+            m_year -= 1
+        _, last_day = calendar.monthrange(m_year, m_month)
+        m_start = datetime.date(m_year, m_month, 1)
+        m_end = datetime.date(m_year, m_month, last_day)
+        m_name = m_start.strftime('%b')
+        m_count = admissions_base.filter(created_at__date__gte=m_start, created_at__date__lte=m_end).count()
+        if m_count == 0:
+            m_count = apps_base.filter(created_at__date__gte=m_start, created_at__date__lte=m_end).count()
+        months_trend.append({'month': m_name, 'count': m_count})
+
+    max_m_cnt = max([m['count'] for m in months_trend] + [1])
+    for m in months_trend:
+        m['height_pct'] = max(18, int((m['count'] / max_m_cnt) * 100)) if m['count'] > 0 else 10
+
+    # 8. Staff Count, Notices & Quick Info
+    staff_count = User.objects.filter(Q(institute=institute) | Q(accessible_institutes=institute)).distinct().count()
+    top_class = Class.objects.filter(course__institute=institute).first()
+    top_class_name = top_class.name if top_class else "1 SEM-test"
+    top_dept_name = active_courses.first().name if active_courses.exists() else "Computer Science"
+    notices = NoticeBoard.objects.filter(institute=institute).order_by('-created_at')[:4]
+
+    # 9. Unified Chronological Activity Feed
+    recent_activities = []
+    for r in recent_receipts[:4]:
+        st_name = r['admission'].application.display_name if (r.get('admission') and r['admission'].application) else 'Student'
+        recent_activities.append({
+            'title': f"Fee Paid: {st_name} (₹{r['grand_total']:.0f})",
+            'subtitle': f"Receipt #{r['receipt_number']} • {r.get('payment_mode_display', 'Fee')}",
+            'time': r.get('created_at') or r.get('payment_date'),
+            'type': 'payment'
+        })
+    for adm in recent_admissions[:3]:
+        st_name = adm.application.display_name if adm.application else 'Candidate'
+        c_name = adm.selected_course.name if adm.selected_course else 'Program'
+        recent_activities.append({
+            'title': f"New Admission: {st_name}",
+            'subtitle': f"{c_name} • Reg: {adm.register_number}",
+            'time': adm.created_at,
+            'type': 'admission'
+        })
+    for n in notices[:2]:
+        recent_activities.append({
+            'title': f"Notice: {n.title}",
+            'subtitle': "Published to institute board",
+            'time': n.created_at,
+            'type': 'notice'
+        })
+    recent_activities.sort(key=lambda x: str(x['time'] or ''), reverse=True)
+    recent_activities = recent_activities[:5]
 
     return render(request, 'institute/admin_overall_dashboard.html', {
         'institute': institute,
         'academic_years': academic_years,
         'active_year': active_year,
         'today': today,
+        'total_students_count': total_students_count,
         'total_active_students': total_active_students,
         'total_warned_students': total_warned_students,
         'total_suspended_students': total_suspended_students,
+        'paid_students_count': paid_students_count,
+        'pending_students_count': pending_students_count,
+        'paid_students_pct': paid_students_pct,
+        'pending_students_pct': pending_students_pct,
         'total_applications': total_applications,
         'total_admitted_apps': total_admitted_apps,
         'total_pending_apps': total_pending_apps,
@@ -2359,6 +2444,16 @@ def admin_overall_dashboard(request):
         'total_collection_grand': total_collection_grand,
         'total_discounts_granted': float(total_discounts_granted),
         'total_outstanding_dues': total_outstanding_dues,
+        'total_expected_fees': total_expected_fees,
+        'fee_paid_pct': fee_paid_pct,
+        'fee_pending_pct': fee_pending_pct,
+        'fee_circle_offset': fee_circle_offset,
+        'months_trend': months_trend,
+        'staff_count': staff_count,
+        'top_class_name': top_class_name,
+        'top_dept_name': top_dept_name,
+        'notices': notices,
+        'recent_activities': recent_activities,
         'recent_receipts': recent_receipts,
         'recent_admissions': recent_admissions,
         'course_stats': course_stats,

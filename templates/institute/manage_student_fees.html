@@ -559,7 +559,7 @@
      INTERACTIVE BULK COLLECTION MODAL
      ============================================================================= -->
 <div id="bulkPaymentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[150] p-4 overflow-y-auto">
-    <div class="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2rem] shadow-2xl border border-white/20 transform transition-all p-6 md:p-8 space-y-5 my-auto">
+    <div class="bg-white w-full max-w-xl md:max-w-2xl max-h-[92vh] overflow-y-auto rounded-[2rem] shadow-2xl border border-white/20 transform transition-all p-6 md:p-8 space-y-5 my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
@@ -581,19 +581,19 @@
             <div class="space-y-2">
                 <div class="flex items-center justify-between pl-1">
                     <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Selected Heads for Payment</label>
-                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Amounts are editable (Partial)</span>
+                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">Amounts are editable (Partial)</span>
                 </div>
-                <div id="bulkHeadsList" class="max-h-52 overflow-y-auto border border-slate-100 bg-slate-50/50 rounded-2xl p-3 divide-y divide-slate-100 space-y-2 text-xs font-medium text-slate-600">
+                <div id="bulkHeadsList" class="max-h-60 overflow-y-auto border border-slate-100 bg-slate-50/50 rounded-2xl p-3.5 divide-y divide-slate-100 space-y-2 text-xs font-medium text-slate-600">
                 </div>
             </div>
 
             <!-- Aggregate Amounts Display -->
-            <div class="p-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-between">
+            <div class="p-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-between shadow-md">
                 <div>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Aggregated Sum Dues</span>
-                    <p class="text-2xl font-black font-mono text-emerald-400 mt-1" id="bulkModalTotalLabel">₹0.00</p>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Aggregated Sum Dues</span>
+                    <p class="text-2xl md:text-3xl font-black font-mono text-emerald-400 mt-1" id="bulkModalTotalLabel">₹0.00</p>
                 </div>
-                <div class="text-right text-[10px] font-bold text-slate-300">
+                <div class="text-right text-xs font-bold text-slate-300 space-y-0.5">
                     <p id="bulkModalFeeBreakdown">Fees: ₹0.00</p>
                     <p id="bulkModalFineBreakdown">Fines: ₹0.00</p>
                 </div>
@@ -602,7 +602,7 @@
             <!-- Mode Selector -->
             <div class="space-y-2">
                 <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Collection Mode</label>
-                <select name="payment_mode" class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold">
+                <select name="payment_mode" class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none appearance-none cursor-pointer font-bold text-sm">
                     <option value="cash">Cash</option>
                     <option value="online">Online Payment</option>
                     <option value="bank_transfer">Bank Transfer</option>
@@ -610,7 +610,7 @@
             </div>
 
             <!-- Date & Manual Receipt Number -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                     <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Payment Date</label>
                     <input type="date" name="payment_date" id="bulkModalPaymentDate" value="{{ today_date }}"
@@ -623,40 +623,40 @@
                 </div>
             </div>
 
-            <!-- Discount Option -->
-            <div class="space-y-1.5">
-                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Discount Amount (Optional Concession)</label>
-                <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
-                    <input type="number" step="0.01" min="0" name="discount_amount" id="bulkModalDiscountInput" value="0.00"
-                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
+            <!-- Discount Option & Reason of Discount in 2-Columns -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Discount Amount (Concession)</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
+                        <input type="number" step="0.01" min="0" name="discount_amount" id="bulkModalDiscountInput" value="0.00"
+                            class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
+                    </div>
                 </div>
-            </div>
-
-            <!-- Reason of Discount -->
-            <div class="space-y-1.5">
-                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reason of Discount</label>
-                <input type="text" name="discount_reason" id="bulkModalDiscountReason" placeholder="e.g. Merit Concession, Special Scholarship"
-                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reason of Discount</label>
+                    <input type="text" name="discount_reason" id="bulkModalDiscountReason" placeholder="e.g. Merit Concession"
+                        class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
+                </div>
             </div>
 
             <!-- Reference No -->
             <div class="space-y-2">
                 <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reference No / Receipt ID</label>
                 <input type="text" name="reference_no" placeholder="e.g. TXN-BULK-80921"
-                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold">
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
             </div>
 
             <!-- Remarks -->
             <div class="space-y-2">
                 <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Remarks</label>
                 <textarea name="remarks" rows="2" placeholder="Bulk collection transaction..."
-                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-medium"></textarea>
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-5 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-medium text-xs"></textarea>
             </div>
 
             <div class="flex gap-4 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeBulkPaymentModal()" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all">Dismiss</button>
-                <button type="submit" class="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black rounded-2xl transition-all shadow-xl shadow-emerald-100">Record Bulk Collection</button>
+                <button type="button" onclick="closeBulkPaymentModal()" class="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all text-xs">Dismiss</button>
+                <button type="submit" class="flex-[2] py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black rounded-2xl transition-all shadow-xl shadow-emerald-100 text-xs uppercase tracking-wider">Record Bulk Collection</button>
             </div>
         </form>
     </div>
