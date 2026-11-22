@@ -3118,14 +3118,14 @@ def excel_import_students(request):
                         status='selected'
                     )
 
-                    # Calculate total fee
-                    total_fee_val = app_fee_cat.total_fee if app_fee_cat else (app_fee_type.amount if app_fee_type else 0.00)
+                    # Calculate total fee (app_fee_cat if specified, 0.00 default for imported students)
+                    total_fee_val = app_fee_cat.total_fee if app_fee_cat else 0.00
 
-                    # Create Payment record with status 'success'
+                    # Create Payment record with status 'success' (amount 0.00 for Excel imported students)
                     Payment.objects.get_or_create(
                         application=app,
                         defaults={
-                            'amount': total_fee_val,
+                            'amount': 0.00,
                             'status': 'success',
                             'payment_mode': 'CASH',
                             'payment_date': doj_obj
@@ -3433,7 +3433,13 @@ def update_student_status(request, admission_id):
 @login_required
 def export_students_excel(request):
     institute = get_current_institute(request)
-    admissions = Admission.objects.filter(application__institute=institute).select_related('application__student', 'application__academic_year', 'application__course', 'fee_category')
+    admissions = Admission.objects.filter(application__institute=institute).select_related(
+        'application__student', 'application__academic_year', 'application__course',
+        'fee_category', 'assigned_fee_category', 'assigned_class', 'assigned_class_year',
+        'joining_period', 'selected_course'
+    ).prefetch_related(
+        'application__field_values', 'application__field_values__field'
+    )
     # Apply same filters as list view
     form_id = request.GET.get('form_id')
     name = request.GET.get('name')
@@ -3507,55 +3513,92 @@ def export_students_excel(request):
     ]
     ws.append(headers)
 
-    def fuzzy_val(app, label_part):
-        matched = ApplicationFieldValue.objects.filter(application=app, field__label__icontains=label_part).first()
-        return matched.value if matched else ""
-
     for adm in admissions:
         app = adm.application
+        field_map = {}
+        if app:
+            for fv in app.field_values.all():
+                lbl = (fv.field.label if fv.field else fv.field_label) or ''
+                val = (fv.value or '').strip()
+                if val:
+                    field_map[lbl.strip().lower()] = val
+
+        def get_fv(*keywords, exclude=None):
+            for kw in keywords:
+                kw_l = kw.lower()
+                if kw_l in field_map:
+                    return field_map[kw_l]
+            for lbl_l, v in field_map.items():
+                if exclude and any(ex in lbl_l for ex in exclude):
+                    continue
+                if any(kw.lower() in lbl_l for kw in keywords):
+                    return v
+            return ""
+
+        perm_house = get_fv("Permanent House", "Permanent House Name", "House Name", "House No") or get_fv("Permanent Address", "Address")
+        perm_loc = get_fv("Permanent Location", "Location", "Street")
+        perm_post = get_fv("Permanent Post", "Post Office", "Post")
+        perm_pin = get_fv("Permanent Pin", "Permanent Pincode", "Pin Code", "Pincode", "PIN")
+        perm_nat = get_fv("Permanent Nationality", "Nationality") or "Indian"
+        perm_state = get_fv("Permanent State", "State") or "Kerala"
+        perm_dist = get_fv("Permanent District", "District")
+
+        comm_house = get_fv("Communication House", "Address Communication", "Communication Address") or perm_house
+        comm_loc = get_fv("Communication Location") or perm_loc
+        comm_post = get_fv("Communication Post") or perm_post
+        comm_pin = get_fv("Communication Pin", "Communication Pincode") or perm_pin
+        comm_nat = get_fv("Communication Nationality") or perm_nat
+        comm_state = get_fv("Communication State") or perm_state
+        comm_dist = get_fv("Communication District") or perm_dist
+
+        father_name = get_fv("Father Name", "Name of Father", "Father's Name") or get_fv("Name of Father/Guardian") or (adm.guardian_name if "father" in (adm.relationship or '').lower() else "")
+        father_mobile = get_fv("Father Mobile", "Mobile (Father)", "Father's Mobile") or get_fv("Mobile (Father/Guardian)") or (adm.guardian_mobile if "father" in (adm.relationship or '').lower() else "")
+
+        guardian_addr = adm.guardian_address or get_fv("Guardian Address") or perm_house
+
         row = [
-            adm.register_number,
-            adm.date_of_join.strftime('%Y-%m-%d') if adm.date_of_join else "",
-            adm.fee_category.name if adm.fee_category else "",
-            app.student.first_name,
-            app.academic_year.name if app.academic_year else "",
-            fuzzy_val(app, "Gender"),
-            fuzzy_val(app, "DOB") or fuzzy_val(app, "Birth"),
-            fuzzy_val(app, "Religion"),
-            fuzzy_val(app, "Caste") or fuzzy_val(app, "Community"),
-            fuzzy_val(app, "Category") or fuzzy_val(app, "Reservation"),
-            adm.fee_category.name if adm.fee_category else "",
-            app.student.email,
-            app.student.username,
-            fuzzy_val(app, "Aadhar"),
-            adm.selected_course.name if adm.selected_course else app.course.name,
-            fuzzy_val(app, "Division"),
-            adm.joining_period.name if adm.joining_period else fuzzy_val(app, "Class"),
-            # Permanent Address (Fuzzy Matching)
-            fuzzy_val(app, "Permanent") and fuzzy_val(app, "House") or fuzzy_val(app, "Address"),
-            fuzzy_val(app, "Permanent") and fuzzy_val(app, "Location"),
-            fuzzy_val(app, "Permanent") and fuzzy_val(app, "Post"),
-            fuzzy_val(app, "Permanent") and fuzzy_val(app, "Pin"),
-            fuzzy_val(app, "Nationality"),
-            fuzzy_val(app, "State"),
-            fuzzy_val(app, "District"),
+            adm.register_number or adm.registration_id or (f"APP-{app.id}" if app else ""),
+            adm.date_of_join.strftime('%Y-%m-%d') if adm.date_of_join else get_fv("Date of Join", "Date of Admission", "doj"),
+            adm.admission_quota or get_fv("Admission Quota", "Quota") or "Merit",
+            (app.display_name if app else "") or (app.student.first_name if app and app.student else "") or get_fv("Full Name", "Student Name", "Applicant Name", "Name"),
+            (app.academic_year.name if app and app.academic_year else "") or get_fv("Academic Session", "Academic Year"),
+            get_fv("Gender") or (getattr(app.student, 'gender', '') if app and app.student else ""),
+            get_fv("Date of birth", "Date of Birth", "DOB", "Birth") or (app.student.date_of_birth.strftime('%Y-%m-%d') if app and app.student and getattr(app.student, 'date_of_birth', None) else ""),
+            get_fv("Religion"),
+            get_fv("Caste", "Community", "Caste/Community"),
+            get_fv("Category", "Reservation", "Category(SC/ST/OBC)"),
+            adm.assigned_fee_category.name if adm.assigned_fee_category else (adm.fee_category.name if adm.fee_category else get_fv("Fee Category")),
+            (app.student_email if app else "") or (app.student.email if app and app.student and not app.student.email.endswith('@jdt.local') else "") or get_fv("e-mail", "Email Address", "Email"),
+            (app.student_mobile if app else "") or (app.student.mobile_number if app and app.student and getattr(app.student, 'mobile_number', None) else "") or get_fv("Mobile Number", "Mobile", "Student Mobile", "Phone") or (app.student.username if app and app.student and app.student.username.isdigit() else ""),
+            get_fv("Aadhaar No.", "Aadhaar", "Aadhar", "Adhar", "UID"),
+            (adm.selected_course.name if adm.selected_course else (app.course.name if app and app.course else "")) or get_fv("Course"),
+            (adm.assigned_class.name if adm.assigned_class else "") or get_fv("Assign Student to Class", "Division", "Class"),
+            (adm.assigned_class_year.name if adm.assigned_class_year else (adm.joining_period.name if adm.joining_period else "")) or get_fv("Assign Student to Class Year / Semester", "Class Year", "Semester", "Class"),
+            # Permanent Address
+            perm_house,
+            perm_loc,
+            perm_post,
+            perm_pin,
+            perm_nat,
+            perm_state,
+            perm_dist,
             # Communication Address
-            fuzzy_val(app, "Communication") and fuzzy_val(app, "House"),
-            fuzzy_val(app, "Communication") and fuzzy_val(app, "Location"),
-            fuzzy_val(app, "Communication") and fuzzy_val(app, "Post"),
-            fuzzy_val(app, "Communication") and fuzzy_val(app, "Pin"),
-            fuzzy_val(app, "Nationality"),
-            fuzzy_val(app, "State"),
-            fuzzy_val(app, "District"),
-            # Family
-            fuzzy_val(app, "Father Name"),
-            fuzzy_val(app, "Father Mobile"),
-            fuzzy_val(app, "Mother Name"),
-            fuzzy_val(app, "Mother Mobile"),
-            adm.guardian_name,
-            adm.guardian_mobile,
-            adm.relationship,
-            adm.guardian_address
+            comm_house,
+            comm_loc,
+            comm_post,
+            comm_pin,
+            comm_nat,
+            comm_state,
+            comm_dist,
+            # Family Details
+            father_name,
+            father_mobile,
+            get_fv("Mother Name", "Name of Mother", "Mother's Name"),
+            get_fv("Mother Mobile", "Mother's Mobile", "Mobile (Mother)"),
+            adm.guardian_name or get_fv("Guardian Name", "Name of Guardian", "Name of Father/Guardian", "Care Of"),
+            adm.guardian_mobile or get_fv("Guardian Mobile", "Mobile (Father/Guardian)", "Guardian Phone"),
+            adm.relationship or get_fv("Relationship", "Relationship with child") or "Guardian",
+            guardian_addr
         ]
         ws.append(row)
 
@@ -5854,22 +5897,37 @@ def collect_multiple_fees(request, admission_id):
                         pending_fine = fine_amt - paid_fine if has_fine else 0.0
                         
                         if pending_fee > 0 or pending_fine > 0:
-                            amt_val = max(0.0, pending_fee)
-                            fine_val = max(0.0, pending_fine)
+                            max_head_due = max(0.0, pending_fee) + max(0.0, pending_fine)
                             
-                            StudentFeePayment.objects.create(
-                                admission=admission,
-                                fee_head=head,
-                                amount_paid=amt_val,
-                                fine_paid=fine_val,
-                                payment_mode=payment_mode,
-                                reference_no=reference_no,
-                                receipt_number=rcpt_no,
-                                remarks=remarks,
-                                payment_date=p_date
-                            )
-                            total_collected += (amt_val + fine_val)
-                            success_count += 1
+                            # Support Partial option for Bulk collection from editable head amount inputs
+                            custom_amt_str = request.POST.get(f'head_amount_{head.id}')
+                            if custom_amt_str is not None and str(custom_amt_str).strip() != '':
+                                try:
+                                    head_target_amt = float(custom_amt_str)
+                                except ValueError:
+                                    head_target_amt = max_head_due
+                            else:
+                                head_target_amt = max_head_due
+                                
+                            head_target_amt = max(0.0, min(head_target_amt, max_head_due))
+                            
+                            if head_target_amt > 0:
+                                fine_val = min(max(0.0, pending_fine), head_target_amt)
+                                amt_val = min(max(0.0, pending_fee), head_target_amt - fine_val)
+                                
+                                StudentFeePayment.objects.create(
+                                    admission=admission,
+                                    fee_head=head,
+                                    amount_paid=amt_val,
+                                    fine_paid=fine_val,
+                                    payment_mode=payment_mode,
+                                    reference_no=reference_no,
+                                    receipt_number=rcpt_no,
+                                    remarks=remarks,
+                                    payment_date=p_date
+                                )
+                                total_collected += (amt_val + fine_val)
+                                success_count += 1
                             
                     if success_count > 0:
                         from .models import log_activity

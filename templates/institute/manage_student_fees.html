@@ -553,7 +553,7 @@
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
                 <h3 class="text-2xl font-black text-slate-800 tracking-tight">Bulk Dues Collection</h3>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Collecting Outstanding Balances Fully</p>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Collecting Outstanding Balances Fully / Partially</p>
             </div>
             <button type="button" onclick="closeBulkPaymentModal()" class="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -568,8 +568,11 @@
             
             <!-- Selected Heads List -->
             <div class="space-y-2">
-                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Selected Heads for Payment</label>
-                <div id="bulkHeadsList" class="max-h-36 overflow-y-auto border border-slate-100 bg-slate-50/50 rounded-2xl p-4 divide-y divide-slate-100 space-y-2 text-xs font-medium text-slate-600">
+                <div class="flex items-center justify-between pl-1">
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Selected Heads for Payment</label>
+                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Amounts are editable (Partial)</span>
+                </div>
+                <div id="bulkHeadsList" class="max-h-52 overflow-y-auto border border-slate-100 bg-slate-50/50 rounded-2xl p-3 divide-y divide-slate-100 space-y-2 text-xs font-medium text-slate-600">
                 </div>
             </div>
 
@@ -703,19 +706,12 @@
         container.innerHTML = '';
         listDiv.innerHTML = '';
         
-        let aggregateTotal = 0.0;
-        let aggregateFee = 0.0;
-        let aggregateFine = 0.0;
-        
         checkboxes.forEach(cb => {
             const headId = cb.value;
             const headName = cb.getAttribute('data-name');
             const pendingFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
             const pendingFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
-            
-            aggregateTotal += (pendingFee + pendingFine);
-            aggregateFee += pendingFee;
-            aggregateFine += pendingFine;
+            const totalHeadDue = pendingFee + pendingFine;
             
             // Append hidden input for POST submission
             const input = document.createElement('input');
@@ -724,21 +720,68 @@
             input.value = headId;
             container.appendChild(input);
             
-            // Append list item markup
+            // Append list item markup with editable partial amount input
             const itemDiv = document.createElement('div');
-            itemDiv.className = "flex items-center justify-between py-2";
+            itemDiv.className = "flex items-center justify-between gap-3 py-2";
             itemDiv.innerHTML = `
-                <span class="font-bold text-slate-800 uppercase tracking-wide">${headName}</span>
-                <span class="font-mono text-slate-500 font-bold">₹${(pendingFee + pendingFine).toFixed(2)}</span>
+                <div class="flex-1 min-w-0 pr-2">
+                    <span class="font-bold text-slate-800 uppercase tracking-wide text-xs block truncate" title="${headName}">${headName}</span>
+                    <span class="text-[10px] text-slate-400 font-semibold block">Max Due: ₹${totalHeadDue.toFixed(2)}</span>
+                </div>
+                <div class="relative w-36 shrink-0">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
+                    <input type="number" step="0.01" min="0" max="${totalHeadDue.toFixed(2)}"
+                           name="head_amount_${headId}" id="head_amt_${headId}"
+                           data-head-id="${headId}" data-max-total="${totalHeadDue}" data-max-fee="${pendingFee}" data-max-fine="${pendingFine}"
+                           value="${totalHeadDue.toFixed(2)}"
+                           class="bulk-head-amount-input w-full bg-white border-2 border-slate-200 text-slate-800 pl-7 pr-3 py-1.5 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition outline-none font-bold font-mono text-xs text-right shadow-xs"
+                           oninput="recalculateBulkModalTotals()">
+                </div>
             `;
             listDiv.appendChild(itemDiv);
         });
         
-        document.getElementById('bulkModalTotalLabel').innerText = `₹${aggregateTotal.toFixed(2)}`;
-        document.getElementById('bulkModalFeeBreakdown').innerText = `Fees: ₹${aggregateFee.toFixed(2)}`;
-        document.getElementById('bulkModalFineBreakdown').innerText = `Fines: ₹${aggregateFine.toFixed(2)}`;
+        recalculateBulkModalTotals();
+        
+        const discInp = document.getElementById('bulkModalDiscountInput');
+        if (discInp) {
+            discInp.oninput = recalculateBulkModalTotals;
+        }
         
         document.getElementById('bulkPaymentModal').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 overflow-y-auto";
+    }
+
+    function recalculateBulkModalTotals() {
+        let totalCollected = 0.0;
+        let feeSum = 0.0;
+        let fineSum = 0.0;
+        
+        document.querySelectorAll('.bulk-head-amount-input').forEach(inp => {
+            let val = parseFloat(inp.value);
+            if (isNaN(val) || val < 0) val = 0.0;
+            const maxTotal = parseFloat(inp.getAttribute('data-max-total')) || 0.0;
+            const maxFine = parseFloat(inp.getAttribute('data-max-fine')) || 0.0;
+            const maxFee = parseFloat(inp.getAttribute('data-max-fee')) || 0.0;
+            
+            if (val > maxTotal) {
+                val = maxTotal;
+                inp.value = maxTotal.toFixed(2);
+            }
+            
+            totalCollected += val;
+            let fPart = Math.min(maxFine, val);
+            let feePart = val - fPart;
+            fineSum += fPart;
+            feeSum += feePart;
+        });
+        
+        const discInput = document.getElementById('bulkModalDiscountInput');
+        const disc = parseFloat(discInput ? discInput.value : 0) || 0.0;
+        const finalTotal = Math.max(0, totalCollected - disc);
+        
+        document.getElementById('bulkModalTotalLabel').innerText = `₹${finalTotal.toFixed(2)}`;
+        document.getElementById('bulkModalFeeBreakdown').innerText = `Fees: ₹${feeSum.toFixed(2)}`;
+        document.getElementById('bulkModalFineBreakdown').innerText = `Fines: ₹${fineSum.toFixed(2)}`;
     }
 
     function closeBulkPaymentModal() {
