@@ -2264,7 +2264,7 @@ def admin_overall_dashboard(request):
     total_verified_apps = apps_base.filter(status__in=['selected', 'verified']).count()
 
     # 2. Academics & Courses
-    active_courses = Course.objects.filter(institute=institute, is_active=True).order_by('name')
+    active_courses = Course.objects.filter(institute=institute).order_by('name')
     total_courses_count = active_courses.count()
     total_classes_count = Class.objects.filter(course__institute=institute).count()
 
@@ -4284,6 +4284,7 @@ def group_payments_by_receipt(payments_qs):
                 g['discount_reason'] = g['admission'].discount_reason
             else:
                 g['discount_reason'] = '--'
+        g['display_discount_reason'] = g['discount_reason']
         grouped_list.append(g)
         
     return grouped_list

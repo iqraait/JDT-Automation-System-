@@ -274,7 +274,7 @@
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-semibold text-slate-700 max-w-xs truncate">{{ payment.fee_types_str }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-black text-slate-900 font-mono text-xs md:text-sm">₹{{ payment.total_amount_paid|floatformat:2 }}</td>
-                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-slate-700 font-semibold">{{ payment.discount_reason|default:payment.display_discount_reason|default:"--" }}</td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-slate-700 font-semibold">{{ payment.discount_reason|default:"--" }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-amber-600 font-mono">₹{{ payment.total_fine_paid|floatformat:2 }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
                             <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider
