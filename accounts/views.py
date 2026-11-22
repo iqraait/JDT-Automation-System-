@@ -69,6 +69,10 @@ def student_login(request):
 
         if user:
             login(request, user)
+            if user.role == 'institute' or user.is_staff or user.is_superuser:
+                if hasattr(user, 'has_privilege') and user.has_privilege('perm_admin_dashboard'):
+                    return redirect('/institute/admin-dashboard/')
+                return redirect('/institute/dashboard/')
             return redirect('/dashboard/')
         else:
             error = "Invalid Credentials"

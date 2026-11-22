@@ -344,6 +344,7 @@
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Fee Particulars</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Amount Paid</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Discount</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Reason of Discount</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 font-mono">Fines Collected</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Mode</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Reference No</th>
@@ -371,6 +372,9 @@
                             {% else %}
                             -
                             {% endif %}
+                        </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-slate-700 font-semibold">
+                            {{ payment.discount_reason|default:payment.display_discount_reason|default:"-" }}
                         </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 font-bold text-amber-600 font-mono">₹{{ payment.total_fine_paid|floatformat:2 }}</td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4">
@@ -493,6 +497,13 @@
                         class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
                 </div>
                 <p class="text-[10px] text-slate-400 pl-1">Entering a discount reduces the ledger balance and records the concession.</p>
+            </div>
+
+            <!-- Reason of Discount -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reason of Discount</label>
+                <input type="text" name="discount_reason" id="modalDiscountReason" placeholder="e.g. Merit Concession, Principal Discretion"
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
             </div>
 
             <!-- Mode Selector -->
@@ -620,6 +631,13 @@
                     <input type="number" step="0.01" min="0" name="discount_amount" id="bulkModalDiscountInput" value="0.00"
                         class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 pl-8 pr-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-black font-mono text-xs">
                 </div>
+            </div>
+
+            <!-- Reason of Discount -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Reason of Discount</label>
+                <input type="text" name="discount_reason" id="bulkModalDiscountReason" placeholder="e.g. Merit Concession, Special Scholarship"
+                    class="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 px-4 py-3 rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none font-bold text-xs">
             </div>
 
             <!-- Reference No -->

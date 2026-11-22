@@ -5,6 +5,7 @@ urlpatterns = [
     path('', root_institute_view, name='institute_root'),
     path('login/', institute_login, name='institute_login'),
     path('logout/', user_logout, name='institute_logout'),
+    path('admin-dashboard/', admin_overall_dashboard, name='admin_overall_dashboard'),
     path('dashboard/', institute_dashboard),
     path('register/', institute_register), 
     path('application/<int:app_id>/edit/', edit_application),

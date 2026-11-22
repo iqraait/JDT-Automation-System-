@@ -16,6 +16,7 @@ def active_institute_context(request):
     # User privileges dictionary
     privileges = {}
     priv_list = [
+        'perm_admin_dashboard',
         'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
         'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
         'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details', 'perm_delete_fee_collection',

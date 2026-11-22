@@ -64,6 +64,9 @@ class User(AbstractUser):
 class UserPrivilege(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='privileges')
 
+    # Executive & Dashboard
+    perm_admin_dashboard = models.BooleanField(default=True, verbose_name="Administration Dashboard")
+
     # Admissions Module
     perm_admissions_overview = models.BooleanField(default=True, verbose_name="Admissions Overview")
     perm_student_registration = models.BooleanField(default=True, verbose_name="Student Registration")

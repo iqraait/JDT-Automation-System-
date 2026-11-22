@@ -1,0 +1,435 @@
+{% extends "dashboard_base.html" %}
+
+{% block sidebar_title %}JDT CMS{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in pb-12">
+
+    <!-- TOP EXECUTIVE BAR -->
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden border border-white/10">
+        <!-- Background Ambient Glow -->
+        <div class="absolute -right-10 -bottom-10 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute right-1/3 -top-10 w-60 h-60 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-blue-200 border border-white/10">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {{ institute.name }} ({{ institute.code }})
+                </div>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <span>Administration Executive Dashboard</span>
+                </h1>
+                <p class="text-xs md:text-sm text-slate-300 font-medium max-w-xl">
+                    High-level live operational and financial telemetry for {{ institute.name }}.
+                </p>
+            </div>
+
+            <!-- Filter By Academic Year & Date Pill -->
+            <div class="flex flex-wrap items-center gap-3">
+                <form method="get" action="" class="flex items-center gap-2">
+                    <div class="relative">
+                        <select name="academic_year_id" onchange="this.form.submit()" class="bg-white/15 hover:bg-white/20 text-white font-bold text-xs px-4 py-2.5 rounded-2xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer transition appearance-none pr-8">
+                            <option value="" class="text-slate-800">All Academic Years</option>
+                            {% for y in academic_years %}
+                            <option value="{{ y.id }}" {% if active_year and active_year.id == y.id %}selected{% endif %} class="text-slate-800">
+                                {{ y.name }} {% if y.is_active %}(Active){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <svg class="w-4 h-4 text-white/70 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </form>
+
+                <div class="px-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl flex items-center gap-2 text-xs font-bold text-blue-100">
+                    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>{{ today|date:"l, d F Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRIMARY 4 KPI METRIC CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <!-- CARD 1: ACTIVE STUDENTS -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-100/80 hover:shadow-2xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-400">Active Students</span>
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-3xl font-black text-slate-900 font-mono tracking-tight">{{ total_active_students }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-bold text-slate-500">
+                    <span class="text-emerald-600 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active Admitted
+                    </span>
+                    {% if total_warned_students > 0 %}
+                    <span class="text-amber-600">• {{ total_warned_students }} Warned</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'student_list' %}" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-600 group-hover:text-blue-700 transition">
+                <span>View Student Roster</span>
+                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+        </div>
+
+        <!-- CARD 2: ADMISSIONS / APPLICATIONS -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-100/80 hover:shadow-2xl hover:border-indigo-200 transition-all duration-300 relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-400">Applications</span>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-3xl font-black text-slate-900 font-mono tracking-tight">{{ total_applications }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-bold">
+                    <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{{ total_admitted_apps }} Admitted</span>
+                    <span class="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">{{ total_pending_apps }} Pending</span>
+                </div>
+            </div>
+            <a href="/institute/dashboard/" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600 group-hover:text-indigo-700 transition">
+                <span>Admissions Overview</span>
+                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+        </div>
+
+        <!-- CARD 3: TOTAL FEE COLLECTION -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-100/80 hover:shadow-2xl hover:border-emerald-200 transition-all duration-300 relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-400">Fee Collections</span>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl md:text-3xl font-black text-emerald-600 font-mono tracking-tight">₹{{ total_collection_grand|floatformat:2 }}</h3>
+                <div class="mt-2 flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Today: ₹{{ today_collection_total|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'receipt_list' %}" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600 group-hover:text-emerald-700 transition">
+                <span>Fee Receipts & Control</span>
+                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+        </div>
+
+        <!-- CARD 4: OUTSTANDING DUES -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-100/80 hover:shadow-2xl hover:border-rose-200 transition-all duration-300 relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-400">Outstanding Dues</span>
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl md:text-3xl font-black text-rose-600 font-mono tracking-tight">₹{{ total_outstanding_dues|floatformat:2 }}</h3>
+                <div class="mt-2 text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                    <span class="text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-mono">Discounts: ₹{{ total_discounts_granted|floatformat:2 }}</span>
+                </div>
+            </div>
+            <a href="{% url 'fee_reports' %}" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-rose-600 group-hover:text-rose-700 transition">
+                <span>Outstanding Dues Roster</span>
+                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- SECONDARY QUICK STATS STRIP -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                {{ total_courses_count }}
+            </div>
+            <div>
+                <span class="text-[11px] font-black uppercase text-slate-400 block tracking-wider">Active Courses</span>
+                <span class="text-xs font-bold text-slate-800">Offered Programs</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
+                {{ total_classes_count }}
+            </div>
+            <div>
+                <span class="text-[11px] font-black uppercase text-slate-400 block tracking-wider">Class Batches</span>
+                <span class="text-xs font-bold text-slate-800">Academic Sections</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                {{ today_transactions_count }}
+            </div>
+            <div>
+                <span class="text-[11px] font-black uppercase text-slate-400 block tracking-wider">Today's Transactions</span>
+                <span class="text-xs font-bold text-slate-800">Receipts Generated</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black">
+                ₹{{ total_discounts_granted|floatformat:0 }}
+            </div>
+            <div>
+                <span class="text-[11px] font-black uppercase text-slate-400 block tracking-wider">Total Concessions</span>
+                <span class="text-xs font-bold text-slate-800">Approved Deductions</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK ACTIONS LAUNCHPAD -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-lg">
+        <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            Operational Quick Actions
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <a href="{% url 'admission_list' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-blue-100/60 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                </div>
+                <span class="text-xs font-bold">New Student</span>
+            </a>
+
+            <a href="{% url 'receipt_list' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-2xl border border-slate-100 hover:border-emerald-200 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100/60 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+                <span class="text-xs font-bold">Receipts List</span>
+            </a>
+
+            <a href="{% url 'daily_fee_collection' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-700 rounded-2xl border border-slate-100 hover:border-amber-200 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-amber-100/60 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+                <span class="text-xs font-bold">Daily Fee Audit</span>
+            </a>
+
+            <a href="{% url 'manage_attendance' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-purple-50 text-slate-700 hover:text-purple-700 rounded-2xl border border-slate-100 hover:border-purple-200 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-purple-100/60 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                </div>
+                <span class="text-xs font-bold">Attendance</span>
+            </a>
+
+            <a href="{% url 'manage_timetables' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-cyan-50 text-slate-700 hover:text-cyan-700 rounded-2xl border border-slate-100 hover:border-cyan-200 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-cyan-100/60 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <span class="text-xs font-bold">Timetables</span>
+            </a>
+
+            <a href="{% url 'employee_privileges' %}" class="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 rounded-2xl border border-slate-100 hover:border-slate-300 transition-all text-center gap-2 group">
+                <div class="w-10 h-10 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <span class="text-xs font-bold">Privileges</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN DASHBOARD SECTION -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- LEFT COLUMN: RECENT TRANSACTIONS & COURSE BREAKDOWN (8 COLS) -->
+        <div class="lg:col-span-8 space-y-8">
+
+            <!-- RECENT FEE COLLECTIONS TABLE -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live Fee Collection Feed
+                        </h3>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Most recent fee receipts recorded across all heads.</p>
+                    </div>
+                    <a href="{% url 'receipt_list' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition flex items-center gap-1">
+                        <span>View All Receipts</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-medium text-slate-700">
+                        <thead class="bg-slate-50/70 border-b border-slate-100 uppercase tracking-wider text-[11px] font-bold text-slate-500">
+                            <tr>
+                                <th class="py-3.5 px-4">Receipt #</th>
+                                <th class="py-3.5 px-4">Student Name</th>
+                                <th class="py-3.5 px-4 font-mono text-right">Amount</th>
+                                <th class="py-3.5 px-4">Reason of Discount</th>
+                                <th class="py-3.5 px-4 text-center">Mode</th>
+                                <th class="py-3.5 px-4 text-center">Date</th>
+                                <th class="py-3.5 px-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for rcpt in recent_receipts %}
+                            <tr class="hover:bg-slate-50/70 transition-colors {% if rcpt.is_cancelled %}bg-red-50/50{% endif %}">
+                                <td class="py-3 px-4 font-mono font-bold text-blue-700">
+                                    <span class="{% if rcpt.is_cancelled %}line-through text-red-600{% endif %}">
+                                        {{ rcpt.receipt_number }}
+                                    </span>
+                                    {% if rcpt.is_cancelled %}
+                                    <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded block mt-0.5 uppercase">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="font-bold text-slate-900 block">{{ rcpt.admission.application.display_name }}</span>
+                                    <span class="text-slate-400 text-[11px] font-mono">{{ rcpt.admission.registration_id }}</span>
+                                </td>
+                                <td class="py-3 px-4 text-right font-black font-mono text-slate-900 text-xs md:text-sm">
+                                    ₹{{ rcpt.grand_total|floatformat:2 }}
+                                </td>
+                                <td class="py-3 px-4 font-semibold text-slate-600">
+                                    {{ rcpt.discount_reason|default:"--" }}
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase
+                                        {% if rcpt.payment_mode == 'cash' %}bg-amber-50 text-amber-700 border border-amber-200
+                                        {% elif rcpt.payment_mode == 'online' %}bg-blue-50 text-blue-700 border border-blue-200
+                                        {% else %}bg-purple-50 text-purple-700 border border-purple-200{% endif %}">
+                                        {{ rcpt.payment_mode_display }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center text-slate-500 font-mono text-[11px]">
+                                    {{ rcpt.payment_date|date:"d M, Y" }}
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <a href="{% url 'print_fee_receipt' rcpt.receipt_number %}" target="_blank" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition inline-flex items-center gap-1 shadow-xs">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        Print
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-10 text-center text-slate-400 italic">No recent transactions found for this institute.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- COURSE BREAKDOWN -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-8 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900 tracking-tight">Active Programs & Collections</h3>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Course-wise enrolled students and collected fee volume.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for c in course_stats %}
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 hover:border-blue-200 transition-all space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="font-bold text-slate-800 text-xs md:text-sm leading-snug">{{ c.course.name }}</h4>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[11px] font-black rounded-lg font-mono">
+                                {{ c.student_count }} Students
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 font-medium">
+                            <span class="text-slate-500">Collected Fees:</span>
+                            <span class="font-black font-mono text-emerald-600">₹{{ c.total_paid|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-2 py-8 text-center text-slate-400 italic text-xs">
+                        No active courses or course enrollment data recorded yet.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: RECENT ADMISSIONS & INSTITUTE DETAILS (4 COLS) -->
+        <div class="lg:col-span-4 space-y-8">
+
+            <!-- RECENT ADMISSIONS FEED -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="text-base font-black text-slate-900 tracking-tight">Latest Admissions</h3>
+                        <p class="text-[11px] text-slate-400 font-medium">Recently registered candidates</p>
+                    </div>
+                    <a href="{% url 'admission_list' %}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">View All</a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for adm in recent_admissions %}
+                    <div class="flex items-center gap-3 p-3 bg-slate-50/70 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs">
+                            {{ adm.application.display_name|slice:":1"|upper }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-slate-900 text-xs truncate">{{ adm.application.display_name }}</h4>
+                            <p class="text-[11px] text-slate-500 truncate font-medium">{{ adm.selected_course.name }}</p>
+                            <span class="text-[10px] font-mono text-slate-400">Reg: {{ adm.registration_id }}</span>
+                        </div>
+                        <div>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if adm.status == 'active' %}bg-emerald-100 text-emerald-800
+                                {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                {{ adm.status }}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-slate-400 italic text-xs">
+                        No recent student registrations.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- INSTITUTE SUMMARY CARD -->
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-xl space-y-4">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center font-black text-xl text-white">
+                        {{ institute.code|slice:":2"|upper }}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">{{ institute.name }}</h4>
+                        <span class="text-xs text-blue-200 font-mono">Code: {{ institute.code }}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs text-slate-300">
+                    {% if institute.email %}
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <span class="truncate">{{ institute.email }}</span>
+                    </div>
+                    {% endif %}
+                    {% if institute.phone %}
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                        <span>{{ institute.phone }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="pt-2 border-t border-white/10">
+                    <p class="text-[11px] text-slate-400">
+                        Switching active institute dynamically switches all metrics on this dashboard automatically.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -413,6 +413,8 @@ class StudentFeePayment(models.Model):
     fee_head = models.ForeignKey(FeeHead, on_delete=models.PROTECT, related_name='payments')
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
     fine_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Discount / Concession applied on this transaction")
+    discount_reason = models.CharField(max_length=255, blank=True, null=True, help_text="Reason for discount concession")
     payment_date = models.DateField(default=datetime.date.today)
     payment_mode = models.CharField(
         max_length=50, 
@@ -426,6 +428,17 @@ class StudentFeePayment(models.Model):
     cancellation_reason = models.TextField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def display_discount_reason(self):
+        if self.discount_reason:
+            return self.discount_reason
+        if self.admission and self.admission.discount_reason:
+            return self.admission.discount_reason
+        if self.remarks and '[Discount:' in self.remarks:
+            return self.remarks
+        return "-"
+
     class Meta:
         verbose_name = "Student Fee Payment"
         verbose_name_plural = "Student Fee Payments"

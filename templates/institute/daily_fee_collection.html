@@ -180,6 +180,7 @@
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Class Year / Sem</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Particulars / Fee Type</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4">Mode & Ref</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4">Reason of Discount</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">Amount Paid</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Action</th>
                     </tr>
@@ -220,6 +221,9 @@
                             <span class="capitalize font-bold text-slate-800 block">{{ r.payment_mode }}</span>
                             <span class="text-xs font-mono text-slate-500">{{ r.reference_no|default:"--" }}</span>
                         </td>
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4">
+                            <span class="text-xs text-slate-700 font-semibold">{{ r.discount_reason|default:"--" }}</span>
+                        </td>
                         <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-right">
                             <div class="{% if r.is_cancelled %}text-red-600 line-through font-mono font-black text-sm{% else %}font-mono font-black text-sm text-emerald-600{% endif %}">
                                 ₹{{ r.grand_total|floatformat:2 }}
@@ -255,7 +259,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if user.is_superuser or user_privileges.perm_delete_fee_collection %}9{% else %}8{% endif %}" class="py-12 text-center text-slate-400">
+                        <td colspan="{% if user.is_superuser or user_privileges.perm_delete_fee_collection %}10{% else %}9{% endif %}" class="py-12 text-center text-slate-400">
                             <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             <p class="font-bold">No collection records found for the selected criteria.</p>
                         </td>

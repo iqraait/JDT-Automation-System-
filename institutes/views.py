@@ -1280,12 +1280,16 @@ def register_manual(request):
 # =========================
 def root_institute_view(request):
     if request.user.is_authenticated and (getattr(request.user, 'role', '') == 'institute' or hasattr(request.user, 'institute')):
+        if hasattr(request.user, 'has_privilege') and request.user.has_privilege('perm_admin_dashboard'):
+            return redirect('admin_overall_dashboard')
         return redirect('/institute/dashboard/')
     return redirect('/institute/login/')
 
 
 def institute_login(request):
     if request.user.is_authenticated and getattr(request.user, 'role', '') == 'institute':
+        if hasattr(request.user, 'has_privilege') and request.user.has_privilege('perm_admin_dashboard'):
+            return redirect('admin_overall_dashboard')
         return redirect('/institute/dashboard/')
 
     if request.method == 'POST':
@@ -1305,6 +1309,8 @@ def institute_login(request):
                 return redirect('/institute/login/')
 
             login(request, user)
+            if hasattr(user, 'has_privilege') and user.has_privilege('perm_admin_dashboard'):
+                return redirect('admin_overall_dashboard')
             return redirect('/institute/dashboard/')
 
         else:
@@ -2205,6 +2211,158 @@ def institute_register(request):
         return redirect('/institute/login/')
 
     return render(request, 'institute/register.html')
+
+
+# =========================
+# OVERALL ADMINISTRATION DASHBOARD (PRIVILEGE-BASED)
+# =========================
+@login_required
+def admin_overall_dashboard(request):
+    """
+    Overall Administration Dashboard per active institute.
+    Privilege-based: Accessible only if perm_admin_dashboard is True or superuser.
+    """
+    if not (request.user.is_superuser or (hasattr(request.user, 'has_privilege') and request.user.has_privilege('perm_admin_dashboard'))):
+        messages.error(request, "You do not have privilege to access the Administration Dashboard.")
+        return redirect('/institute/dashboard/')
+
+    institute = get_current_institute(request)
+    if not institute:
+        if request.user.is_staff or request.user.is_superuser:
+            institute = Institute.objects.first()
+        else:
+            return redirect('/institute/register/')
+    if not institute:
+        return redirect('/')
+
+    # Active Academic Year Filter
+    active_year_id = clean_id_param(request.GET.get('academic_year_id'))
+    academic_years = AcademicYear.objects.filter(institute=institute).order_by('-is_active', '-name')
+    active_year = None
+    if active_year_id:
+        active_year = academic_years.filter(id=active_year_id).first()
+    if not active_year:
+        active_year = academic_years.filter(is_active=True).first() or academic_years.first()
+
+    today = timezone.now().date()
+
+    # 1. Student / Admissions Metrics
+    admissions_base = Admission.objects.filter(application__institute=institute)
+    if active_year:
+        admissions_base = admissions_base.filter(application__academic_year=active_year)
+
+    total_active_students = admissions_base.filter(status='active').count()
+    total_warned_students = admissions_base.filter(status='warned').count()
+    total_suspended_students = admissions_base.filter(status='suspended').count()
+
+    apps_base = Application.objects.filter(institute=institute)
+    if active_year:
+        apps_base = apps_base.filter(academic_year=active_year)
+    total_applications = apps_base.count()
+    total_admitted_apps = apps_base.filter(status='admitted').count()
+    total_pending_apps = apps_base.filter(status='pending').count()
+    total_verified_apps = apps_base.filter(status__in=['selected', 'verified']).count()
+
+    # 2. Academics & Courses
+    active_courses = Course.objects.filter(institute=institute, is_active=True).order_by('name')
+    total_courses_count = active_courses.count()
+    total_classes_count = Class.objects.filter(course__institute=institute).count()
+
+    # 3. Financial Collections
+    from django.db.models import Sum
+    payments_base = StudentFeePayment.objects.filter(
+        admission__application__institute=institute,
+        is_cancelled=False
+    )
+    if active_year:
+        payments_base = payments_base.filter(admission__application__academic_year=active_year)
+
+    # Today's Collections
+    today_payments = payments_base.filter(payment_date=today)
+    today_fee = today_payments.aggregate(total=Sum('amount_paid'))['total'] or 0.0
+    today_fine = today_payments.aggregate(total=Sum('fine_paid'))['total'] or 0.0
+    today_collection_total = float(today_fee) + float(today_fine)
+    today_transactions_count = today_payments.values('receipt_number').distinct().count()
+
+    # Total Overall Collected
+    total_fee_collected = payments_base.aggregate(total=Sum('amount_paid'))['total'] or 0.0
+    total_fine_collected = payments_base.aggregate(total=Sum('fine_paid'))['total'] or 0.0
+    total_collection_grand = float(total_fee_collected) + float(total_fine_collected)
+
+    # Total Discounts Granted
+    total_discounts_granted = admissions_base.aggregate(total=Sum('discount_amount'))['total'] or 0.0
+
+    # Total Outstanding Dues across active students
+    total_outstanding_dues = 0.0
+    for adm in admissions_base.filter(status='active').select_related(
+        'assigned_class', 'assigned_class_year', 'assigned_fee_category', 'selected_course', 'application__academic_year'
+    ):
+        active_cls = adm.assigned_class or (adm.assigned_class_year.class_obj if adm.assigned_class_year else None)
+        if active_cls and adm.assigned_class_year and adm.assigned_fee_category and adm.application:
+            fs = FeeStructure.objects.filter(
+                academic_year=adm.application.academic_year,
+                institute=institute,
+                course=adm.selected_course,
+                class_obj=active_cls,
+                class_year=adm.assigned_class_year,
+                fee_category=adm.assigned_fee_category
+            ).first()
+            if fs:
+                for head in fs.heads.filter(is_active=True):
+                    discount_pct = adm.custom_discount_percentage if adm.custom_discount_percentage is not None else adm.assigned_fee_category.discount_percentage
+                    disc_amount = float(head.amount) * (1 - float(discount_pct or 0) / 100)
+                    paid = StudentFeePayment.objects.filter(admission=adm, fee_head=head, is_cancelled=False).aggregate(t=Sum('amount_paid'))['t'] or 0.0
+                    pending = max(0.0, disc_amount - float(paid))
+                    total_outstanding_dues += pending
+
+    # 4. Recent Collections Feed (latest receipts)
+    recent_payments_qs = StudentFeePayment.objects.filter(
+        admission__application__institute=institute
+    ).select_related(
+        'admission', 'admission__application', 'admission__application__student',
+        'admission__selected_course', 'admission__assigned_class', 'fee_head__fee_type'
+    ).order_by('-created_at', '-id')[:30]
+    recent_receipts = group_payments_by_receipt(recent_payments_qs)[:8]
+
+    # 5. Recent Admissions (latest 6 students)
+    recent_admissions = admissions_base.select_related(
+        'application', 'application__student', 'selected_course', 'assigned_class', 'assigned_class_year'
+    ).order_by('-created_at')[:6]
+
+    # 6. Course-wise Breakdown
+    course_stats = []
+    for c in active_courses[:8]:
+        c_students = admissions_base.filter(selected_course=c, status='active').count()
+        c_paid = payments_base.filter(admission__selected_course=c).aggregate(t=Sum('amount_paid'))['t'] or 0.0
+        course_stats.append({
+            'course': c,
+            'student_count': c_students,
+            'total_paid': float(c_paid)
+        })
+
+    return render(request, 'institute/admin_overall_dashboard.html', {
+        'institute': institute,
+        'academic_years': academic_years,
+        'active_year': active_year,
+        'today': today,
+        'total_active_students': total_active_students,
+        'total_warned_students': total_warned_students,
+        'total_suspended_students': total_suspended_students,
+        'total_applications': total_applications,
+        'total_admitted_apps': total_admitted_apps,
+        'total_pending_apps': total_pending_apps,
+        'total_verified_apps': total_verified_apps,
+        'total_courses_count': total_courses_count,
+        'total_classes_count': total_classes_count,
+        'today_collection_total': today_collection_total,
+        'today_transactions_count': today_transactions_count,
+        'total_collection_grand': total_collection_grand,
+        'total_discounts_granted': float(total_discounts_granted),
+        'total_outstanding_dues': total_outstanding_dues,
+        'recent_receipts': recent_receipts,
+        'recent_admissions': recent_admissions,
+        'course_stats': course_stats,
+    })
 
 
 # =========================
@@ -4068,6 +4226,7 @@ def group_payments_by_receipt(payments_qs):
                 'total_amount_paid': 0.0,
                 'total_fine_paid': 0.0,
                 'discount_amount': 0.0,
+                'discount_reason': getattr(payment, 'discount_reason', '') or getattr(payment.admission, 'discount_reason', '') or '',
                 'grand_total': 0.0,
             }
             receipt_order.append(rcpt_id)
@@ -4080,13 +4239,20 @@ def group_payments_by_receipt(payments_qs):
 
         g['payments'].append(payment)
         fee_name = payment.fee_head.fee_type.name
-        p_disc = 0.0
-        if payment.remarks and '[Discount: ' in payment.remarks:
+        p_disc = float(getattr(payment, 'discount_amount', 0.0) or 0.0)
+        if p_disc == 0.0 and payment.remarks and '[Discount: ' in payment.remarks:
             try:
                 p_disc = float(payment.remarks.split('[Discount: ')[1].split(']')[0])
             except Exception:
                 p_disc = 0.0
         g['discount_amount'] += p_disc
+
+        p_reason = getattr(payment, 'discount_reason', '') or ''
+        if not p_reason and hasattr(payment, 'display_discount_reason'):
+            p_reason = payment.display_discount_reason
+        if p_reason and p_reason != '-' and not g.get('discount_reason'):
+            g['discount_reason'] = p_reason
+
         if payment.reference_no != 'ROLLOVER-DEMAND' or (float(payment.amount_paid) > 0 or float(payment.fine_paid) > 0):
             g['fee_items'].append({
                 'name': fee_name,
@@ -4113,6 +4279,11 @@ def group_payments_by_receipt(payments_qs):
                 'total': float(g['payments'][0].amount_paid) + float(g['payments'][0].fine_paid)
             })
         g['fee_types_str'] = ", ".join(item['name'] for item in g['fee_items'])
+        if not g.get('discount_reason'):
+            if g.get('discount_amount', 0) > 0 and g.get('admission') and getattr(g['admission'], 'discount_reason', None):
+                g['discount_reason'] = g['admission'].discount_reason
+            else:
+                g['discount_reason'] = '--'
         grouped_list.append(g)
         
     return grouped_list
@@ -4793,6 +4964,7 @@ def collect_student_fee(request, admission_id, head_id):
         payment_date_str = request.POST.get('payment_date', '').strip()
         manual_rcpt_no = request.POST.get('manual_receipt_no', '').strip()
         discount_amount = request.POST.get('discount_amount', 0)
+        discount_reason = request.POST.get('discount_reason', '').strip()
         
         try:
             amt_val = float(amount_paid) if amount_paid else 0.0
@@ -4810,9 +4982,12 @@ def collect_student_fee(request, admission_id, head_id):
             else:
                 p_date = datetime.date.today()
                 
-            if disc_val > 0:
-                remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
-                admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+            if disc_val > 0 or discount_reason:
+                if disc_val > 0:
+                    remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
+                    admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+                if discount_reason:
+                    admission.discount_reason = discount_reason
                 admission.save()
             
             StudentFeePayment.objects.create(
@@ -4820,6 +4995,8 @@ def collect_student_fee(request, admission_id, head_id):
                 fee_head=head,
                 amount_paid=amt_val,
                 fine_paid=fine_val,
+                discount_amount=disc_val,
+                discount_reason=discount_reason or (admission.discount_reason if disc_val > 0 else ""),
                 payment_mode=payment_mode,
                 reference_no=reference_no,
                 receipt_number=rcpt_no,
@@ -5834,6 +6011,7 @@ def collect_multiple_fees(request, admission_id):
         payment_date_str = request.POST.get('payment_date', '').strip()
         manual_rcpt_no = request.POST.get('manual_receipt_no', '').strip()
         discount_amount = request.POST.get('discount_amount', 0)
+        discount_reason = request.POST.get('discount_reason', '').strip()
         
         if not head_ids:
             messages.error(request, "No fee heads were selected for collection.")
@@ -5869,9 +6047,12 @@ def collect_multiple_fees(request, admission_id):
                     rcpt_no = manual_rcpt_no if manual_rcpt_no else generate_receipt_number(inst)
                     heads = structure.heads.filter(id__in=head_ids, is_active=True)
                     
-                    if disc_val > 0:
-                        remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
-                        admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+                    if disc_val > 0 or discount_reason:
+                        if disc_val > 0:
+                            remarks = f"{remarks} [Discount: {disc_val:.2f}]".strip()
+                            admission.discount_amount = float(admission.discount_amount or 0.0) + disc_val
+                        if discount_reason:
+                            admission.discount_reason = discount_reason
                         admission.save()
                     
                     for head in heads:
@@ -5920,6 +6101,8 @@ def collect_multiple_fees(request, admission_id):
                                     fee_head=head,
                                     amount_paid=amt_val,
                                     fine_paid=fine_val,
+                                    discount_amount=disc_val if success_count == 0 else 0.0,
+                                    discount_reason=discount_reason or (admission.discount_reason if disc_val > 0 else ""),
                                     payment_mode=payment_mode,
                                     reference_no=reference_no,
                                     receipt_number=rcpt_no,
@@ -6039,7 +6222,7 @@ def export_fee_reports_excel(request):
     
     if report_type == 'audit':
         ws.title = "Collection Audit Log"
-        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Heads', 'Amount Paid', 'Discount Concession', 'Penalty Paid', 'Mode', 'Reference No']
+        headers = ['Receipt ID', 'Date', 'Candidate Name', 'Register No', 'Demanded Heads', 'Amount Paid', 'Discount Concession', 'Reason of Discount', 'Penalty Paid', 'Mode', 'Reference No']
         ws.append(headers)
         
         grouped_audit = group_payments_by_receipt(ledger_payments)
@@ -6052,6 +6235,7 @@ def export_fee_reports_excel(request):
                 p['fee_types_str'],
                 float(p['total_amount_paid']),
                 float(p.get('discount_amount', 0.0)),
+                p.get('discount_reason') or '-',
                 float(p['total_fine_paid']),
                 p['payment_mode_display'],
                 p['reference_no'] or '-'
@@ -6064,7 +6248,7 @@ def export_fee_reports_excel(request):
         else:
             ws.title = "Entire Fee Report"
             
-        headers = ['Register No', 'Student Name', 'Term & Class', 'Fee Category', 'Net Demand', 'Discount Concession', 'Paid Fees', 'Fines Collected', 'Pending Balance', 'Past Year Dues']
+        headers = ['Register No', 'Student Name', 'Term & Class', 'Fee Category', 'Net Demand', 'Discount Concession', 'Reason of Discount', 'Paid Fees', 'Fines Collected', 'Pending Balance', 'Past Year Dues']
         ws.append(headers)
         
         for adm in admissions:
@@ -6148,6 +6332,7 @@ def export_fee_reports_excel(request):
                         adm.assigned_fee_category.name,
                         std_demand,
                         std_discount,
+                        adm.discount_reason or '-',
                         std_collected,
                         std_fines,
                         pending_fee,
@@ -6749,6 +6934,7 @@ def employee_privileges_view(request):
 
         # 3. Update Module Privileges
         perm_fields = [
+            'perm_admin_dashboard',
             'perm_admissions_overview', 'perm_student_registration', 'perm_student_list', 'perm_rank_list',
             'perm_attendance', 'perm_notices', 'perm_timetables', 'perm_academic_results', 'perm_course_inventory',
             'perm_fee_reports', 'perm_fee_receipts', 'perm_payment_details', 'perm_delete_fee_collection',

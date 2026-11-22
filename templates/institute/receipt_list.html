@@ -129,6 +129,7 @@
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-left">Student Details</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-left">Fee Particulars</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-right font-mono">Amount</th>
+                        <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-left">Reason of Discount</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Mode</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Status</th>
                         <th class="py-3 px-3.5 md:py-3.5 md:px-4 text-center">Actions</th>
@@ -174,6 +175,11 @@
                             {% if rcpt.total_fine_paid > 0 %}
                                 <span class="text-[11px] font-bold text-amber-600 block">(incl. ₹{{ rcpt.total_fine_paid|floatformat:2 }} fine)</span>
                             {% endif %}
+                        </td>
+
+                        <!-- Reason of Discount -->
+                        <td class="py-3 px-3.5 md:py-3.5 md:px-4 text-left font-semibold text-slate-700">
+                            {{ rcpt.discount_reason|default:"--" }}
                         </td>
 
                         <!-- Payment Mode -->
@@ -238,7 +244,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if user.is_superuser or user_privileges.perm_delete_fee_collection %}9{% else %}8{% endif %}" class="px-8 py-16 text-center text-slate-400 italic">
+                        <td colspan="{% if user.is_superuser or user_privileges.perm_delete_fee_collection %}10{% else %}9{% endif %}" class="px-8 py-16 text-center text-slate-400 italic">
                             No receipts found matching your current filter criteria.
                         </td>
                     </tr>
