@@ -249,7 +249,7 @@
                             <div class="flex items-start gap-3">
                                 {% if item.total_pending > 0 %}
                                 <div class="pt-0.5">
-                                    <input type="checkbox" name="selected_heads" value="{{ item.head.id }}" data-name="{{ item.head.fee_type.name }}" data-pending-fee="{{ item.pending_fee }}" data-pending-fine="{{ item.pending_fine }}" onchange="onHeadCheckboxChange()" class="head-checkbox w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
+                                    <input type="checkbox" name="selected_heads" value="{{ item.head.id }}" data-name="{{ item.head.fee_type.name }}" data-pending-fee="{{ item.pending_fee }}" data-pending-fine="{{ item.pending_fine }}" data-fine-included="1" onchange="onHeadCheckboxChange()" class="head-checkbox w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
                                 </div>
                                 {% endif %}
                                 <div>
@@ -300,8 +300,21 @@
 
                         {% if item.pending_fine > 0 or item.paid_fine > 0 %}
                         <!-- Overdue Fine Metrics -->
-                        <div class="p-3 bg-amber-50/60 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center justify-between">
-                            <span class="font-bold uppercase tracking-wider text-xs text-amber-700">Overdue Fine penalty:</span>
+                        <div class="p-3 bg-amber-50/60 border border-amber-200 text-amber-900 rounded-xl text-xs flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5">
+                                {% if item.pending_fine > 0 %}
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox" id="fine_toggle_{{ item.head.id }}" checked
+                                        onchange="toggleHeadFine({{ item.head.id }}, {{ item.pending_fee }}, {{ item.pending_fine }})"
+                                        class="w-4 h-4 rounded text-blue-600 border-amber-300 focus:ring-blue-500 cursor-pointer">
+                                    <span class="font-bold uppercase tracking-wider text-xs text-amber-800">Overdue Fine penalty:</span>
+                                </label>
+                                <span id="fine_badge_{{ item.head.id }}" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">Included in Collection</span>
+                                {% else %}
+                                <span class="font-bold uppercase tracking-wider text-xs text-amber-700">Overdue Fine penalty:</span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Settled</span>
+                                {% endif %}
+                            </div>
                             <div class="flex items-center gap-4 font-mono font-bold text-xs">
                                 <span>Demanded: ₹{{ item.fine_amount|floatformat:2 }}</span>
                                 <span class="text-emerald-700">Paid: ₹{{ item.paid_fine|floatformat:2 }}</span>
@@ -314,7 +327,8 @@
                         {% if item.total_pending > 0 %}
                         <div class="flex items-center justify-end">
                             <button type="button" 
-                                onclick="openPaymentModal({{ item.head.id }}, '{{ item.head.fee_type.name }}', {{ item.pending_fee }}, {{ item.pending_fine }})" 
+                                id="btn_collect_{{ item.head.id }}"
+                                onclick="openPaymentModalWithCheck({{ item.head.id }}, '{{ item.head.fee_type.name|escapejs }}', {{ item.pending_fee }}, {{ item.pending_fine }})" 
                                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                 Record Collection
@@ -439,6 +453,7 @@
 
         <form id="paymentForm" method="POST" action="" class="space-y-6">
             {% csrf_token %}
+            <input type="hidden" name="include_fine" id="modalIncludeFineHidden" value="1">
             
             <!-- Type Selector: Full vs Partial -->
             <div class="grid grid-cols-2 gap-4">
@@ -465,7 +480,14 @@
                     </div>
                 </div>
                 <div class="space-y-2">
-                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Collecting Fine</label>
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Collecting Fine</label>
+                        <label id="modalFineToggleWrapper" class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                            <input type="checkbox" id="modalFineCheckbox" checked onchange="toggleModalFine(this.checked)"
+                                class="w-3.5 h-3.5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                            <span class="text-[11px] font-bold text-slate-600">Take Fine</span>
+                        </label>
+                    </div>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
                         <input type="number" step="0.01" name="fine_paid" id="modalFineInput" required
@@ -683,8 +705,11 @@
         checkboxes.forEach(cb => {
             if (cb.checked) {
                 checkedCount++;
+                const headId = cb.value;
                 const pendingFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
-                const pendingFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
+                const cardToggle = document.getElementById('fine_toggle_' + headId);
+                const fineIncluded = cardToggle ? cardToggle.checked : (cb.getAttribute('data-fine-included') !== '0');
+                const pendingFine = fineIncluded ? (parseFloat(cb.getAttribute('data-pending-fine')) || 0.0) : 0.0;
                 totalDues += (pendingFee + pendingFine);
             } else {
                 totalUnchecked++;
@@ -716,6 +741,29 @@
         }
     }
 
+    function toggleHeadFine(headId, pendingFee, pendingFine) {
+        const toggle = document.getElementById('fine_toggle_' + headId);
+        const badge = document.getElementById('fine_badge_' + headId);
+        const isChecked = toggle ? toggle.checked : true;
+        
+        if (badge) {
+            if (isChecked) {
+                badge.innerText = 'Included in Collection';
+                badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800';
+            } else {
+                badge.innerText = 'Excluded from Collection';
+                badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800';
+            }
+        }
+        
+        const headCb = document.querySelector('.head-checkbox[value="' + headId + '"]');
+        if (headCb) {
+            headCb.setAttribute('data-fine-included', isChecked ? '1' : '0');
+        }
+        
+        onHeadCheckboxChange();
+    }
+
     function openBulkPaymentModal() {
         const checkboxes = document.querySelectorAll('.head-checkbox:checked');
         const container = document.getElementById('bulkHeadIdsContainer');
@@ -729,7 +777,10 @@
             const headName = cb.getAttribute('data-name');
             const pendingFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
             const pendingFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
-            const totalHeadDue = pendingFee + pendingFine;
+            const cardToggle = document.getElementById('fine_toggle_' + headId);
+            const fineIncluded = (pendingFine > 0) ? (cardToggle ? cardToggle.checked : (cb.getAttribute('data-fine-included') !== '0')) : false;
+            const effectiveFine = fineIncluded ? pendingFine : 0.0;
+            const totalHeadDue = pendingFee + effectiveFine;
             
             // Append hidden input for POST submission
             const input = document.createElement('input');
@@ -738,23 +789,46 @@
             input.value = headId;
             container.appendChild(input);
             
-            // Append list item markup with editable partial amount input
+            // Append hidden input for include_fine_${headId}
+            const hiddenFine = document.createElement('input');
+            hiddenFine.type = 'hidden';
+            hiddenFine.name = `include_fine_${headId}`;
+            hiddenFine.id = `bulk_hidden_include_fine_${headId}`;
+            hiddenFine.value = fineIncluded ? '1' : '0';
+            container.appendChild(hiddenFine);
+            
+            // Append list item markup with editable partial amount input and fine toggle if fine exists
             const itemDiv = document.createElement('div');
-            itemDiv.className = "flex items-center justify-between gap-3 py-2";
+            itemDiv.className = "p-3 bg-white border border-slate-200/80 rounded-2xl space-y-2";
             itemDiv.innerHTML = `
-                <div class="flex-1 min-w-0 pr-2">
-                    <span class="font-bold text-slate-800 uppercase tracking-wide text-xs block truncate" title="${headName}">${headName}</span>
-                    <span class="text-[10px] text-slate-400 font-semibold block">Max Due: ₹${totalHeadDue.toFixed(2)}</span>
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex-1 min-w-0 pr-2">
+                        <span class="font-bold text-slate-800 uppercase tracking-wide text-xs block truncate" title="${headName}">${headName}</span>
+                        <span class="text-[10px] text-slate-400 font-semibold block" id="bulk_head_max_label_${headId}">Max Due: ₹${totalHeadDue.toFixed(2)}</span>
+                    </div>
+                    <div class="relative w-36 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
+                        <input type="number" step="0.01" min="0" max="${totalHeadDue.toFixed(2)}"
+                               name="head_amount_${headId}" id="head_amt_${headId}"
+                               data-head-id="${headId}" data-max-total="${totalHeadDue}" data-max-fee="${pendingFee}" data-max-fine="${pendingFine}"
+                               value="${totalHeadDue.toFixed(2)}"
+                               class="bulk-head-amount-input w-full bg-white border-2 border-slate-200 text-slate-800 pl-7 pr-3 py-1.5 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition outline-none font-bold font-mono text-xs text-right shadow-xs"
+                               oninput="recalculateBulkModalTotals()">
+                    </div>
                 </div>
-                <div class="relative w-36 shrink-0">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
-                    <input type="number" step="0.01" min="0" max="${totalHeadDue.toFixed(2)}"
-                           name="head_amount_${headId}" id="head_amt_${headId}"
-                           data-head-id="${headId}" data-max-total="${totalHeadDue}" data-max-fee="${pendingFee}" data-max-fine="${pendingFine}"
-                           value="${totalHeadDue.toFixed(2)}"
-                           class="bulk-head-amount-input w-full bg-white border-2 border-slate-200 text-slate-800 pl-7 pr-3 py-1.5 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition outline-none font-bold font-mono text-xs text-right shadow-xs"
-                           oninput="recalculateBulkModalTotals()">
+                ${pendingFine > 0 ? `
+                <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" id="bulk_fine_toggle_${headId}" ${fineIncluded ? 'checked' : ''}
+                               onchange="onBulkFineToggle(${headId})"
+                               class="w-3.5 h-3.5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                        <span class="font-bold text-amber-800 text-[11px]">Include Overdue Fine Penalty (₹${pendingFine.toFixed(2)})</span>
+                    </label>
+                    <span id="bulk_fine_status_${headId}" class="text-[10px] font-bold px-1.5 py-0.2 rounded ${fineIncluded ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}">
+                        ${fineIncluded ? 'Included' : 'Excluded'}
+                    </span>
                 </div>
+                ` : ''}
             `;
             listDiv.appendChild(itemDiv);
         });
@@ -769,16 +843,59 @@
         document.getElementById('bulkPaymentModal').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 overflow-y-auto";
     }
 
+    function onBulkFineToggle(headId) {
+        const toggle = document.getElementById('bulk_fine_toggle_' + headId);
+        const isChecked = toggle ? toggle.checked : true;
+        const hiddenInp = document.getElementById('bulk_hidden_include_fine_' + headId);
+        if (hiddenInp) hiddenInp.value = isChecked ? '1' : '0';
+        
+        const statusSpan = document.getElementById('bulk_fine_status_' + headId);
+        if (statusSpan) {
+            statusSpan.innerText = isChecked ? 'Included' : 'Excluded';
+            statusSpan.className = `text-[10px] font-bold px-1.5 py-0.2 rounded ${isChecked ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`;
+        }
+        
+        // Sync back to ledger card toggle
+        const cardToggle = document.getElementById('fine_toggle_' + headId);
+        if (cardToggle && cardToggle.checked !== isChecked) {
+            cardToggle.checked = isChecked;
+            const cb = document.querySelector('.head-checkbox[value="' + headId + '"]');
+            if (cb) {
+                const pFee = parseFloat(cb.getAttribute('data-pending-fee')) || 0.0;
+                const pFine = parseFloat(cb.getAttribute('data-pending-fine')) || 0.0;
+                toggleHeadFine(headId, pFee, pFine);
+            }
+        }
+        
+        const amtInput = document.getElementById('head_amt_' + headId);
+        if (amtInput) {
+            const maxFee = parseFloat(amtInput.getAttribute('data-max-fee')) || 0.0;
+            const maxFine = parseFloat(amtInput.getAttribute('data-max-fine')) || 0.0;
+            const newMax = isChecked ? (maxFee + maxFine) : maxFee;
+            amtInput.setAttribute('data-max-total', newMax);
+            amtInput.max = newMax.toFixed(2);
+            amtInput.value = newMax.toFixed(2);
+            const maxLabel = document.getElementById('bulk_head_max_label_' + headId);
+            if (maxLabel) maxLabel.innerText = `Max Due: ₹${newMax.toFixed(2)}`;
+        }
+        
+        recalculateBulkModalTotals();
+    }
+
     function recalculateBulkModalTotals() {
         let totalCollected = 0.0;
         let feeSum = 0.0;
         let fineSum = 0.0;
         
         document.querySelectorAll('.bulk-head-amount-input').forEach(inp => {
+            const headId = inp.getAttribute('data-head-id');
+            const hiddenFine = document.getElementById('bulk_hidden_include_fine_' + headId);
+            const isFineIncluded = !hiddenFine || hiddenFine.value !== '0';
+            
             let val = parseFloat(inp.value);
             if (isNaN(val) || val < 0) val = 0.0;
             const maxTotal = parseFloat(inp.getAttribute('data-max-total')) || 0.0;
-            const maxFine = parseFloat(inp.getAttribute('data-max-fine')) || 0.0;
+            const maxFine = isFineIncluded ? (parseFloat(inp.getAttribute('data-max-fine')) || 0.0) : 0.0;
             const maxFee = parseFloat(inp.getAttribute('data-max-fee')) || 0.0;
             
             if (val > maxTotal) {
@@ -808,14 +925,46 @@
 
     let maxPendingFee = 0.0;
     let maxPendingFine = 0.0;
+    let currentHeadId = null;
+    let currentFineIncluded = true;
     let selectedType = 'full';
 
-    function openPaymentModal(headId, headName, pendingFee, pendingFine) {
+    function openPaymentModalWithCheck(headId, headName, pendingFee, pendingFine) {
+        const cardToggle = document.getElementById('fine_toggle_' + headId);
+        const fineIncluded = cardToggle ? cardToggle.checked : true;
+        openPaymentModal(headId, headName, pendingFee, pendingFine, fineIncluded);
+    }
+
+    function openPaymentModal(headId, headName, pendingFee, pendingFine, fineIncluded = true) {
+        currentHeadId = headId;
         maxPendingFee = parseFloat(pendingFee) || 0.0;
         maxPendingFine = parseFloat(pendingFine) || 0.0;
+        currentFineIncluded = (maxPendingFine > 0) ? Boolean(fineIncluded) : false;
         
         document.getElementById('modalTitle').innerText = `Record: ${headName}`;
-        document.getElementById('fullAmtLabel').innerText = `₹${(maxPendingFee + maxPendingFine).toFixed(2)}`;
+        
+        const fineToggleWrapper = document.getElementById('modalFineToggleWrapper');
+        const fineCheckbox = document.getElementById('modalFineCheckbox');
+        const hiddenFine = document.getElementById('modalIncludeFineHidden');
+        
+        if (maxPendingFine > 0) {
+            if (fineToggleWrapper) fineToggleWrapper.style.display = 'inline-flex';
+            if (fineCheckbox) {
+                fineCheckbox.checked = currentFineIncluded;
+                fineCheckbox.disabled = false;
+            }
+            if (hiddenFine) hiddenFine.value = currentFineIncluded ? '1' : '0';
+        } else {
+            if (fineToggleWrapper) fineToggleWrapper.style.display = 'none';
+            if (fineCheckbox) {
+                fineCheckbox.checked = false;
+                fineCheckbox.disabled = true;
+            }
+            if (hiddenFine) hiddenFine.value = '0';
+            currentFineIncluded = false;
+        }
+        
+        updateModalLabelsAndAmounts();
         
         const discountInput = document.getElementById('modalDiscountInput');
         if (discountInput) discountInput.value = '0.00';
@@ -829,6 +978,50 @@
         document.getElementById('paymentModal').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 overflow-y-auto";
     }
 
+    function toggleModalFine(isChecked) {
+        currentFineIncluded = isChecked;
+        const hiddenFine = document.getElementById('modalIncludeFineHidden');
+        if (hiddenFine) hiddenFine.value = isChecked ? '1' : '0';
+        
+        // Sync back to fee card on the ledger
+        if (currentHeadId) {
+            const cardToggle = document.getElementById('fine_toggle_' + currentHeadId);
+            if (cardToggle && cardToggle.checked !== isChecked) {
+                cardToggle.checked = isChecked;
+                toggleHeadFine(currentHeadId, maxPendingFee, maxPendingFine);
+            }
+        }
+        
+        updateModalLabelsAndAmounts();
+        
+        const fineInput = document.getElementById('modalFineInput');
+        if (!isChecked) {
+            fineInput.value = '0.00';
+            fineInput.readOnly = true;
+            fineInput.classList.add('pointer-events-none', 'opacity-50');
+        } else {
+            fineInput.classList.remove('opacity-50');
+            if (selectedType === 'full') {
+                fineInput.value = maxPendingFine.toFixed(2);
+                fineInput.readOnly = true;
+                fineInput.classList.add('pointer-events-none');
+            } else {
+                fineInput.value = maxPendingFine.toFixed(2);
+                fineInput.readOnly = false;
+                fineInput.classList.remove('pointer-events-none');
+            }
+        }
+    }
+
+    function updateModalLabelsAndAmounts() {
+        const fullAmtLabel = document.getElementById('fullAmtLabel');
+        const effectiveFine = currentFineIncluded ? maxPendingFine : 0.0;
+        const totalFull = maxPendingFee + effectiveFine;
+        if (fullAmtLabel) {
+            fullAmtLabel.innerText = `₹${totalFull.toFixed(2)}`;
+        }
+    }
+
     function selectPayType(type) {
         selectedType = type;
         const fullBtn = document.getElementById('payFullBtn');
@@ -837,27 +1030,44 @@
         const fineInput = document.getElementById('modalFineInput');
         const discInp = document.getElementById('modalDiscountInput');
         
+        updateModalLabelsAndAmounts();
+        
         if (type === 'full') {
             fullBtn.className = "p-4 border-2 border-blue-600 bg-blue-600 text-white rounded-2xl transition-all font-black text-xs uppercase tracking-wider text-center flex flex-col items-center gap-1 shadow-lg shadow-blue-100";
             partialBtn.className = "p-4 border-2 border-slate-100 bg-slate-50 text-slate-500 rounded-2xl transition-all font-black text-xs uppercase tracking-wider text-center flex flex-col items-center gap-1 hover:border-blue-300";
             
             amtInput.value = maxPendingFee.toFixed(2);
-            fineInput.value = maxPendingFine.toFixed(2);
             amtInput.readOnly = true;
-            fineInput.readOnly = true;
             amtInput.classList.add('pointer-events-none', 'opacity-70');
-            fineInput.classList.add('pointer-events-none', 'opacity-70');
+            
+            if (currentFineIncluded && maxPendingFine > 0) {
+                fineInput.value = maxPendingFine.toFixed(2);
+                fineInput.readOnly = true;
+                fineInput.classList.add('pointer-events-none');
+                fineInput.classList.remove('opacity-50');
+            } else {
+                fineInput.value = '0.00';
+                fineInput.readOnly = true;
+                fineInput.classList.add('pointer-events-none', 'opacity-50');
+            }
         } else {
             fullBtn.className = "p-4 border-2 border-slate-100 bg-slate-50 text-slate-500 rounded-2xl transition-all font-black text-xs uppercase tracking-wider text-center flex flex-col items-center gap-1 hover:border-blue-300";
             partialBtn.className = "p-4 border-2 border-amber-500 bg-amber-500 text-white rounded-2xl transition-all font-black text-xs uppercase tracking-wider text-center flex flex-col items-center gap-1 shadow-lg shadow-amber-100";
             
             amtInput.readOnly = false;
-            fineInput.readOnly = false;
             amtInput.classList.remove('pointer-events-none', 'opacity-70');
-            fineInput.classList.remove('pointer-events-none', 'opacity-70');
-            
             amtInput.max = maxPendingFee;
-            fineInput.max = maxPendingFine;
+            
+            if (currentFineIncluded && maxPendingFine > 0) {
+                fineInput.readOnly = false;
+                fineInput.classList.remove('pointer-events-none', 'opacity-50');
+                fineInput.max = maxPendingFine;
+                fineInput.value = maxPendingFine.toFixed(2);
+            } else {
+                fineInput.value = '0.00';
+                fineInput.readOnly = true;
+                fineInput.classList.add('pointer-events-none', 'opacity-50');
+            }
             
             amtInput.oninput = () => {
                 let v = parseFloat(amtInput.value) || 0.0;

@@ -5054,6 +5054,7 @@ def collect_student_fee(request, admission_id, head_id):
     if request.method == 'POST':
         amount_paid = request.POST.get('amount_paid', 0)
         fine_paid = request.POST.get('fine_paid', 0)
+        include_fine = request.POST.get('include_fine', '1')
         payment_mode = request.POST.get('payment_mode', 'cash')
         reference_no = request.POST.get('reference_no', '')
         remarks = request.POST.get('remarks', '')
@@ -5064,8 +5065,12 @@ def collect_student_fee(request, admission_id, head_id):
         
         try:
             amt_val = float(amount_paid) if amount_paid else 0.0
-            fine_val = float(fine_paid) if fine_paid else 0.0
+            fine_val = float(fine_paid) if (fine_paid and include_fine != '0') else 0.0
             disc_val = float(discount_amount) if discount_amount else 0.0
+
+            if amt_val <= 0 and fine_val <= 0 and disc_val <= 0:
+                messages.warning(request, "No fee amount or fine was selected for collection.")
+                return redirect('manage_student_fees', admission_id=admission_id)
             
             inst = admission.application.institute if admission.application else admission.selected_course.institute
             rcpt_no = manual_rcpt_no if manual_rcpt_no else generate_receipt_number(inst)
@@ -6170,12 +6175,16 @@ def collect_multiple_fees(request, admission_id):
                         paid_fee = sum(float(p.amount_paid) for p in payments)
                         paid_fine = sum(float(p.fine_paid) for p in payments)
                         
-                        pending_fee = discounted_amount - paid_fee
-                        pending_fine = fine_amt - paid_fine if has_fine else 0.0
+                        pending_fee = max(0.0, discounted_amount - paid_fee)
+                        pending_fine = max(0.0, fine_amt - paid_fine) if has_fine else 0.0
                         
-                        if pending_fee > 0 or pending_fine > 0:
-                            max_head_due = max(0.0, pending_fee) + max(0.0, pending_fine)
-                            
+                        # Check if overdue fine penalty was checked or unchecked
+                        include_fine_str = request.POST.get(f'include_fine_{head.id}', '1')
+                        take_fine = (include_fine_str != '0')
+                        effective_pending_fine = pending_fine if take_fine else 0.0
+                        max_head_due = pending_fee + effective_pending_fine
+                        
+                        if pending_fee > 0 or effective_pending_fine > 0:
                             # Support Partial option for Bulk collection from editable head amount inputs
                             custom_amt_str = request.POST.get(f'head_amount_{head.id}')
                             if custom_amt_str is not None and str(custom_amt_str).strip() != '':
@@ -6189,8 +6198,8 @@ def collect_multiple_fees(request, admission_id):
                             head_target_amt = max(0.0, min(head_target_amt, max_head_due))
                             
                             if head_target_amt > 0:
-                                fine_val = min(max(0.0, pending_fine), head_target_amt)
-                                amt_val = min(max(0.0, pending_fee), head_target_amt - fine_val)
+                                fine_val = min(effective_pending_fine, head_target_amt)
+                                amt_val = min(pending_fee, head_target_amt - fine_val)
                                 
                                 StudentFeePayment.objects.create(
                                     admission=admission,
