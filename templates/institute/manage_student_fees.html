@@ -31,7 +31,7 @@
                 </select>
             </div>
             <span class="text-xs font-bold text-slate-600 uppercase tracking-wider px-3 py-1.5 bg-slate-100 rounded-xl font-mono border border-slate-200">
-                Reg No: {{ admission.register_number|default:admission.registration_id|default:"Not Active" }}
+                Admission No: {{ admission.registration_id|default:admission.register_number|default:"Not Active" }}
             </span>
         </div>
     </div>

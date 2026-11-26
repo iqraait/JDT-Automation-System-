@@ -200,10 +200,28 @@ def advance_date_by_years(orig_date, years=1):
 
 @admin.register(FeeStructure)
 class FeeStructureAdmin(admin.ModelAdmin):
-    list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category', 'duplicate_link']
-    list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category']
+    list_display = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category', 'auto_assign', 'duplicate_link']
+    list_filter = ['academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category', 'auto_assign']
     actions = ['duplicate_selected_fee_structures']
     inlines = [FeeHeadInline]
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        from django.contrib import messages
+        if obj.auto_assign and obj.class_obj:
+            count = obj.assign_to_class_students()
+            if count > 0:
+                self.message_user(
+                    request,
+                    f"Auto-assigned fee structure ({obj.class_year.name} - {obj.fee_category.name}) to {count} student(s) in {obj.class_obj.name}.",
+                    level=messages.SUCCESS
+                )
+            else:
+                self.message_user(
+                    request,
+                    f"Fee structure saved with Auto-Assign enabled, but no active student(s) found in {obj.class_obj.name} matching this criteria.",
+                    level=messages.WARNING
+                )
 
     def duplicate_link(self, obj):
         from django.utils.html import format_html
@@ -236,6 +254,12 @@ class FeeStructureAdmin(admin.ModelAdmin):
             class_obj = forms.ModelChoiceField(queryset=Class.objects.all(), label="Class")
             class_year = forms.ModelChoiceField(queryset=ClassYear.objects.all())
             fee_category = forms.ModelChoiceField(queryset=FeeCategoryMaster.objects.all())
+            auto_assign = forms.BooleanField(
+                required=False,
+                initial=False,
+                label="Auto Assign to Class Students",
+                help_text="If checked, automatically assigns this fee structure to all students in the selected class."
+            )
  
         if request.method == 'POST':
             form = DuplicateForm(request.POST)
@@ -246,6 +270,7 @@ class FeeStructureAdmin(admin.ModelAdmin):
                 class_obj = form.cleaned_data['class_obj']
                 class_year = form.cleaned_data['class_year']
                 fee_category = form.cleaned_data['fee_category']
+                auto_assign = form.cleaned_data.get('auto_assign', False)
  
                 # Check unique_together constraint
                 exists = FeeStructure.objects.filter(
@@ -266,8 +291,11 @@ class FeeStructureAdmin(admin.ModelAdmin):
                         course=course,
                         class_obj=class_obj,
                         class_year=class_year,
-                        fee_category=fee_category
+                        fee_category=fee_category,
+                        auto_assign=auto_assign
                     )
+                    if auto_assign:
+                        new_struct.assign_to_class_students()
                     # Copy FeeHead objects
                     for head in obj.heads.all():
                         FeeHead.objects.create(

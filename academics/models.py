@@ -385,6 +385,11 @@ class FeeStructure(models.Model):
     class_obj = models.ForeignKey('academics.Class', on_delete=models.CASCADE, related_name='fee_structures')
     class_year = models.ForeignKey(ClassYear, on_delete=models.CASCADE, related_name='fee_structures')
     fee_category = models.ForeignKey(FeeCategoryMaster, on_delete=models.CASCADE, related_name='fee_structures')
+    auto_assign = models.BooleanField(
+        default=False,
+        verbose_name="Auto Assign to Class Students",
+        help_text="If checked, automatically assigns this fee structure to all students in the selected class. If unchecked (default), fee structure must be assigned individually under Student Fee Ledger."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
@@ -393,6 +398,33 @@ class FeeStructure(models.Model):
         unique_together = ('academic_year', 'institute', 'course', 'class_obj', 'class_year', 'fee_category')
     def __str__(self):
         return f"{self.course.name} - {self.class_obj.name} ({self.class_year.name}) - {self.fee_category.name}"
+
+    def assign_to_class_students(self):
+        """Auto-assigns this fee structure's class_year and fee_category to all active students in class_obj."""
+        if not self.class_obj:
+            return 0
+        from applications.models import Admission
+        from django.db.models import Q
+        admissions_qs = Admission.objects.filter(
+            status='active'
+        ).filter(
+            Q(assigned_class=self.class_obj) | Q(assigned_class_year__class_obj=self.class_obj)
+        )
+        if self.course:
+            admissions_qs = admissions_qs.filter(selected_course=self.course)
+        if self.institute:
+            admissions_qs = admissions_qs.filter(
+                Q(application__institute=self.institute) | Q(selected_course__institute=self.institute)
+            )
+        if self.academic_year:
+            admissions_qs = admissions_qs.filter(
+                Q(application__academic_year=self.academic_year) | Q(application__academic_year__isnull=True)
+            )
+        return admissions_qs.update(
+            assigned_class=self.class_obj,
+            assigned_class_year=self.class_year,
+            assigned_fee_category=self.fee_category
+        )
 
 class FeeHead(models.Model):
     fee_structure = models.ForeignKey(FeeStructure, on_delete=models.CASCADE, related_name='heads')
