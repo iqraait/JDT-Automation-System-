@@ -4931,6 +4931,7 @@ def manage_student_fees(request, admission_id):
         effective_class = admission.assigned_class or (effective_class_year.class_obj if effective_class_year else None)
 
     all_class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True).select_related('class_obj')
+    class_years = all_class_years
 
     # Fee structures for dynamic matrix
     course_fee_structures = FeeStructure.objects.filter(
