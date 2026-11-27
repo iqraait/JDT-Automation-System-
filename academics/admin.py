@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Q
 from .models import (
     Course,
     CourseCategory,
@@ -573,12 +574,47 @@ class FeeStructureAdmin(admin.ModelAdmin):
     duplicate_selected_fee_structures.short_description = "Duplicate selected fee structures to another Year/Institute"
 
 
+class PaymentCollegeFilter(admin.SimpleListFilter):
+    title = 'Institute / College'
+    parameter_name = 'institute'
+
+    def lookups(self, request, model_admin):
+        from institutes.models import Institute
+        return [(inst.id, inst.name) for inst in Institute.objects.all().order_by('name')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(
+                Q(admission__selected_course__institute_id=self.value()) |
+                Q(admission__application__institute_id=self.value()) |
+                Q(fee_head__fee_structure__institute_id=self.value())
+            ).distinct()
+        return queryset
+
+
 @admin.register(StudentFeePayment)
 class StudentFeePaymentAdmin(admin.ModelAdmin):
-    list_display = ['receipt_number', 'admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no', 'is_cancelled']
-    list_filter = ['payment_mode', 'payment_date', 'is_cancelled']
-    search_fields = ['receipt_number', 'admission__register_number', 'admission__registration_id', 'reference_no']
+    list_display = ['receipt_number', 'display_admission', 'fee_head', 'amount_paid', 'fine_paid', 'payment_date', 'payment_mode', 'reference_no', 'is_cancelled']
+    list_filter = [PaymentCollegeFilter, 'payment_mode', 'payment_date', 'is_cancelled']
+    search_fields = [
+        'receipt_number',
+        'admission__registration_id',
+        'admission__register_number',
+        'admission__guardian_name',
+        'admission__application__field_values__value',
+        'admission__application__student__username',
+        'admission__application__student__first_name',
+        'reference_no'
+    ]
     actions = ['delete_selected_payments_and_restore_dues']
+
+    def display_admission(self, obj):
+        if not obj.admission:
+            return "-"
+        adm_no = obj.admission.registration_id or obj.admission.register_number or f"#{obj.admission.id}"
+        return f"{adm_no} - {obj.admission.student_name}"
+    display_admission.short_description = 'Admission (Adm No - Student Name)'
+    display_admission.admin_order_field = 'admission__registration_id'
 
     def delete_selected_payments_and_restore_dues(self, request, queryset):
         """Admin action to permanently delete selected payments and restore dues."""

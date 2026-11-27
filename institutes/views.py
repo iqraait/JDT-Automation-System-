@@ -4835,8 +4835,14 @@ def manage_student_fees(request, admission_id):
         class_year_id = request.POST.get('class_year_id')
         fee_category_id = request.POST.get('fee_category_id')
         custom_discount = request.POST.get('custom_discount')
+        selected_ay_id = request.POST.get('academic_year_id')
         if class_year_id:
             admission.assigned_class_year_id = class_year_id
+            # Preserve student's assigned_class if already present; do NOT change it
+            if not admission.assigned_class:
+                cy_obj = ClassYear.objects.filter(id=class_year_id).first()
+                if cy_obj:
+                    admission.assigned_class = cy_obj.class_obj
         else:
             admission.assigned_class_year = None
             
@@ -4854,16 +4860,13 @@ def manage_student_fees(request, admission_id):
             admission.custom_discount_percentage = None
             
         admission.save()
-        messages.success(request, f"Fee assignment updated for {admission.application.display_name}")
-        return redirect('manage_student_fees', admission_id=admission_id)
+        st_name = admission.student_name if hasattr(admission, 'student_name') else (admission.application.display_name if admission.application else 'Student')
+        messages.success(request, f"Fee assignment updated for {st_name}")
+        redirect_url = reverse('manage_student_fees', args=[admission_id])
+        if selected_ay_id:
+            redirect_url += f"?academic_year_id={selected_ay_id}"
+        return redirect(redirect_url)
         
-    # Dropdown fallback logic if class is optional/blank (pull course-level class years)
-    if admission.assigned_class:
-        class_years = ClassYear.objects.filter(class_obj=admission.assigned_class, is_active=True)
-    else:
-        class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True)
-    fee_categories = FeeCategoryMaster.objects.filter(is_active=True)
-    
     # Multi-Year Academic Year Filter
     academic_year_id = request.GET.get('academic_year_id')
     institute_academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
@@ -4873,6 +4876,59 @@ def manage_student_fees(request, admission_id):
         active_academic_year = AcademicYear.objects.filter(id=academic_year_id, institute=institute).first() or admission.application.academic_year
     else:
         active_academic_year = admission.application.academic_year or current_academic_year
+
+    # Dropdown logic: class years for student's course
+    if admission.assigned_class:
+        class_years = ClassYear.objects.filter(class_obj=admission.assigned_class, is_active=True)
+    else:
+        class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True)
+
+    # Fee structures for dynamic matrix
+    course_fee_structures = FeeStructure.objects.filter(
+        institute=institute,
+        course=admission.selected_course
+    ).select_related('academic_year', 'class_obj', 'class_year', 'fee_category')
+
+    structure_matrix = []
+    for fs in course_fee_structures:
+        structure_matrix.append({
+            'academic_year_id': fs.academic_year_id,
+            'class_year_id': fs.class_year_id,
+            'class_year_name': f"{fs.class_year.name} ({fs.class_obj.name})" if fs.class_year and fs.class_obj else (fs.class_year.name if fs.class_year else ""),
+            'class_id': fs.class_obj_id,
+            'class_name': fs.class_obj.name if fs.class_obj else "",
+            'fee_category_id': fs.fee_category_id,
+            'fee_category_name': fs.fee_category.name if fs.fee_category else "",
+            'discount_percentage': float(fs.fee_category.discount_percentage) if fs.fee_category else 0.0,
+        })
+    import json
+    structure_matrix_json = json.dumps(structure_matrix)
+
+    all_class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True).select_related('class_obj')
+    all_class_years_data = [{
+        'id': cy.id,
+        'name': f"{cy.name} ({cy.class_obj.name})" if cy.class_obj else cy.name,
+        'class_id': cy.class_obj_id,
+    } for cy in all_class_years]
+    all_class_years_json = json.dumps(all_class_years_data)
+
+    all_fee_categories = FeeCategoryMaster.objects.filter(is_active=True).order_by('name')
+    all_fee_categories_data = [{
+        'id': fcm.id,
+        'name': fcm.name,
+        'discount_percentage': float(fcm.discount_percentage)
+    } for fcm in all_fee_categories]
+    all_fee_categories_json = json.dumps(all_fee_categories_data)
+
+    # Filter fee categories for active selection
+    tagged_cat_ids = course_fee_structures.filter(
+        academic_year=active_academic_year,
+        class_year=admission.assigned_class_year
+    ).values_list('fee_category_id', flat=True).distinct()
+    if tagged_cat_ids.exists():
+        fee_categories = FeeCategoryMaster.objects.filter(id__in=tagged_cat_ids, is_active=True)
+    else:
+        fee_categories = all_fee_categories
 
     is_previous_year = bool(current_academic_year and active_academic_year and active_academic_year.id != current_academic_year.id)
     current_year_due = get_student_current_year_due(admission, current_academic_year, institute) if is_previous_year else 0.0
@@ -5065,6 +5121,9 @@ def manage_student_fees(request, admission_id):
         'previous_dues_total': previous_dues_total,
         'prev_year_dues_list': prev_year_dues_list,
         'today_date': datetime.date.today().strftime('%Y-%m-%d'),
+        'structure_matrix_json': structure_matrix_json,
+        'all_class_years_json': all_class_years_json,
+        'all_fee_categories_json': all_fee_categories_json,
     })
 
 

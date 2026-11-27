@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Q
 from .models import Application, FeeCategory, Admission, Payment, PaymentConfig, ApplicationFieldValue
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -75,11 +76,41 @@ class FeeCategoryAdmin(admin.ModelAdmin):
     list_filter = ['course', 'category_type']
 
 
+class AdmissionCollegeFilter(admin.SimpleListFilter):
+    title = 'Institute / College'
+    parameter_name = 'institute'
+
+    def lookups(self, request, model_admin):
+        from institutes.models import Institute
+        return [(inst.id, inst.name) for inst in Institute.objects.all().order_by('name')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(
+                Q(selected_course__institute_id=self.value()) |
+                Q(application__institute_id=self.value())
+            ).distinct()
+        return queryset
+
+
 @admin.register(Admission)
 class AdmissionAdmin(admin.ModelAdmin):
-    list_display = ['registration_id', 'guardian_name', 'selected_course', 'final_fee', 'date_of_join']
-    search_fields = ['registration_id', 'guardian_name', 'guardian_mobile']
-    list_filter = ['selected_course', 'date_of_join']
+    list_display = ['registration_id', 'get_student_name', 'guardian_name', 'selected_course', 'final_fee', 'date_of_join']
+    search_fields = [
+        'registration_id',
+        'register_number',
+        'guardian_name',
+        'guardian_mobile',
+        'application__field_values__value',
+        'application__student__username',
+        'application__student__first_name'
+    ]
+    list_filter = [AdmissionCollegeFilter, 'selected_course', 'date_of_join']
+
+    def get_student_name(self, obj):
+        return obj.student_name
+    get_student_name.short_description = 'Student Name'
+    get_student_name.admin_order_field = 'application__student__first_name'
 
 
 @admin.register(PaymentConfig)

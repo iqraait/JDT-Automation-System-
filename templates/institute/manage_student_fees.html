@@ -168,10 +168,20 @@
             <form method="POST" class="p-5 md:p-6 space-y-4">
                 {% csrf_token %}
                 
+                <!-- Academic Year Selection -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Academic Year</label>
+                    <select name="academic_year_id" id="assign_academic_year" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
+                        {% for ay in institute_academic_years %}
+                        <option value="{{ ay.id }}" {% if active_academic_year.id == ay.id %}selected{% endif %}>{{ ay.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <!-- Class Year Selection -->
                 <div class="space-y-1.5">
                     <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Assign Class Year / Semester</label>
-                    <select name="class_year_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
+                    <select name="class_year_id" id="assign_class_year" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
                         <option value="">-- Choose Active Term --</option>
                         {% for cy in class_years %}
                         <option value="{{ cy.id }}" {% if admission.assigned_class_year.id == cy.id %}selected{% endif %}>{{ cy.name }} ({{ cy.class_obj.name }})</option>
@@ -182,7 +192,7 @@
                 <!-- Fee Category Master -->
                 <div class="space-y-1.5">
                     <label class="block text-xs font-bold text-slate-700 pl-1 uppercase tracking-wider">Fee Category Structure</label>
-                    <select name="fee_category_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
+                    <select name="fee_category_id" id="assign_fee_category" class="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none cursor-pointer font-bold text-xs">
                         <option value="">-- Choose Billing Category --</option>
                         {% for fcm in fee_categories %}
                         <option value="{{ fcm.id }}" {% if admission.assigned_fee_category.id == fcm.id %}selected{% endif %}>{{ fcm.name }} ({{ fcm.discount_percentage }}% discount)</option>
@@ -1102,6 +1112,76 @@
             if (typeof closeTransferModal === "function") closeTransferModal();
         }
     };
+
+    // --- Dynamic Fee Structure Assignment Filter ---
+    const structureMatrix = {{ structure_matrix_json|default:"[]"|safe }};
+    const allClassYears = {{ all_class_years_json|default:"[]"|safe }};
+    const allFeeCategories = {{ all_fee_categories_json|default:"[]"|safe }};
+    const currentAssignedCatId = "{{ admission.assigned_fee_category_id|default:'' }}";
+
+    function updateFeeStructureControls(triggeredBy) {
+        const aySelect = document.getElementById('assign_academic_year');
+        const cySelect = document.getElementById('assign_class_year');
+        const catSelect = document.getElementById('assign_fee_category');
+        if (!aySelect || !cySelect || !catSelect) return;
+
+        const selectedAy = parseInt(aySelect.value) || 0;
+        const selectedCy = parseInt(cySelect.value) || 0;
+
+        if (triggeredBy === 'ay') {
+            const availableCyIds = new Set(
+                structureMatrix
+                    .filter(m => m.academic_year_id === selectedAy)
+                    .map(m => m.class_year_id)
+            );
+
+            const prevCyVal = cySelect.value;
+            let cyOptions = '<option value="">-- Choose Active Term --</option>';
+            
+            allClassYears.forEach(cy => {
+                const isTagged = availableCyIds.has(cy.id);
+                const tagLabel = (availableCyIds.size > 0 && !isTagged) ? ' (No Struct)' : '';
+                const selected = (prevCyVal == cy.id) ? 'selected' : '';
+                cyOptions += `<option value="${cy.id}" ${selected}>${cy.name}${tagLabel}</option>`;
+            });
+            cySelect.innerHTML = cyOptions;
+        }
+
+        const currentCyVal = parseInt(cySelect.value) || 0;
+        const taggedCats = structureMatrix.filter(m => 
+            (!selectedAy || m.academic_year_id === selectedAy) && 
+            (!currentCyVal || m.class_year_id === currentCyVal)
+        );
+
+        const prevCatVal = catSelect.value || currentAssignedCatId;
+        let catOptions = '<option value="">-- Choose Billing Category --</option>';
+
+        if (taggedCats.length > 0) {
+            const seenCatIds = new Set();
+            taggedCats.forEach(tc => {
+                if (!seenCatIds.has(tc.fee_category_id)) {
+                    seenCatIds.add(tc.fee_category_id);
+                    const selected = (prevCatVal == tc.fee_category_id) ? 'selected' : '';
+                    catOptions += `<option value="${tc.fee_category_id}" ${selected}>${tc.fee_category_name} (${tc.discount_percentage.toFixed(2)}% discount)</option>`;
+                }
+            });
+        } else {
+            allFeeCategories.forEach(fcm => {
+                const selected = (prevCatVal == fcm.id) ? 'selected' : '';
+                catOptions += `<option value="${fcm.id}" ${selected}>${fcm.name} (${fcm.discount_percentage.toFixed(2)}% discount)</option>`;
+            });
+        }
+        catSelect.innerHTML = catOptions;
+    }
+
+    const aySelectElem = document.getElementById('assign_academic_year');
+    const cySelectElem = document.getElementById('assign_class_year');
+    if (aySelectElem) {
+        aySelectElem.addEventListener('change', () => updateFeeStructureControls('ay'));
+    }
+    if (cySelectElem) {
+        cySelectElem.addEventListener('change', () => updateFeeStructureControls('cy'));
+    }
 </script>
 
 {% include 'institute/transfer_due_modal.html' %}

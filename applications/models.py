@@ -490,8 +490,15 @@ class Admission(models.Model):
             
         super().save(*args, **kwargs)
 
+    @property
+    def student_name(self):
+        if self.application and self.application.display_name:
+            return self.application.display_name
+        return self.guardian_name or "-"
+
     def __str__(self):
-        return f"{self.register_number or self.registration_id} - {self.guardian_name}"
+        adm_no = self.registration_id or self.register_number or f"#{self.id}"
+        return f"{adm_no} - {self.student_name}"
 
 
 # ✅ TRASHED STUDENT TRUST TABLE (BACKEND ARCHIVE FOR READMISSION)
