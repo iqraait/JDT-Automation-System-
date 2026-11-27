@@ -24,7 +24,8 @@ from .models import (
     FeeHead,
     StudentFeePayment,
     FeeRefundRequest,
-    FeeRefundRequestItem
+    FeeRefundRequestItem,
+    StudentAcademicYearFee
 )
 
 
@@ -656,4 +657,12 @@ class FeeRefundRequestAdmin(admin.ModelAdmin):
     list_filter = ['status', 'institute', 'requested_at']
     search_fields = ['admission__register_number', 'admission__registration_id', 'reason', 'cancellation_reason']
     inlines = [FeeRefundRequestItemInline]
+
+
+@admin.register(StudentAcademicYearFee)
+class StudentAcademicYearFeeAdmin(admin.ModelAdmin):
+    list_display = ['admission', 'academic_year', 'assigned_class', 'assigned_class_year', 'assigned_fee_category', 'custom_discount_percentage', 'updated_at']
+    list_filter = ['academic_year', 'assigned_class', 'assigned_fee_category']
+    search_fields = ['admission__registration_id', 'admission__register_number', 'admission__guardian_name']
+
 

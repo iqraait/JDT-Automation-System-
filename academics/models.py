@@ -601,4 +601,32 @@ class AcademicEvent(models.Model):
         return f"{self.title} ({self.start_date})"
 
 
+# ✅ STUDENT ACADEMIC YEAR FEE ASSIGNMENT (PERSISTENT PER ACADEMIC YEAR)
+class StudentAcademicYearFee(models.Model):
+    admission = models.ForeignKey('applications.Admission', on_delete=models.CASCADE, related_name='academic_year_fees')
+    academic_year = models.ForeignKey('institutes.AcademicYear', on_delete=models.CASCADE, related_name='student_academic_fees')
+    assigned_class = models.ForeignKey(Class, on_delete=models.SET_NULL, null=True, blank=True, related_name='student_academic_fees')
+    assigned_class_year = models.ForeignKey(ClassYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='student_academic_fees')
+    assigned_fee_category = models.ForeignKey(FeeCategoryMaster, on_delete=models.SET_NULL, null=True, blank=True, related_name='student_academic_fees')
+    custom_discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Overrides fee category discount head percentage if set"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Student Academic Year Fee Assignment"
+        verbose_name_plural = "Student Academic Year Fee Assignments"
+        unique_together = ('admission', 'academic_year')
+
+    def __str__(self):
+        ay_name = self.academic_year.name if self.academic_year else "No Year"
+        return f"{self.admission} [{ay_name}]"
+
+
+
 

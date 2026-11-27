@@ -4552,17 +4552,22 @@ def get_student_previous_year_dues(admission, current_academic_year, institute):
     if not other_years.exists():
         return 0.0, []
 
+    from academics.models import StudentAcademicYearFee
     for prev_yr in other_years:
+        prev_year_fee = StudentAcademicYearFee.objects.filter(admission=admission, academic_year=prev_yr).first()
+        prev_cat = prev_year_fee.assigned_fee_category if prev_year_fee else admission.assigned_fee_category
+        prev_disc = prev_year_fee.custom_discount_percentage if (prev_year_fee and prev_year_fee.custom_discount_percentage is not None) else admission.custom_discount_percentage
+
         prev_struct = FeeStructure.objects.filter(
             academic_year=prev_yr,
             institute=institute,
             course=admission.selected_course,
-            fee_category=admission.assigned_fee_category
+            fee_category=prev_cat
         ).first()
         
         if prev_struct:
             for phead in prev_struct.heads.filter(is_active=True).exclude(fee_type__name="Previous Year Dues / Arrears"):
-                p_disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and phead.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and phead.fee_type.is_discountable) else 0)
+                p_disc_pct = prev_disc if (prev_disc is not None and phead.fee_type.is_discountable) else (prev_cat.discount_percentage if (prev_cat and phead.fee_type.is_discountable) else 0)
                 p_disc_amt = float(phead.amount) * (1 - float(p_disc_pct or 0) / 100)
                 p_payments = StudentFeePayment.objects.filter(admission=admission, fee_head=phead, is_cancelled=False)
                 p_paid = sum(float(p.amount_paid) for p in p_payments)
@@ -4597,16 +4602,22 @@ def get_student_current_year_due(admission, current_academic_year, institute):
     """
     if not admission or not current_academic_year or not admission.selected_course:
         return 0.0
-    active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
-    if not active_class or not admission.assigned_class_year or not admission.assigned_fee_category:
+    from academics.models import StudentAcademicYearFee
+    current_year_fee = StudentAcademicYearFee.objects.filter(admission=admission, academic_year=current_academic_year).first()
+    curr_cat = current_year_fee.assigned_fee_category if current_year_fee else admission.assigned_fee_category
+    curr_cy = current_year_fee.assigned_class_year if current_year_fee else admission.assigned_class_year
+    curr_cls = current_year_fee.assigned_class if (current_year_fee and current_year_fee.assigned_class) else (admission.assigned_class or (curr_cy.class_obj if curr_cy else None))
+    curr_disc = current_year_fee.custom_discount_percentage if (current_year_fee and current_year_fee.custom_discount_percentage is not None) else admission.custom_discount_percentage
+
+    if not curr_cls or not curr_cy or not curr_cat:
         return 0.0
     struct = FeeStructure.objects.filter(
         academic_year=current_academic_year,
         institute=institute,
         course=admission.selected_course,
-        class_obj=active_class,
-        class_year=admission.assigned_class_year,
-        fee_category=admission.assigned_fee_category
+        class_obj=curr_cls,
+        class_year=curr_cy,
+        fee_category=curr_cat
     ).first()
     if not struct:
         return 0.0
@@ -4627,7 +4638,7 @@ def get_student_current_year_due(admission, current_academic_year, institute):
             paid = sum(float(p.amount_paid) for p in payments)
             total_due += max(0.0, head_demand - paid)
         else:
-            disc_pct = admission.custom_discount_percentage if (admission.custom_discount_percentage is not None and head.fee_type.is_discountable) else (admission.assigned_fee_category.discount_percentage if (admission.assigned_fee_category and head.fee_type.is_discountable) else 0)
+            disc_pct = curr_disc if (curr_disc is not None and head.fee_type.is_discountable) else (curr_cat.discount_percentage if (curr_cat and head.fee_type.is_discountable) else 0)
             disc_amt = float(head.amount) * (1 - float(disc_pct or 0) / 100)
             payments = StudentFeePayment.objects.filter(admission=admission, fee_head=head, is_cancelled=False).exclude(reference_no='ROLLOVER-DEMAND')
             paid = sum(float(p.amount_paid) for p in payments)
@@ -4832,57 +4843,94 @@ def manage_student_fees(request, admission_id):
     if adm_institute and (request.user.is_superuser or adm_institute in accessible):
         institute = adm_institute
     
-    if request.method == 'POST':
-        class_year_id = request.POST.get('class_year_id')
-        fee_category_id = request.POST.get('fee_category_id')
-        custom_discount = request.POST.get('custom_discount')
-        selected_ay_id = request.POST.get('academic_year_id')
-        if class_year_id:
-            admission.assigned_class_year_id = class_year_id
-            # Preserve student's assigned_class if already present; do NOT change it
-            if not admission.assigned_class:
-                cy_obj = ClassYear.objects.filter(id=class_year_id).first()
-                if cy_obj:
-                    admission.assigned_class = cy_obj.class_obj
-        else:
-            admission.assigned_class_year = None
-            
-        if fee_category_id:
-            admission.assigned_fee_category_id = fee_category_id
-        else:
-            admission.assigned_fee_category = None
-            
-        if custom_discount:
-            try:
-                admission.custom_discount_percentage = float(custom_discount)
-            except ValueError:
-                pass
-        else:
-            admission.custom_discount_percentage = None
-            
-        admission.save()
-        st_name = admission.student_name if hasattr(admission, 'student_name') else (admission.application.display_name if admission.application else 'Student')
-        messages.success(request, f"Fee assignment updated for {st_name}")
-        redirect_url = reverse('manage_student_fees', args=[admission_id])
-        if selected_ay_id:
-            redirect_url += f"?academic_year_id={selected_ay_id}"
-        return redirect(redirect_url)
-        
     # Multi-Year Academic Year Filter
     academic_year_id = request.GET.get('academic_year_id')
     institute_academic_years = AcademicYear.objects.filter(institute=institute).order_by('-name')
     current_academic_year = AcademicYear.objects.filter(institute=institute, is_active=True).order_by('-name').first() or institute_academic_years.first()
     
     if academic_year_id:
-        active_academic_year = AcademicYear.objects.filter(id=academic_year_id, institute=institute).first() or admission.application.academic_year
+        active_academic_year = AcademicYear.objects.filter(id=academic_year_id, institute=institute).first() or current_academic_year
     else:
-        active_academic_year = admission.application.academic_year or current_academic_year
+        # Load active academic year by default
+        active_academic_year = current_academic_year
 
-    # Dropdown logic: class years for student's course
-    if admission.assigned_class:
-        class_years = ClassYear.objects.filter(class_obj=admission.assigned_class, is_active=True)
+    if request.method == 'POST':
+        class_year_id = request.POST.get('class_year_id')
+        fee_category_id = request.POST.get('fee_category_id')
+        custom_discount = request.POST.get('custom_discount')
+        selected_ay_id = request.POST.get('academic_year_id')
+        
+        target_ay = None
+        if selected_ay_id:
+            target_ay = AcademicYear.objects.filter(id=selected_ay_id, institute=institute).first()
+        if not target_ay:
+            target_ay = active_academic_year or current_academic_year
+            
+        cy_obj = ClassYear.objects.filter(id=class_year_id).select_related('class_obj').first() if class_year_id else None
+        fcm_obj = FeeCategoryMaster.objects.filter(id=fee_category_id).first() if fee_category_id else None
+        
+        custom_disc_val = None
+        if custom_discount:
+            try:
+                custom_disc_val = float(custom_discount)
+            except ValueError:
+                pass
+                
+        # 1. Save or update PER ACADEMIC YEAR assignment
+        from academics.models import StudentAcademicYearFee
+        if target_ay:
+            assigned_cls = cy_obj.class_obj if cy_obj else admission.assigned_class
+            StudentAcademicYearFee.objects.update_or_create(
+                admission=admission,
+                academic_year=target_ay,
+                defaults={
+                    'assigned_class': assigned_cls,
+                    'assigned_class_year': cy_obj,
+                    'assigned_fee_category': fcm_obj,
+                    'custom_discount_percentage': custom_disc_val,
+                }
+            )
+
+        # 2. Only sync base Admission if this target_ay is current active year
+        if not target_ay or (current_academic_year and target_ay.id == current_academic_year.id):
+            if cy_obj:
+                admission.assigned_class_year = cy_obj
+                if not admission.assigned_class:
+                    admission.assigned_class = cy_obj.class_obj
+            else:
+                admission.assigned_class_year = None
+                
+            admission.assigned_fee_category = fcm_obj
+            admission.custom_discount_percentage = custom_disc_val
+            admission.save()
+
+        st_name = admission.student_name if hasattr(admission, 'student_name') else (admission.application.display_name if admission.application else 'Student')
+        messages.success(request, f"Fee assignment updated for {st_name} ({target_ay.name if target_ay else ''})")
+        redirect_url = reverse('manage_student_fees', args=[admission_id])
+        if target_ay:
+            redirect_url += f"?academic_year_id={target_ay.id}"
+        return redirect(redirect_url)
+        
+    # Fetch year-specific fee assignment for active_academic_year
+    from academics.models import StudentAcademicYearFee
+    year_fee_assignment = StudentAcademicYearFee.objects.filter(
+        admission=admission,
+        academic_year=active_academic_year
+    ).select_related('assigned_class', 'assigned_class_year', 'assigned_fee_category').first()
+
+    if year_fee_assignment:
+        effective_class_year = year_fee_assignment.assigned_class_year
+        effective_fee_category = year_fee_assignment.assigned_fee_category
+        effective_custom_discount = year_fee_assignment.custom_discount_percentage
+        effective_class = year_fee_assignment.assigned_class or (effective_class_year.class_obj if effective_class_year else admission.assigned_class)
     else:
-        class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True)
+        # Fallback to admission defaults if no year-specific record exists yet
+        effective_class_year = admission.assigned_class_year
+        effective_fee_category = admission.assigned_fee_category
+        effective_custom_discount = admission.custom_discount_percentage
+        effective_class = admission.assigned_class or (effective_class_year.class_obj if effective_class_year else None)
+
+    all_class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True).select_related('class_obj')
 
     # Fee structures for dynamic matrix
     course_fee_structures = FeeStructure.objects.filter(
@@ -4905,7 +4953,6 @@ def manage_student_fees(request, admission_id):
     import json
     structure_matrix_json = json.dumps(structure_matrix)
 
-    all_class_years = ClassYear.objects.filter(class_obj__course=admission.selected_course, is_active=True).select_related('class_obj')
     all_class_years_data = [{
         'id': cy.id,
         'name': f"{cy.name} ({cy.class_obj.name})" if cy.class_obj else cy.name,
@@ -4924,7 +4971,7 @@ def manage_student_fees(request, admission_id):
     # Filter fee categories for active selection
     tagged_cat_ids = course_fee_structures.filter(
         academic_year=active_academic_year,
-        class_year=admission.assigned_class_year
+        class_year=effective_class_year
     ).values_list('fee_category_id', flat=True).distinct()
     if tagged_cat_ids.exists():
         fee_categories = FeeCategoryMaster.objects.filter(id__in=tagged_cat_ids, is_active=True)
@@ -4941,17 +4988,14 @@ def manage_student_fees(request, admission_id):
     total_pending = 0.0
     total_fine = 0.0
     
-    # Active Class Resolution fallback
-    active_class = admission.assigned_class or (admission.assigned_class_year.class_obj if admission.assigned_class_year else None)
-    
-    if active_class and admission.assigned_class_year and admission.assigned_fee_category:
+    if effective_class and effective_class_year and effective_fee_category:
         structure = FeeStructure.objects.filter(
             academic_year=active_academic_year,
             institute=institute,
             course=admission.selected_course,
-            class_obj=active_class,
-            class_year=admission.assigned_class_year,
-            fee_category=admission.assigned_fee_category
+            class_obj=effective_class,
+            class_year=effective_class_year,
+            fee_category=effective_fee_category
         ).first()
         
         if structure:
@@ -4981,7 +5025,7 @@ def manage_student_fees(request, admission_id):
                         continue
                 else:
                     if head.fee_type.is_discountable:
-                        discount_pct = admission.custom_discount_percentage if admission.custom_discount_percentage is not None else admission.assigned_fee_category.discount_percentage
+                        discount_pct = effective_custom_discount if effective_custom_discount is not None else (effective_fee_category.discount_percentage if effective_fee_category else 0)
                         discount_pct = discount_pct or 0
                     else:
                         discount_pct = 0
@@ -5122,6 +5166,11 @@ def manage_student_fees(request, admission_id):
         'previous_dues_total': previous_dues_total,
         'prev_year_dues_list': prev_year_dues_list,
         'today_date': datetime.date.today().strftime('%Y-%m-%d'),
+        'effective_class_year': effective_class_year,
+        'effective_fee_category': effective_fee_category,
+        'effective_custom_discount': effective_custom_discount,
+        'effective_class': effective_class,
+        'all_class_years': all_class_years,
         'structure_matrix_json': structure_matrix_json,
         'all_class_years_json': all_class_years_json,
         'all_fee_categories_json': all_fee_categories_json,
