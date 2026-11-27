@@ -2245,11 +2245,8 @@ def admin_overall_dashboard(request):
     elif active_year_param:
         active_year = academic_years.filter(id=clean_id_param(active_year_param)).first()
     else:
-        # Default to the academic year with existing admissions/students, or the active year
-        year_with_admissions = academic_years.filter(
-            id__in=Admission.objects.filter(application__institute=institute).values_list('application__academic_year_id', flat=True)
-        ).first()
-        active_year = year_with_admissions or academic_years.filter(is_active=True).first() or academic_years.first()
+        # Default to the currently active academic year
+        active_year = academic_years.filter(is_active=True).first() or academic_years.first()
 
     today = timezone.now().date()
 
@@ -4876,7 +4873,9 @@ def manage_student_fees(request, admission_id):
             except ValueError:
                 pass
                 
-        # 1. Save or update PER ACADEMIC YEAR assignment
+        # 1. Save or update PER ACADEMIC YEAR fee assignment only
+        # Crucial: Do NOT modify admission.assigned_class or admission.assigned_class_year!
+        # Those remain strictly what was tagged at the time of student registration so student profile is never altered.
         from academics.models import StudentAcademicYearFee
         if target_ay:
             assigned_cls = cy_obj.class_obj if cy_obj else admission.assigned_class
@@ -4890,19 +4889,6 @@ def manage_student_fees(request, admission_id):
                     'custom_discount_percentage': custom_disc_val,
                 }
             )
-
-        # 2. Only sync base Admission if this target_ay is current active year
-        if not target_ay or (current_academic_year and target_ay.id == current_academic_year.id):
-            if cy_obj:
-                admission.assigned_class_year = cy_obj
-                if not admission.assigned_class:
-                    admission.assigned_class = cy_obj.class_obj
-            else:
-                admission.assigned_class_year = None
-                
-            admission.assigned_fee_category = fcm_obj
-            admission.custom_discount_percentage = custom_disc_val
-            admission.save()
 
         st_name = admission.student_name if hasattr(admission, 'student_name') else (admission.application.display_name if admission.application else 'Student')
         messages.success(request, f"Fee assignment updated for {st_name} ({target_ay.name if target_ay else ''})")
